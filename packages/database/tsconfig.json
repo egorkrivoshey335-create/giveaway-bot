@@ -1,0 +1,9 @@
+{
+  "extends": "@randombeast/config/tsconfig/base",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "./dist"
+  },
+  "include": ["src/**/*", "prisma/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

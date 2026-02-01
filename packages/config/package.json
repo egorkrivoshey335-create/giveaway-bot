@@ -1,0 +1,10 @@
+{
+  "name": "@randombeast/config",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    "./eslint/base": "./eslint/base.cjs",
+    "./tsconfig/base": "./tsconfig/base.json",
+    "./prettier/base": "./prettier/base.cjs"
+  }
+}

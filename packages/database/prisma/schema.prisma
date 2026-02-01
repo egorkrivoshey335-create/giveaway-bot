@@ -1,0 +1,431 @@
+// RandomBeast Database Schema
+// PostgreSQL + Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// Enums
+// =============================================================================
+
+enum LanguageCode {
+  RU
+  EN
+  KK
+}
+
+enum ChannelType {
+  CHANNEL
+  GROUP
+}
+
+enum MediaType {
+  NONE
+  PHOTO
+  VIDEO
+}
+
+enum GiveawayStatus {
+  DRAFT
+  PENDING_CONFIRM
+  SCHEDULED
+  ACTIVE
+  FINISHED
+  CANCELLED
+  ERROR
+}
+
+enum GiveawayType {
+  STANDARD
+  BOOST_REQUIRED
+  INVITE_REQUIRED
+  CUSTOM
+}
+
+enum ParticipationStatus {
+  JOINED
+  FAILED_CAPTCHA
+  FAILED_SUBSCRIPTION
+  BANNED
+}
+
+enum CaptchaMode {
+  OFF
+  SUSPICIOUS_ONLY
+  ALL
+}
+
+enum PublishResultsMode {
+  SEPARATE_POSTS
+  EDIT_START_POST
+}
+
+enum ProductType {
+  SUBSCRIPTION
+  ONE_TIME
+}
+
+enum PurchaseStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PurchaseProvider {
+  YOOKASSA
+}
+
+enum GiveawayMessageKind {
+  START
+  RESULTS
+}
+
+enum StoryRequestStatus {
+  PENDING   // Ожидает проверки
+  APPROVED  // Одобрено
+  REJECTED  // Отклонено
+}
+
+// =============================================================================
+// Models
+// =============================================================================
+
+model User {
+  id             String       @id @default(uuid())
+  telegramUserId BigInt       @unique
+  username       String?
+  firstName      String?
+  lastName       String?
+  language       LanguageCode @default(RU)
+  isPremium      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  channels       Channel[]
+  postTemplates  PostTemplate[]
+  giveaways      Giveaway[]
+  participations Participation[]
+  referrals      Participation[]  @relation("Referrer")
+  purchases      Purchase[]
+  entitlements   Entitlement[]
+  wins           Winner[]
+  storyReviews   StoryRequest[]   @relation("StoryReviewer") // Проверенные заявки на сторис
+
+  @@index([telegramUserId])
+}
+
+model Channel {
+  id                  String      @id @default(uuid())
+  telegramChatId      BigInt      @unique
+  username            String?     @unique
+  title               String
+  type                ChannelType
+  addedByUserId       String
+  addedBy             User        @relation(fields: [addedByUserId], references: [id])
+  botIsAdmin          Boolean     @default(false)
+  creatorIsAdmin      Boolean     @default(false)
+  permissionsSnapshot Json?
+  memberCount         Int?
+  lastCheckedAt       DateTime?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  // Relations
+  requiredSubscriptions GiveawayRequiredSubscription[]
+  publishChannels       GiveawayPublishChannel[]
+  resultsChannels       GiveawayResultsChannel[]
+  giveawayMessages      GiveawayMessage[]
+
+  @@index([telegramChatId])
+  @@index([addedByUserId])
+}
+
+model PostTemplate {
+  id                   String    @id @default(uuid())
+  ownerUserId          String
+  owner                User      @relation(fields: [ownerUserId], references: [id])
+  name                 String?
+  text                 String
+  mediaType            MediaType @default(NONE)
+  telegramFileId       String?
+  telegramFileUniqueId String?
+  mediaNeedsReupload   Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  deletedAt            DateTime?
+
+  // Relations
+  giveaways Giveaway[]
+
+  @@index([ownerUserId])
+}
+
+model Giveaway {
+  id                 String             @id @default(uuid())
+  ownerUserId        String
+  owner              User               @relation(fields: [ownerUserId], references: [id])
+  title              String             @default("")
+  description        String?
+  language           LanguageCode       @default(RU)
+  type               GiveawayType       @default(STANDARD)
+  status             GiveawayStatus     @default(DRAFT)
+  postTemplateId     String?
+  postTemplate       PostTemplate?      @relation(fields: [postTemplateId], references: [id])
+  startAt            DateTime?
+  endAt              DateTime?
+  timezone           String             @default("Europe/Moscow")
+  winnersCount       Int                @default(1)
+  reserveWinnersCount Int               @default(0)
+  buttonText         String?
+  publishResultsMode PublishResultsMode @default(SEPARATE_POSTS)
+  isPublicInCatalog  Boolean            @default(false)
+  totalParticipants  Int                @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  // Draft wizard fields (only used when status = DRAFT)
+  wizardStep         String?            // Current step in wizard: "basics", "conditions", "channels", "preview"
+  draftPayload       Json?              // Temporary wizard data
+  draftVersion       Int                @default(1)
+
+  // Relations
+  condition             GiveawayCondition?
+  requiredSubscriptions GiveawayRequiredSubscription[]
+  publishChannels       GiveawayPublishChannel[]
+  resultsChannels       GiveawayResultsChannel[]
+  messages              GiveawayMessage[]
+  participations        Participation[]
+  customTasks           GiveawayCustomTask[]
+  winners               Winner[]
+
+  @@index([ownerUserId])
+  @@index([status])
+  @@index([status, endAt])
+  @@index([status, startAt])
+  @@index([ownerUserId, status])
+}
+
+model GiveawayCondition {
+  id              String      @id @default(uuid())
+  giveawayId      String      @unique
+  giveaway        Giveaway    @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  captchaMode     CaptchaMode @default(SUSPICIOUS_ONLY)
+  boostRequired   Boolean     @default(false)
+  boostEnabled    Boolean     @default(false)  // Дополнительные билеты за бусты
+  boostChannelIds String[]    @default([])     // ID каналов для бустов
+  inviteEnabled   Boolean     @default(false)
+  inviteMax       Int?
+  storiesEnabled  Boolean     @default(false)
+  livenessEnabled Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model GiveawayCustomTask {
+  id           String   @id @default(uuid())
+  giveawayId   String
+  giveaway     Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  title        String
+  url          String
+  bonusTickets Int      @default(0)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@index([giveawayId])
+}
+
+// Join table: Required subscriptions for giveaway
+model GiveawayRequiredSubscription {
+  id         String   @id @default(uuid())
+  giveawayId String
+  giveaway   Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  channelId  String
+  channel    Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([giveawayId, channelId])
+  @@index([giveawayId])
+  @@index([channelId])
+}
+
+// Join table: Channels to publish giveaway to
+model GiveawayPublishChannel {
+  id         String   @id @default(uuid())
+  giveawayId String
+  giveaway   Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  channelId  String
+  channel    Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([giveawayId, channelId])
+  @@index([giveawayId])
+  @@index([channelId])
+}
+
+// Join table: Channels to send results to
+model GiveawayResultsChannel {
+  id         String   @id @default(uuid())
+  giveawayId String
+  giveaway   Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  channelId  String
+  channel    Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([giveawayId, channelId])
+  @@index([giveawayId])
+  @@index([channelId])
+}
+
+model GiveawayMessage {
+  id                String              @id @default(uuid())
+  giveawayId        String
+  giveaway          Giveaway            @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  channelId         String
+  channel           Channel             @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  kind              GiveawayMessageKind
+  telegramMessageId Int
+  createdAt         DateTime            @default(now())
+
+  @@index([giveawayId])
+  @@index([channelId])
+}
+
+model Participation {
+  id                 String              @id @default(uuid())
+  giveawayId         String
+  giveaway           Giveaway            @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  userId             String
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status             ParticipationStatus @default(JOINED)
+  joinedAt           DateTime            @default(now())
+  ticketsBase        Int                 @default(1)
+  ticketsExtra       Int                 @default(0)
+  sourceTag          String?
+  referrerUserId     String?
+  referrer           User?               @relation("Referrer", fields: [referrerUserId], references: [id])
+  conditionsSnapshot Json?
+  fraudScore         Int                 @default(0)
+  boostedChannelIds  String[]            @default([]) // ID каналов, которые забустил участник
+  boostsSnapshot     Json?               // Снапшот данных о бустах {channelId: boostCount}
+  storiesShared      Boolean             @default(false) // Поделился ли в сторис (deprecated, использовать storyRequest)
+  storiesSharedAt    DateTime?           // Когда поделился в сторис (deprecated)
+  storyRequest       StoryRequest?       // Заявка на проверку сторис
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@unique([giveawayId, userId])
+  @@index([giveawayId])
+  @@index([userId])
+  @@index([referrerUserId])
+}
+
+// Заявка на проверку публикации в сторис
+model StoryRequest {
+  id              String             @id @default(uuid())
+  participationId String             @unique
+  participation   Participation      @relation(fields: [participationId], references: [id], onDelete: Cascade)
+  status          StoryRequestStatus @default(PENDING)
+  submittedAt     DateTime           @default(now())
+  reviewedAt      DateTime?          // Когда проверили
+  reviewedBy      String?            // userId модератора
+  reviewer        User?              @relation("StoryReviewer", fields: [reviewedBy], references: [id])
+  rejectReason    String?            // Причина отклонения (опционально)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([participationId])
+  @@index([status])
+}
+
+// =============================================================================
+// Payment Models
+// =============================================================================
+
+model Product {
+  id             String      @id @default(uuid())
+  code           String      @unique
+  title          String
+  description    String?
+  price          Int         // Price in minor units (kopecks for RUB)
+  currency       String      @default("RUB")
+  periodDays     Int?        // For subscriptions
+  type           ProductType
+  entitlementCode String     // What entitlement this grants
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  // Relations
+  purchases Purchase[]
+
+  @@index([code])
+  @@index([isActive])
+}
+
+model Purchase {
+  id         String           @id @default(uuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id])
+  productId  String
+  product    Product          @relation(fields: [productId], references: [id])
+  status     PurchaseStatus   @default(PENDING)
+  provider   PurchaseProvider @default(YOOKASSA)
+  externalId String?          // Payment ID from provider
+  amount     Int              // Amount in minor units
+  currency   String           @default("RUB")
+  metadata   Json?
+  paidAt     DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([productId])
+  @@index([externalId])
+  @@index([status])
+}
+
+model Entitlement {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  code       String    // e.g., "catalog.access"
+  sourceType String    // "purchase", "promo", "manual"
+  sourceId   String?   // Purchase ID or promo code
+  expiresAt  DateTime? // null = permanent
+  metadata   Json?
+  createdAt  DateTime  @default(now())
+  revokedAt  DateTime?
+
+  @@index([userId])
+  @@index([userId, code])
+  @@index([expiresAt])
+}
+
+// =============================================================================
+// Winner Model
+// =============================================================================
+
+model Winner {
+  id          String   @id @default(uuid())
+  giveawayId  String
+  giveaway    Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  place       Int      // Место победителя (1, 2, 3...)
+  ticketsUsed Int      // Сколько билетов было у участника
+  selectedAt  DateTime @default(now())
+  notifiedAt  DateTime? // Когда отправлено уведомление
+
+  @@unique([giveawayId, userId])
+  @@unique([giveawayId, place])
+  @@index([giveawayId])
+  @@index([userId])
+}

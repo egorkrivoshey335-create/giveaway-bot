@@ -1,0 +1,34 @@
+{
+  "name": "randombeast",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "db:generate": "pnpm --filter @randombeast/database generate",
+    "db:migrate": "pnpm --filter @randombeast/database migrate",
+    "db:migrate:deploy": "pnpm --filter @randombeast/database migrate:deploy",
+    "db:push": "pnpm --filter @randombeast/database push",
+    "db:seed": "pnpm --filter @randombeast/database seed",
+    "db:studio": "pnpm --filter @randombeast/database studio"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "prettier": "^3.2.4",
+    "turbo": "^2.3.0",
+    "typescript": "^5.3.3"
+  }
+}
