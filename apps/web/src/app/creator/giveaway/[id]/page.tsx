@@ -11,6 +11,7 @@ import {
   GiveawayStats,
   GiveawayParticipant,
 } from '@/lib/api';
+import { InlineToast } from '@/components/Toast';
 
 type TabType = 'overview' | 'participants' | 'winners' | 'stories';
 
@@ -200,13 +201,7 @@ export default function GiveawayDetailsPage() {
         </div>
 
         {/* Сообщение */}
-        {message && (
-          <div className={`mb-4 p-3 rounded-lg text-center ${
-            message.startsWith('✅') ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'
-          }`}>
-            {message}
-          </div>
-        )}
+        <InlineToast message={message} onClose={() => setMessage(null)} />
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">

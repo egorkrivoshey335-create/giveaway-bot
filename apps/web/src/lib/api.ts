@@ -259,6 +259,22 @@ export async function deleteChannel(id: string): Promise<AuthResponse> {
   return response.json();
 }
 
+/**
+ * Recheck channel status (bot/creator admin)
+ */
+export async function recheckChannel(id: string): Promise<ChannelResponse> {
+  const response = await fetch(`${API_URL}/channels/${id}/recheck`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({}),
+    credentials: 'include',
+  });
+
+  return response.json();
+}
+
 // =============================================================================
 // Post Templates API
 // =============================================================================
@@ -1126,6 +1142,70 @@ interface DeleteResponse {
 export async function deleteGiveaway(giveawayId: string): Promise<DeleteResponse> {
   const response = await fetch(`${API_URL}/giveaways/${giveawayId}`, {
     method: 'DELETE',
+    credentials: 'include',
+  });
+
+  return response.json();
+}
+
+// =============================================================================
+// Раздел "Участник" — мои участия в розыгрышах
+// =============================================================================
+
+export type ParticipationFilterStatus = 'all' | 'active' | 'finished' | 'won' | 'cancelled';
+
+export interface MyParticipation {
+  id: string;
+  giveaway: {
+    id: string;
+    title: string;
+    status: string;
+    endAt: string | null;
+    winnersCount: number;
+    participantsCount: number;
+    postTemplate: {
+      text: string;
+      mediaType: string;
+    } | null;
+  };
+  ticketsBase: number;
+  ticketsExtra: number;
+  totalTickets: number;
+  joinedAt: string;
+  isWinner: boolean;
+  winnerPlace: number | null;
+}
+
+interface MyParticipationsResponse {
+  ok: boolean;
+  participations?: MyParticipation[];
+  counts?: {
+    all: number;
+    active: number;
+    finished: number;
+    won: number;
+    cancelled: number;
+  };
+  total?: number;
+  hasMore?: boolean;
+  error?: string;
+}
+
+/**
+ * Получить список розыгрышей где я участвую
+ */
+export async function getMyParticipations(params?: {
+  status?: ParticipationFilterStatus;
+  limit?: number;
+  offset?: number;
+}): Promise<MyParticipationsResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.status) searchParams.set('status', params.status);
+  if (params?.limit) searchParams.set('limit', params.limit.toString());
+  if (params?.offset) searchParams.set('offset', params.offset.toString());
+
+  const url = `${API_URL}/participations/my${searchParams.toString() ? `?${searchParams}` : ''}`;
+  const response = await fetch(url, {
     credentials: 'include',
   });
 

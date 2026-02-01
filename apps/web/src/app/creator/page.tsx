@@ -8,6 +8,7 @@ import {
   deleteGiveaway,
   GiveawaySummary,
 } from '@/lib/api';
+import { InlineToast } from '@/components/Toast';
 
 // Статусы для фильтрации
 type StatusFilter = 'all' | 'DRAFT' | 'PENDING_CONFIRM' | 'SCHEDULED' | 'ACTIVE' | 'FINISHED' | 'CANCELLED';
@@ -405,23 +406,27 @@ export default function CreatorDashboardPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Мои розыгрыши</h1>
-          <button
-            onClick={() => router.push('/creator/giveaway/new')}
-            className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2 font-medium flex items-center gap-2"
-          >
-            <span>➕</span>
-            <span>Создать</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push('/creator/channels')}
+              className="bg-tg-secondary text-tg-text rounded-lg px-3 py-2 font-medium flex items-center gap-2 hover:bg-tg-secondary/80 transition-colors"
+              title="Управление каналами"
+            >
+              <span>📣</span>
+              <span className="hidden sm:inline">Каналы</span>
+            </button>
+            <button
+              onClick={() => router.push('/creator/giveaway/new')}
+              className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2 font-medium flex items-center gap-2"
+            >
+              <span>➕</span>
+              <span>Создать</span>
+            </button>
+          </div>
         </div>
 
         {/* Сообщение */}
-        {message && (
-          <div className={`mb-4 p-3 rounded-lg text-center ${
-            message.startsWith('✅') ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'
-          }`}>
-            {message}
-          </div>
-        )}
+        <InlineToast message={message} onClose={() => setMessage(null)} />
 
         {/* Фильтры */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">

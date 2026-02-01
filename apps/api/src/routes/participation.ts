@@ -1464,4 +1464,175 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
   );
+
+  // =============================================================================
+  // Раздел "Участник" — список розыгрышей где я участвую
+  // =============================================================================
+
+  /**
+   * GET /participations/my
+   * Список розыгрышей где текущий пользователь участвует
+   * Query: status (all|active|finished|won|cancelled), limit, offset
+   */
+  fastify.get<{
+    Querystring: {
+      status?: string;
+      limit?: string;
+      offset?: string;
+    };
+  }>('/participations/my', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+
+    const { status = 'all', limit = '20', offset = '0' } = request.query;
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit) || 20));
+    const offsetNum = Math.max(0, parseInt(offset) || 0);
+
+    // Базовый where для участий текущего пользователя
+    const baseWhere = { userId: user.id };
+
+    // Формируем фильтр по статусу розыгрыша
+    let giveawayStatusFilter: GiveawayStatus[] | undefined;
+    let isWonFilter = false;
+
+    switch (status) {
+      case 'active':
+        giveawayStatusFilter = [GiveawayStatus.ACTIVE, GiveawayStatus.SCHEDULED];
+        break;
+      case 'finished':
+        giveawayStatusFilter = [GiveawayStatus.FINISHED];
+        break;
+      case 'cancelled':
+        giveawayStatusFilter = [GiveawayStatus.CANCELLED];
+        break;
+      case 'won':
+        isWonFilter = true;
+        break;
+      // 'all' — без фильтра
+    }
+
+    // Для фильтра "won" — сначала получаем победные giveawayId
+    let wonGiveawayIds: string[] = [];
+    if (isWonFilter) {
+      const wins = await prisma.winner.findMany({
+        where: { userId: user.id },
+        select: { giveawayId: true },
+      });
+      wonGiveawayIds = wins.map(w => w.giveawayId);
+    }
+
+    // Получаем участия
+    const whereClause = {
+      ...baseWhere,
+      ...(giveawayStatusFilter && {
+        giveaway: { status: { in: giveawayStatusFilter } },
+      }),
+      ...(isWonFilter && {
+        giveawayId: { in: wonGiveawayIds },
+      }),
+    };
+
+    const [participations, total] = await Promise.all([
+      prisma.participation.findMany({
+        where: whereClause,
+        include: {
+          giveaway: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              endAt: true,
+              winnersCount: true,
+              postTemplate: {
+                select: {
+                  text: true,
+                  mediaType: true,
+                },
+              },
+              _count: {
+                select: { participations: true },
+              },
+            },
+          },
+        },
+        orderBy: { joinedAt: 'desc' },
+        take: limitNum,
+        skip: offsetNum,
+      }),
+      prisma.participation.count({ where: whereClause }),
+    ]);
+
+    // Получаем победы пользователя для отметки isWinner
+    const userWins = await prisma.winner.findMany({
+      where: { userId: user.id },
+      select: { giveawayId: true, place: true },
+    });
+    const winsMap = new Map(userWins.map(w => [w.giveawayId, w.place]));
+
+    // Подсчёт по категориям
+    const [allCount, activeCount, finishedCount, wonCount, cancelledCount] = await Promise.all([
+      prisma.participation.count({ where: baseWhere }),
+      prisma.participation.count({
+        where: {
+          ...baseWhere,
+          giveaway: { status: { in: [GiveawayStatus.ACTIVE, GiveawayStatus.SCHEDULED] } },
+        },
+      }),
+      prisma.participation.count({
+        where: {
+          ...baseWhere,
+          giveaway: { status: GiveawayStatus.FINISHED },
+        },
+      }),
+      prisma.winner.count({ where: { userId: user.id } }),
+      prisma.participation.count({
+        where: {
+          ...baseWhere,
+          giveaway: { status: GiveawayStatus.CANCELLED },
+        },
+      }),
+    ]);
+
+    // Формируем ответ
+    const result = participations.map(p => {
+      const winPlace = winsMap.get(p.giveawayId);
+      return {
+        id: p.id,
+        giveaway: {
+          id: p.giveaway.id,
+          title: p.giveaway.title || 'Без названия',
+          status: p.giveaway.status,
+          endAt: p.giveaway.endAt?.toISOString() || null,
+          winnersCount: p.giveaway.winnersCount,
+          participantsCount: p.giveaway._count.participations,
+          postTemplate: p.giveaway.postTemplate
+            ? {
+                text: p.giveaway.postTemplate.text.substring(0, 100),
+                mediaType: p.giveaway.postTemplate.mediaType,
+              }
+            : null,
+        },
+        ticketsBase: p.ticketsBase,
+        ticketsExtra: p.ticketsExtra,
+        totalTickets: p.ticketsBase + p.ticketsExtra,
+        joinedAt: p.joinedAt.toISOString(),
+        isWinner: winPlace !== undefined,
+        winnerPlace: winPlace ?? null,
+      };
+    });
+
+    return reply.send({
+      ok: true,
+      participations: result,
+      counts: {
+        all: allCount,
+        active: activeCount,
+        finished: finishedCount,
+        won: wonCount,
+        cancelled: cancelledCount,
+      },
+      total,
+      hasMore: offsetNum + limitNum < total,
+    });
+  });
 };

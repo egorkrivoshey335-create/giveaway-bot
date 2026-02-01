@@ -8,6 +8,7 @@ import {
   rejectStoryRequest,
   StoryRequest,
 } from '@/lib/api';
+import { InlineToast } from '@/components/Toast';
 
 export default function StoryRequestsPage() {
   const params = useParams();
@@ -223,17 +224,7 @@ export default function StoryRequestsPage() {
         )}
 
         {/* Сообщение */}
-        {message && (
-          <div className={`mb-4 p-3 rounded-lg text-center ${
-            message.startsWith('✅') 
-              ? 'bg-green-500/10 text-green-600' 
-              : message.startsWith('❌')
-              ? 'bg-red-500/10 text-red-600'
-              : 'bg-yellow-500/10 text-yellow-600'
-          }`}>
-            {message}
-          </div>
-        )}
+        <InlineToast message={message} onClose={() => setMessage(null)} />
 
         {/* Заявки на проверке */}
         {pendingRequests.length > 0 && (
