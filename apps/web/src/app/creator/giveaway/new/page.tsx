@@ -204,6 +204,7 @@ export default function GiveawayWizardPage() {
             boostEnabled: false,
             boostChannelIds: [],
             storiesEnabled: false,
+            catalogEnabled: false,
             ...draftPayload,
           };
           setPayload(payloadWithDefaults);
@@ -1065,6 +1066,33 @@ export default function GiveawayWizardPage() {
                   </div>
                 )}
               </div>
+
+              {/* Продвижение в каталоге — платная функция */}
+              <div className="bg-tg-secondary rounded-xl p-4 relative overflow-hidden">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">📣</span>
+                    <span className="font-medium">Продвижение в каталоге</span>
+                    <span className="text-xs bg-yellow-500/20 text-yellow-600 px-2 py-0.5 rounded-full">
+                      PRO
+                    </span>
+                  </div>
+                  <button
+                    disabled
+                    className="w-12 h-6 rounded-full transition-colors relative bg-tg-secondary border border-tg-hint opacity-50 cursor-not-allowed"
+                  >
+                    <span className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full" />
+                  </button>
+                </div>
+                <p className="text-xs text-tg-hint">
+                  Ваш розыгрыш будет показан в каталоге RandomBeast и доступен всем пользователям.
+                </p>
+                <div className="mt-3 p-2 bg-yellow-500/10 rounded-lg">
+                  <p className="text-xs text-yellow-600">
+                    🔒 Платная функция. Скоро станет доступна.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -1177,6 +1205,10 @@ export default function GiveawayWizardPage() {
                       ? '✅ Включено (ручная модерация)' 
                       : '❌ Выключено'}
                   </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-tg-hint">Каталог:</span>
+                  <span className="text-yellow-600">🔒 PRO</span>
                 </div>
               </div>
 

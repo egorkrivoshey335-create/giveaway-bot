@@ -52,6 +52,9 @@ export interface GiveawayDraftPayload {
   
   /** Включен ли постинг в сторис */
   storiesEnabled?: boolean;
+  
+  /** Показывать ли в каталоге */
+  catalogEnabled?: boolean;
 }
 
 /**
@@ -1206,6 +1209,99 @@ export async function getMyParticipations(params?: {
 
   const url = `${API_URL}/participations/my${searchParams.toString() ? `?${searchParams}` : ''}`;
   const response = await fetch(url, {
+    credentials: 'include',
+  });
+
+  return response.json();
+}
+
+// =============================================================================
+// Каталог розыгрышей
+// =============================================================================
+
+export interface CatalogGiveaway {
+  id: string;
+  title: string;
+  participantsCount: number;
+  winnersCount: number;
+  endAt: string | null;
+  channel: {
+    id: string;
+    title: string;
+    username: string | null;
+    subscribersCount: number;
+  } | null;
+}
+
+interface CatalogResponse {
+  ok: boolean;
+  hasAccess?: boolean;
+  giveaways?: CatalogGiveaway[];
+  total?: number;
+  previewCount?: number;
+  subscriptionPrice?: number;
+  hasMore?: boolean;
+  error?: string;
+}
+
+/**
+ * Получить каталог розыгрышей
+ */
+export async function getCatalog(params?: {
+  limit?: number;
+  offset?: number;
+}): Promise<CatalogResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.limit) searchParams.set('limit', params.limit.toString());
+  if (params?.offset) searchParams.set('offset', params.offset.toString());
+
+  const url = `${API_URL}/catalog${searchParams.toString() ? `?${searchParams}` : ''}`;
+  const response = await fetch(url, {
+    credentials: 'include',
+  });
+
+  return response.json();
+}
+
+interface CatalogAccessResponse {
+  ok: boolean;
+  hasAccess?: boolean;
+  expiresAt?: string | null;
+  price?: number;
+  currency?: string;
+  error?: string;
+}
+
+/**
+ * Проверить доступ к каталогу
+ */
+export async function getCatalogAccess(): Promise<CatalogAccessResponse> {
+  const response = await fetch(`${API_URL}/catalog/access`, {
+    credentials: 'include',
+  });
+
+  return response.json();
+}
+
+interface ToggleCatalogResponse {
+  ok: boolean;
+  catalogEnabled?: boolean;
+  error?: string;
+}
+
+/**
+ * Включить/выключить показ в каталоге
+ */
+export async function toggleGiveawayCatalog(
+  giveawayId: string,
+  enabled: boolean
+): Promise<ToggleCatalogResponse> {
+  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/catalog`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ enabled }),
     credentials: 'include',
   });
 

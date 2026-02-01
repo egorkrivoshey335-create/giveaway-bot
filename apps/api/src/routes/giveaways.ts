@@ -35,6 +35,7 @@ const confirmDraftPayloadSchema = z.object({
   boostEnabled: z.boolean().default(false),
   boostChannelIds: z.array(z.string().uuid()).optional().default([]),
   storiesEnabled: z.boolean().default(false),
+  catalogEnabled: z.boolean().default(false),
 });
 
 /**
@@ -99,6 +100,9 @@ function normalizeDraftPayload(payload: GiveawayDraftPayload | null): Record<str
   }
   if (typeof normalized.storiesEnabled !== 'boolean') {
     normalized.storiesEnabled = false;
+  }
+  if (typeof normalized.catalogEnabled !== 'boolean') {
+    normalized.catalogEnabled = false;
   }
 
   return normalized;
@@ -220,6 +224,8 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
           // Даты начала и окончания
           startAt: validatedPayload.startAt ? new Date(validatedPayload.startAt) : null,
           endAt: validatedPayload.endAt ? new Date(validatedPayload.endAt) : null,
+          // Каталог
+          isPublicInCatalog: validatedPayload.catalogEnabled,
         },
         select: {
           id: true,

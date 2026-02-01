@@ -12,6 +12,7 @@ import { giveawaysRoutes } from './routes/giveaways.js';
 import { internalRoutes } from './routes/internal.js';
 import { participationRoutes } from './routes/participation.js';
 import { lifecycleRoutes } from './routes/lifecycle.js';
+import { catalogRoutes } from './routes/catalog.js';
 import { startGiveawayScheduler } from './scheduler/giveaway-lifecycle.js';
 
 const fastify = Fastify({
@@ -51,6 +52,7 @@ async function main() {
     await fastify.register(giveawaysRoutes);
     await fastify.register(participationRoutes);
     await fastify.register(lifecycleRoutes);
+    await fastify.register(catalogRoutes);
     await fastify.register(internalRoutes, { prefix: '/internal' });
 
     // Start server

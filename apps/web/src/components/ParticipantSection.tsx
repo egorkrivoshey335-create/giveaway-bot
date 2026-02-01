@@ -156,6 +156,7 @@ function EmptyState({ filter }: { filter: ParticipationFilterStatus }) {
 }
 
 export function ParticipantSection() {
+  const router = useRouter();
   const [filter, setFilter] = useState<ParticipationFilterStatus>('all');
   const [participations, setParticipations] = useState<MyParticipation[]>([]);
   const [counts, setCounts] = useState({ all: 0, active: 0, finished: 0, won: 0, cancelled: 0 });
@@ -193,6 +194,16 @@ export function ParticipantSection() {
         <h2 className="text-xl font-bold">🎫 Мои участия</h2>
         <p className="text-tg-hint text-sm">Розыгрыши, в которых вы участвуете</p>
       </div>
+
+      {/* Кнопка каталога */}
+      <button
+        onClick={() => router.push('/catalog')}
+        className="w-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 text-tg-text rounded-xl py-3 px-4 mb-6 font-medium hover:from-purple-500/30 hover:to-pink-500/30 transition-all flex items-center justify-center gap-2"
+      >
+        <span>🎁</span>
+        <span>Каталог розыгрышей</span>
+        <span className="text-tg-hint">→</span>
+      </button>
 
       {/* Фильтры — сетка 2x2 */}
       <div className="grid grid-cols-2 gap-2 mb-6">
