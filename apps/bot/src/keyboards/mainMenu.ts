@@ -1,28 +1,30 @@
 import { Keyboard, InlineKeyboard } from 'grammy';
 import { config } from '../config.js';
+import { t, Locale } from '../i18n/index.js';
 
 /**
- * Menu button labels
+ * Menu button labels (для matching в bot.hears)
+ * Содержит все варианты на всех языках
  */
-export const MENU = {
-  OPEN_APP: '📱 Открыть приложение',
-  CREATE_GIVEAWAY: '🎁 Создать розыгрыш',
-  MY_CHANNELS: '📣 Мои каналы',
-  MY_POSTS: '📝 Посты',
-  SETTINGS: '⚙️ Настройки',
-  SUPPORT: '🆘 Поддержка',
-  BACK: '◀️ Назад',
-  TO_MENU: '🏠 В меню',
-} as const;
+export const MENU: Record<string, string[]> = {
+  OPEN_APP: ['📱 Открыть приложение', '📱 Open App', '📱 Қолданбаны ашу'],
+  CREATE_GIVEAWAY: ['🎁 Создать розыгрыш', '🎁 Create Giveaway', '🎁 Ұтыс ойынын құру'],
+  MY_CHANNELS: ['📣 Мои каналы', '📣 My Channels', '📣 Менің арналарым'],
+  MY_POSTS: ['📝 Посты', '📝 Posts', '📝 Жазбалар'],
+  SETTINGS: ['⚙️ Настройки', '⚙️ Settings', '⚙️ Баптаулар'],
+  SUPPORT: ['🆘 Поддержка', '🆘 Support', '🆘 Қолдау'],
+  BACK: ['◀️ Назад', '◀️ Back', '◀️ Артқа'],
+  TO_MENU: ['🏠 В меню', '🏠 Menu', '🏠 Мәзір'],
+};
 
 /**
  * Creates the main reply keyboard menu
  */
-export function createMainMenuKeyboard(): Keyboard {
+export function createMainMenuKeyboard(locale: Locale = 'ru'): Keyboard {
   return new Keyboard()
-    .text(MENU.OPEN_APP).text(MENU.CREATE_GIVEAWAY).row()
-    .text(MENU.MY_CHANNELS).text(MENU.MY_POSTS).row()
-    .text(MENU.SETTINGS).text(MENU.SUPPORT)
+    .text(t(locale, 'menu.openApp')).text(t(locale, 'menu.createGiveaway')).row()
+    .text(t(locale, 'menu.myChannels')).text(t(locale, 'menu.posts')).row()
+    .text(t(locale, 'menu.settings')).text(t(locale, 'menu.support'))
     .resized()
     .persistent();
 }
@@ -30,36 +32,39 @@ export function createMainMenuKeyboard(): Keyboard {
 /**
  * Creates a submenu keyboard with Back and To Menu buttons
  */
-export function createSubMenuKeyboard(): Keyboard {
+export function createSubMenuKeyboard(locale: Locale = 'ru'): Keyboard {
   return new Keyboard()
-    .text(MENU.BACK).text(MENU.TO_MENU)
+    .text(t(locale, 'menu.back')).text(t(locale, 'menu.toMenu'))
     .resized();
 }
 
 /**
  * Creates inline keyboard for WebApp button
  */
-export function createWebAppInlineKeyboard(text: string = '📱 Открыть приложение'): InlineKeyboard {
-  return new InlineKeyboard().webApp(text, config.webappUrl);
+export function createWebAppInlineKeyboard(locale: Locale = 'ru'): InlineKeyboard {
+  return new InlineKeyboard().webApp(t(locale, 'buttons.openApp'), config.webappUrl);
 }
 
 /**
  * Creates inline keyboard for creating giveaway
  */
-export function createGiveawayMethodKeyboard(): InlineKeyboard {
+export function createGiveawayMethodKeyboard(locale: Locale = 'ru'): InlineKeyboard {
+  const inAppText = locale === 'ru' ? '📱 В приложении' : locale === 'en' ? '📱 In App' : '📱 Қолданбада';
+  const inBotText = locale === 'ru' ? '🤖 В боте (скоро)' : locale === 'en' ? '🤖 In Bot (soon)' : '🤖 Ботта (жақында)';
+  
   return new InlineKeyboard()
-    .webApp('📱 В приложении', config.webappUrl).row()
-    .text('🤖 В боте (скоро)', 'create_in_bot');
+    .webApp(inAppText, config.webappUrl).row()
+    .text(inBotText, 'create_in_bot');
 }
 
 /**
  * Creates inline keyboard for continuing draft
  */
-export function createContinueDraftKeyboard(draftId: string): InlineKeyboard {
-  // Use startapp parameter for deep linking
+export function createContinueDraftKeyboard(draftId: string, locale: Locale = 'ru'): InlineKeyboard {
   const webappUrlWithDraft = `${config.webappUrl}?startapp=draft_${draftId}`;
+  const text = locale === 'ru' ? '📱 Продолжить создание' : locale === 'en' ? '📱 Continue creation' : '📱 Құруды жалғастыру';
   return new InlineKeyboard()
-    .webApp('📱 Продолжить создание', webappUrlWithDraft);
+    .webApp(text, webappUrlWithDraft);
 }
 
 /**
@@ -75,78 +80,59 @@ export function createLanguageKeyboard(): InlineKeyboard {
 /**
  * Welcome message for /start command
  */
-export function getWelcomeMessage(firstName: string): string {
-  return `👋 Привет, <b>${firstName}</b>!
-
-Я — <b>RandomBeast</b>, бот для проведения честных розыгрышей в Telegram.
-
-🎁 С моей помощью ты можешь:
-• Создавать розыгрыши с гибкими условиями
-• Проверять подписку участников
-• Выбирать победителей честным рандомом
-
-Выбери нужный пункт в меню 👇`;
+export function getWelcomeMessage(firstName: string, locale: Locale = 'ru'): string {
+  return t(locale, 'welcome', { firstName });
 }
 
 /**
  * Message for "Open app" menu item
  */
-export function getOpenAppMessage(): string {
-  return `📱 <b>Приложение RandomBeast</b>
-
-Нажмите кнопку ниже, чтобы открыть Mini App.
-
-Вы также можете перейти по ссылке:
-${config.webappUrl}`;
+export function getOpenAppMessage(locale: Locale = 'ru'): string {
+  return t(locale, 'screens.openApp', { webappUrl: config.webappUrl });
 }
 
 /**
  * Message for "Create giveaway" menu item
  */
-export function getCreateGiveawayMessage(): string {
-  return `🎁 <b>Создание розыгрыша</b>
-
-Выберите способ создания:
-
-📱 <b>В приложении</b> — удобный визуальный мастер с превью
-🤖 <b>В боте</b> — пошаговое создание в чате (скоро)`;
-}
-
-/**
- * Message for "My channels" menu item
- */
-export function getMyChannelsMessage(): string {
-  return `📣 <b>Мои каналы</b>
-
-Здесь будет список подключённых каналов.
-
-Чтобы добавить канал:
-1. Сделайте бота @${config.botToken ? 'BeastRandomBot' : 'вашего_бота'} администратором канала
-2. Перешлите сюда любое сообщение из канала или пришлите @username канала
-
-<i>Функционал в разработке</i>`;
+export function getCreateGiveawayMessage(locale: Locale = 'ru'): string {
+  return t(locale, 'screens.createGiveaway');
 }
 
 /**
  * Message for "Settings" menu item
  */
-export function getSettingsMessage(): string {
-  return `⚙️ <b>Настройки</b>
-
-Выберите язык интерфейса:`;
+export function getSettingsMessage(locale: Locale = 'ru'): string {
+  return t(locale, 'settings.title') + '\n\n' + (
+    locale === 'ru' ? 'Выберите язык интерфейса:' :
+    locale === 'en' ? 'Select interface language:' :
+    'Интерфейс тілін таңдаңыз:'
+  );
 }
 
 /**
  * Message for "Support" menu item
  */
-export function getSupportMessage(): string {
-  return `🆘 <b>Поддержка</b>
+export function getSupportMessage(locale: Locale = 'ru'): string {
+  return t(locale, 'screens.support', { supportBot: config.supportBot });
+}
 
-Если у вас возникли вопросы или проблемы, напишите в поддержку:
+/**
+ * Main menu message
+ */
+export function getMainMenuMessage(locale: Locale = 'ru'): string {
+  return t(locale, 'mainMenu');
+}
 
-👤 ${config.supportBot}
+/**
+ * Back to menu message
+ */
+export function getBackToMenuMessage(locale: Locale = 'ru'): string {
+  return t(locale, 'backToMenu');
+}
 
-Мы обычно отвечаем в течение 24 часов.
-
-📚 Также вы можете ознакомиться с FAQ в нашем приложении.`;
+/**
+ * Create in bot soon message
+ */
+export function getCreateInBotSoonMessage(locale: Locale = 'ru'): string {
+  return t(locale, 'screens.createInBotSoon');
 }

@@ -2,9 +2,11 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { DebugPanel } from '@/components/DebugPanel';
 import { ParticipantSection } from '@/components/ParticipantSection';
 import { CreatorSection } from '@/components/CreatorSection';
+import { useTelegramLocale } from '@/hooks/useLocale';
 import {
   authenticateWithTelegram,
   getCurrentUser,
@@ -41,6 +43,13 @@ type Tab = 'participant' | 'creator';
 
 export default function HomePage() {
   const router = useRouter();
+  const t = useTranslations();
+  const tNav = useTranslations('nav');
+  const tCommon = useTranslations('common');
+  
+  // Определяем локаль из Telegram и устанавливаем cookie
+  useTelegramLocale();
+  
   const [authStatus, setAuthStatus] = useState<AuthStatus>('loading');
   const [user, setUser] = useState<AuthUser | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +76,7 @@ export default function HomePage() {
     const tg = (window as unknown as { Telegram?: { WebApp?: TelegramWebApp } }).Telegram?.WebApp;
 
     if (!tg?.initData) {
-      setError('No Telegram initData available');
+      setError(t('errors.noTelegramData'));
       setAuthStatus('unauthenticated');
       return;
     }
@@ -79,17 +88,17 @@ export default function HomePage() {
       const authResult = await authenticateWithTelegram(tg.initData);
 
       if (!authResult.ok) {
-        setError(authResult.error || 'Authentication failed');
+        setError(authResult.error || t('errors.authFailed'));
         setAuthStatus('error');
         return;
       }
 
       await checkAuth();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Authentication error');
+      setError(err instanceof Error ? err.message : t('errors.authError'));
       setAuthStatus('error');
     }
-  }, [checkAuth]);
+  }, [checkAuth, t]);
 
   const handleDevLogin = useCallback(async () => {
     setAuthStatus('loading');
@@ -100,14 +109,14 @@ export default function HomePage() {
       if (result.ok) {
         await checkAuth();
       } else {
-        setError(result.error || 'Dev login failed');
+        setError(result.error || t('errors.devLoginFailed'));
         setAuthStatus('error');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Dev login error');
+      setError(err instanceof Error ? err.message : t('errors.devLoginError'));
       setAuthStatus('error');
     }
-  }, [checkAuth]);
+  }, [checkAuth, t]);
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -175,7 +184,7 @@ export default function HomePage() {
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-10 h-10 border-3 border-tg-button border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-tg-hint">Загрузка...</p>
+          <p className="text-tg-hint">{tCommon('loading')}</p>
         </div>
       </main>
     );
@@ -195,7 +204,7 @@ export default function HomePage() {
                   : 'bg-tg-secondary text-tg-text hover:bg-tg-secondary/80'
               }`}
             >
-              🎫 Участник
+              {tNav('participant')}
             </button>
             <button
               onClick={() => setActiveTab('creator')}
@@ -205,7 +214,7 @@ export default function HomePage() {
                   : 'bg-tg-secondary text-tg-text hover:bg-tg-secondary/80'
               }`}
             >
-              🎁 Создатель
+              {tNav('creator')}
             </button>
           </div>
         </div>
@@ -216,22 +225,22 @@ export default function HomePage() {
         {authStatus === 'loading' && (
           <div className="text-center py-12">
             <div className="animate-spin w-10 h-10 border-3 border-tg-button border-t-transparent rounded-full mx-auto mb-4" />
-            <p className="text-tg-hint">Авторизация...</p>
+            <p className="text-tg-hint">{tCommon('loading')}</p>
           </div>
         )}
 
         {/* Не авторизован без Telegram */}
         {authStatus === 'unauthenticated' && !hasTelegram && (
           <div className="bg-tg-secondary rounded-xl p-6">
-            <h2 className="text-lg font-semibold mb-2">⚠️ Откройте в Telegram</h2>
+            <h2 className="text-lg font-semibold mb-2">⚠️ {t('auth.openInTelegram')}</h2>
             <p className="text-tg-hint text-sm mb-4">
-              Это приложение работает только внутри Telegram Mini App.
+              {t('auth.telegramOnly')}
             </p>
             <button
               onClick={handleDevLogin}
               className="w-full bg-tg-button/50 text-tg-button-text rounded-lg py-2 px-4 text-sm"
             >
-              🔧 Dev Login (только для разработки)
+              🔧 {t('auth.devLogin')}
             </button>
           </div>
         )}
@@ -239,15 +248,15 @@ export default function HomePage() {
         {/* Не авторизован с Telegram */}
         {authStatus === 'unauthenticated' && hasTelegram && (
           <div className="bg-tg-secondary rounded-xl p-6">
-            <h2 className="text-lg font-semibold mb-2">Требуется авторизация</h2>
+            <h2 className="text-lg font-semibold mb-2">{t('errors.unauthorized')}</h2>
             <p className="text-tg-hint text-sm mb-4">
-              Нажмите кнопку для входа через Telegram.
+              {t('auth.clickToLogin')}
             </p>
             <button 
               onClick={authenticate} 
               className="w-full bg-tg-button text-tg-button-text rounded-lg py-2 px-4"
             >
-              Войти
+              {t('auth.loginButton')}
             </button>
           </div>
         )}
@@ -255,13 +264,13 @@ export default function HomePage() {
         {/* Ошибка авторизации */}
         {authStatus === 'error' && (
           <div className="bg-tg-secondary rounded-xl p-6">
-            <h2 className="text-lg font-semibold mb-2 text-red-500">❌ Ошибка авторизации</h2>
-            <p className="text-tg-hint text-sm mb-4">{error || 'Неизвестная ошибка'}</p>
+            <h2 className="text-lg font-semibold mb-2 text-red-500">❌ {tCommon('error')}</h2>
+            <p className="text-tg-hint text-sm mb-4">{error || t('errors.connectionError')}</p>
             <button 
               onClick={hasTelegram ? authenticate : handleDevLogin} 
               className="w-full bg-tg-button text-tg-button-text rounded-lg py-2 px-4"
             >
-              Попробовать снова
+              {tCommon('tryAgain')}
             </button>
           </div>
         )}
@@ -281,7 +290,7 @@ export default function HomePage() {
                 onClick={handleLogout}
                 className="w-full bg-red-500/10 text-red-500 rounded-lg py-2 px-4 text-sm"
               >
-                Выйти
+                {t('auth.logout')}
               </button>
             </div>
           </>

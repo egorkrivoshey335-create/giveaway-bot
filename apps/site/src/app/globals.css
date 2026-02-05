@@ -2,6 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Базовые стили */
 body {
   min-height: 100vh;
+}
+
+/* Кастомные утилиты */
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-400 to-brand-600;
+  }
+  
+  .glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+}
+
+/* Анимация для карточек */
+@layer components {
+  .feature-card {
+    @apply bg-white rounded-2xl p-6 shadow-lg transition-all duration-300;
+  }
+  
+  .feature-card:hover {
+    @apply shadow-xl -translate-y-1;
+  }
+  
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-semibold py-3 px-6 rounded-xl transition-colors;
+  }
+  
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-900 font-semibold py-3 px-6 rounded-xl transition-colors border border-gray-200;
+  }
 }

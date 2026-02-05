@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   getGiveawaysList,
   getChannels,
@@ -22,6 +23,9 @@ interface UndoState {
 
 export function CreatorSection() {
   const router = useRouter();
+  const t = useTranslations('creator');
+  const tCommon = useTranslations('common');
+  const tChannels = useTranslations('channels');
   
   // Розыгрыши
   const [counts, setCounts] = useState({ all: 0, active: 0 });
@@ -90,7 +94,7 @@ export function CreatorSection() {
 
   // Удаление канала
   const handleDeleteChannel = async (channelId: string) => {
-    if (!confirm('Удалить канал из списка?')) return;
+    if (!confirm(tChannels('deleteConfirm'))) return;
     try {
       const res = await deleteChannel(channelId);
       if (res.ok) {
@@ -134,8 +138,8 @@ export function CreatorSection() {
     <div>
       {/* Заголовок */}
       <div className="mb-4">
-        <h2 className="text-xl font-bold">🎁 Мои розыгрыши</h2>
-        <p className="text-tg-hint text-sm">Создавайте и управляйте розыгрышами</p>
+        <h2 className="text-xl font-bold">{t('title')}</h2>
+        <p className="text-tg-hint text-sm">{t('subtitle')}</p>
       </div>
 
       {/* Кнопка создания */}
@@ -143,13 +147,13 @@ export function CreatorSection() {
         onClick={() => router.push('/creator/giveaway/new')}
         className="w-full bg-tg-button text-tg-button-text rounded-xl py-3 px-4 font-medium mb-6 hover:opacity-90 transition-opacity"
       >
-        ➕ Создать розыгрыш
+        {t('createButton')}
       </button>
 
       {/* Блок "Мои каналы" */}
       <div className="bg-tg-secondary rounded-xl p-4 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">📣 Мои каналы</h3>
+          <h3 className="font-semibold">{t('channels')}</h3>
           <button 
             onClick={loadChannels} 
             className="text-tg-button text-sm" 
@@ -162,12 +166,12 @@ export function CreatorSection() {
         {channelsLoading ? (
           <div className="flex items-center justify-center py-4">
             <div className="animate-spin w-5 h-5 border-2 border-tg-button border-t-transparent rounded-full mr-2" />
-            <span className="text-tg-hint text-sm">Загрузка...</span>
+            <span className="text-tg-hint text-sm">{tCommon('loading')}</span>
           </div>
         ) : channels.length === 0 ? (
           <div className="text-center py-4">
-            <p className="text-tg-hint text-sm mb-3">У вас пока нет добавленных каналов</p>
-            <p className="text-tg-hint text-xs">Добавьте каналы через бота: @BeastRandomBot</p>
+            <p className="text-tg-hint text-sm mb-3">{t('noChannels')}</p>
+            <p className="text-tg-hint text-xs">{tChannels('addDescription')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -181,17 +185,17 @@ export function CreatorSection() {
                   {channel.username && <p className="text-sm text-tg-hint mt-0.5">@{channel.username}</p>}
                   <div className="flex flex-wrap gap-2 mt-2">
                     <span className={`text-xs px-2 py-0.5 rounded ${channel.botIsAdmin ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                      {channel.botIsAdmin ? '✓ Бот админ' : '✗ Бот не админ'}
+                      {channel.botIsAdmin ? `✓ ${tChannels('botAdmin')}` : `✗ ${tChannels('botAdmin')}`}
                     </span>
                     <span className={`text-xs px-2 py-0.5 rounded ${channel.creatorIsAdmin ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                      {channel.creatorIsAdmin ? '✓ Вы админ' : '✗ Вы не админ'}
+                      {channel.creatorIsAdmin ? `✓ ${tChannels('youAdmin')}` : `✗ ${tChannels('youAdmin')}`}
                     </span>
                   </div>
                 </div>
                 <button 
                   onClick={() => handleDeleteChannel(channel.id)} 
                   className="text-red-500 text-sm ml-2 p-1" 
-                  title="Удалить канал"
+                  title={tCommon('delete')}
                 >
                   🗑️
                 </button>
@@ -204,7 +208,7 @@ export function CreatorSection() {
       {/* Блок "Посты" */}
       <div className="bg-tg-secondary rounded-xl p-4 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">📝 Посты</h3>
+          <h3 className="font-semibold">{t('posts')}</h3>
           <button 
             onClick={loadPostTemplates} 
             className="text-tg-button text-sm" 
@@ -217,9 +221,9 @@ export function CreatorSection() {
         {/* Undo Banner */}
         {undoState && Date.now() < undoState.undoUntil && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-4 flex items-center justify-between">
-            <span className="text-sm text-yellow-600">Пост удалён</span>
+            <span className="text-sm text-yellow-600">{t('postDeleted')}</span>
             <button onClick={handleUndoDelete} className="text-sm text-tg-button font-medium">
-              ↩️ Вернуть
+              {t('undo')}
             </button>
           </div>
         )}
@@ -227,12 +231,11 @@ export function CreatorSection() {
         {postsLoading ? (
           <div className="flex items-center justify-center py-4">
             <div className="animate-spin w-5 h-5 border-2 border-tg-button border-t-transparent rounded-full mr-2" />
-            <span className="text-tg-hint text-sm">Загрузка...</span>
+            <span className="text-tg-hint text-sm">{tCommon('loading')}</span>
           </div>
         ) : postTemplates.length === 0 ? (
           <div className="text-center py-4">
-            <p className="text-tg-hint text-sm mb-3">Постов нет</p>
-            <p className="text-tg-hint text-xs">Создайте пост в боте: @BeastRandomBot → 📝 Посты</p>
+            <p className="text-tg-hint text-sm mb-3">{t('noPosts')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -250,18 +253,18 @@ export function CreatorSection() {
                           ? 'bg-blue-500/10 text-blue-500' 
                           : 'bg-purple-500/10 text-purple-500'
                     }`}>
-                      {post.mediaType === 'NONE' ? 'Текст' : post.mediaType === 'PHOTO' ? 'Фото' : 'Видео'}
+                      {post.mediaType === 'NONE' ? t('mediaType.text') : post.mediaType === 'PHOTO' ? t('mediaType.photo') : t('mediaType.video')}
                     </span>
                   </div>
                   <p className="text-sm text-tg-text line-clamp-2">{post.text}</p>
                   <p className="text-xs text-tg-hint mt-1">
-                    {new Date(post.createdAt).toLocaleString('ru-RU')}
+                    {new Date(post.createdAt).toLocaleString()}
                   </p>
                 </div>
                 <button
                   onClick={() => handleDeletePost(post.id)}
                   className="text-red-500 text-sm ml-2 p-1"
-                  title="Удалить пост"
+                  title={tCommon('delete')}
                 >
                   🗑️
                 </button>
@@ -279,7 +282,7 @@ export function CreatorSection() {
           ) : (
             <>
               <div className="text-2xl font-bold text-tg-text">{counts.all}</div>
-              <div className="text-sm text-tg-hint">Всего розыгрышей</div>
+              <div className="text-sm text-tg-hint">{t('totalGiveaways')}</div>
             </>
           )}
         </div>
@@ -289,7 +292,7 @@ export function CreatorSection() {
           ) : (
             <>
               <div className="text-2xl font-bold text-green-500">{counts.active}</div>
-              <div className="text-sm text-tg-hint">Активных</div>
+              <div className="text-sm text-tg-hint">{t('activeGiveaways')}</div>
             </>
           )}
         </div>
@@ -300,8 +303,7 @@ export function CreatorSection() {
         onClick={() => router.push('/creator')}
         className="w-full bg-tg-secondary text-tg-text rounded-xl py-3 px-4 font-medium hover:bg-tg-secondary/80 transition-colors flex items-center justify-center gap-2"
       >
-        <span>📊</span>
-        <span>Открыть Dashboard</span>
+        <span>{t('openDashboard')}</span>
         <span className="text-tg-hint">→</span>
       </button>
     </div>

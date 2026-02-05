@@ -2,21 +2,28 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCatalog, CatalogGiveaway } from '@/lib/api';
+import { useTranslations } from 'next-intl';
+import { getCatalog, CatalogGiveaway, createPayment } from '@/lib/api';
+
+// Тип для функции перевода (упрощённый для передачи как пропс)
+type TranslateFunc = (key: string, values?: Record<string, string | number | Date>) => string;
 
 // Форматирование оставшегося времени
-function formatTimeLeft(endAt: string): string {
+function formatTimeLeft(
+  endAt: string,
+  t: TranslateFunc
+): string {
   const end = new Date(endAt);
   const now = new Date();
   const diff = end.getTime() - now.getTime();
 
-  if (diff <= 0) return 'Завершается...';
+  if (diff <= 0) return t('time.ending');
 
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
 
-  if (days > 0) return `${days}д ${hours}ч`;
-  return `${hours}ч`;
+  if (days > 0) return t('time.daysHours', { days, hours });
+  return t('time.hours', { hours });
 }
 
 // Форматирование числа (1500 → 1.5K)
@@ -29,8 +36,10 @@ function formatNumber(n: number): string {
 // Карточка розыгрыша в каталоге (всегда заблюрена без подписки)
 function CatalogCard({
   giveaway,
+  t,
 }: {
   giveaway: CatalogGiveaway;
+  t: TranslateFunc;
 }) {
   return (
     <div className="bg-tg-secondary rounded-xl overflow-hidden">
@@ -42,7 +51,7 @@ function CatalogCard({
             <div className="flex-1 min-w-0">
               <div className="font-medium text-sm truncate">{giveaway.channel.title}</div>
               <div className="text-xs text-tg-hint">
-                {giveaway.channel.username || `${formatNumber(giveaway.channel.subscribersCount)} подписчиков`}
+                {giveaway.channel.username || `${formatNumber(giveaway.channel.subscribersCount)} ${t('subscribers')}`}
               </div>
             </div>
           </div>
@@ -64,7 +73,7 @@ function CatalogCard({
           {giveaway.endAt && (
             <span className="flex items-center gap-1">
               <span>⏰</span>
-              <span>{formatTimeLeft(giveaway.endAt)}</span>
+              <span>{formatTimeLeft(giveaway.endAt, t)}</span>
             </span>
           )}
         </div>
@@ -73,7 +82,7 @@ function CatalogCard({
       {/* Кнопка */}
       <div className="border-t border-tg-bg px-4 py-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-tg-link">Участвовать</span>
+          <span className="text-sm text-tg-link">{t('participate')}</span>
           <span className="text-tg-hint">→</span>
         </div>
       </div>
@@ -85,9 +94,11 @@ function CatalogCard({
 function CatalogCardWithAccess({
   giveaway,
   onClick,
+  t,
 }: {
   giveaway: CatalogGiveaway;
   onClick: () => void;
+  t: TranslateFunc;
 }) {
   return (
     <div
@@ -102,7 +113,7 @@ function CatalogCardWithAccess({
             <div className="flex-1 min-w-0">
               <div className="font-medium text-sm truncate">{giveaway.channel.title}</div>
               <div className="text-xs text-tg-hint">
-                {giveaway.channel.username || `${formatNumber(giveaway.channel.subscribersCount)} подписчиков`}
+                {giveaway.channel.username || `${formatNumber(giveaway.channel.subscribersCount)} ${t('subscribers')}`}
               </div>
             </div>
           </div>
@@ -124,7 +135,7 @@ function CatalogCardWithAccess({
           {giveaway.endAt && (
             <span className="flex items-center gap-1">
               <span>⏰</span>
-              <span>{formatTimeLeft(giveaway.endAt)}</span>
+              <span>{formatTimeLeft(giveaway.endAt, t)}</span>
             </span>
           )}
         </div>
@@ -133,7 +144,7 @@ function CatalogCardWithAccess({
       {/* Кнопка */}
       <div className="border-t border-tg-bg px-4 py-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-tg-link">Участвовать</span>
+          <span className="text-sm text-tg-link">{t('participate')}</span>
           <span className="text-tg-hint">→</span>
         </div>
       </div>
@@ -146,10 +157,12 @@ function PaywallFullOverlay({
   total,
   price,
   onShowModal,
+  t,
 }: {
   total: number;
   price: number;
   onShowModal: () => void;
+  t: TranslateFunc;
 }) {
   return (
     <div className="absolute inset-0 z-10 flex flex-col">
@@ -160,21 +173,21 @@ function PaywallFullOverlay({
       <div className="bg-tg-bg p-4">
         <div className="bg-tg-secondary rounded-xl p-6 text-center">
           <div className="text-4xl mb-3">🔒</div>
-          <h3 className="text-xl font-bold mb-2">{total} розыгрышей</h3>
+          <h3 className="text-xl font-bold mb-2">{t('giveawaysCount', { count: total })}</h3>
           <p className="text-tg-hint text-sm mb-4">
-            Получите доступ к каталогу розыгрышей
+            {t('paywall.description')}
           </p>
 
           <div className="mb-4">
             <span className="text-2xl font-bold">{price} ₽</span>
-            <span className="text-tg-hint"> / месяц</span>
+            <span className="text-tg-hint"> {t('paywall.perMonth')}</span>
           </div>
 
           <button
             onClick={onShowModal}
             className="w-full bg-tg-button text-tg-button-text rounded-xl py-3 px-4 font-medium"
           >
-            🔓 Получить доступ
+            {t('paywall.unlock')}
           </button>
         </div>
       </div>
@@ -183,7 +196,40 @@ function PaywallFullOverlay({
 }
 
 // Модалка подписки
-function SubscriptionModal({ price, onClose }: { price: number; onClose: () => void }) {
+function SubscriptionModal({ 
+  price, 
+  onClose, 
+  t, 
+  tErrors 
+}: { 
+  price: number; 
+  onClose: () => void; 
+  t: TranslateFunc;
+  tErrors: (key: string) => string;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handlePay = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await createPayment({ productCode: 'CATALOG_MONTHLY_1000' });
+
+      if (response.ok && response.paymentUrl) {
+        // Редирект на страницу оплаты ЮKassa
+        window.location.href = response.paymentUrl;
+      } else {
+        setError(response.error || t('paywall.paymentError'));
+      }
+    } catch {
+      setError(tErrors('connectionError'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
@@ -195,10 +241,11 @@ function SubscriptionModal({ price, onClose }: { price: number; onClose: () => v
       >
         {/* Заголовок */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">🎁 Каталог розыгрышей</h2>
+          <h2 className="text-xl font-bold">🎁 {t('paywall.modalTitle')}</h2>
           <button
             onClick={onClose}
             className="text-tg-hint hover:text-tg-text text-xl"
+            disabled={loading}
           >
             ✕
           </button>
@@ -208,34 +255,42 @@ function SubscriptionModal({ price, onClose }: { price: number; onClose: () => v
         <div className="space-y-3 mb-6">
           <div className="flex items-center gap-3">
             <span className="text-green-500">✅</span>
-            <span className="text-sm">Доступ ко всем розыгрышам</span>
+            <span className="text-sm">{t('paywall.features.access')}</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-green-500">✅</span>
-            <span className="text-sm">Участие без капчи</span>
+            <span className="text-sm">{t('paywall.features.noCaptcha')}</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-green-500">✅</span>
-            <span className="text-sm">Уведомления о новых розыгрышах</span>
+            <span className="text-sm">{t('paywall.features.notifications')}</span>
           </div>
         </div>
 
         {/* Цена */}
         <div className="bg-tg-secondary rounded-xl p-4 text-center mb-4">
           <span className="text-3xl font-bold">{price} ₽</span>
-          <span className="text-tg-hint"> / месяц</span>
+          <span className="text-tg-hint"> {t('paywall.perMonth')}</span>
         </div>
+
+        {/* Ошибка */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4 text-center">
+            <p className="text-sm text-red-500">{error}</p>
+          </div>
+        )}
 
         {/* Кнопка оплаты */}
         <button
-          onClick={() => alert('Оплата будет доступна в следующем обновлении')}
-          className="w-full bg-tg-button text-tg-button-text rounded-xl py-3 px-4 font-medium mb-3"
+          onClick={handlePay}
+          disabled={loading}
+          className="w-full bg-tg-button text-tg-button-text rounded-xl py-3 px-4 font-medium mb-3 disabled:opacity-50"
         >
-          💳 Оплатить
+          {loading ? t('paywall.loading') : t('paywall.pay')}
         </button>
 
         <p className="text-xs text-tg-hint text-center">
-          Оплата через ЮKassa. Отмена в любой момент.
+          {t('paywall.secure')}
         </p>
       </div>
     </div>
@@ -244,6 +299,10 @@ function SubscriptionModal({ price, onClose }: { price: number; onClose: () => v
 
 export default function CatalogPage() {
   const router = useRouter();
+  const t = useTranslations('catalog');
+  const tCommon = useTranslations('common');
+  const tErrors = useTranslations('errors');
+  
   const [giveaways, setGiveaways] = useState<CatalogGiveaway[]>([]);
   const [hasAccess, setHasAccess] = useState(false);
   const [total, setTotal] = useState(0);
@@ -273,10 +332,10 @@ export default function CatalogPage() {
         setPrice(res.subscriptionPrice || 1000);
         setHasMore(res.hasMore || false);
       } else {
-        setError(res.error || 'Ошибка загрузки');
+        setError(res.error || tErrors('loadFailed'));
       }
     } catch (err) {
-      setError('Ошибка соединения');
+      setError(tErrors('connectionError'));
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -301,10 +360,10 @@ export default function CatalogPage() {
       <header className="sticky top-0 z-10 bg-tg-bg border-b border-tg-secondary">
         <div className="max-w-xl mx-auto px-4 py-3 flex items-center gap-3">
           <button onClick={goBack} className="text-tg-link text-sm hover:opacity-70">
-            ← Назад
+            ← {tCommon('back')}
           </button>
           <h1 className="text-lg font-semibold text-tg-text flex-1">
-            🎁 Каталог розыгрышей
+            {t('title')}
           </h1>
         </div>
       </header>
@@ -314,7 +373,7 @@ export default function CatalogPage() {
         <div className="max-w-xl mx-auto p-4">
           <div className="text-center py-12">
             <div className="animate-spin w-8 h-8 border-2 border-tg-button border-t-transparent rounded-full mx-auto mb-3" />
-            <p className="text-tg-hint">Загрузка...</p>
+            <p className="text-tg-hint">{tCommon('loading')}</p>
           </div>
         </div>
       ) : error ? (
@@ -326,7 +385,7 @@ export default function CatalogPage() {
               onClick={() => loadCatalog()}
               className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2"
             >
-              Попробовать снова
+              {tCommon('tryAgain')}
             </button>
           </div>
         </div>
@@ -334,15 +393,36 @@ export default function CatalogPage() {
         <div className="max-w-xl mx-auto p-4">
           <div className="text-center py-12 bg-tg-secondary rounded-xl">
             <div className="text-6xl mb-4">🎁</div>
-            <h2 className="text-xl font-semibold mb-2">Каталог пуст</h2>
-            <p className="text-tg-hint">Скоро здесь появятся розыгрыши</p>
+            <h2 className="text-xl font-semibold mb-2">{t('empty')}</h2>
+            <p className="text-tg-hint mb-6">{t('emptySubtitle')}</p>
+            
+            {/* Кнопка подписки для тестирования оплаты */}
+            {!hasAccess && (
+              <div className="border-t border-tg-bg pt-6 mt-6">
+                <p className="text-sm text-tg-hint mb-4">
+                  {t('getAccessEarly')}
+                </p>
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="bg-tg-button text-tg-button-text rounded-xl py-3 px-6 font-medium"
+                >
+                  {t('paywall.unlock')} {price} ₽
+                </button>
+              </div>
+            )}
+            
+            {hasAccess && (
+              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 mt-4">
+                <p className="text-sm text-green-600">{t('hasAccess')}</p>
+              </div>
+            )}
           </div>
         </div>
       ) : hasAccess ? (
         /* С подпиской — полный доступ */
         <div className="max-w-xl mx-auto p-4">
           <p className="text-tg-hint text-sm mb-4">
-            Участвуйте в розыгрышах от разных каналов
+            {t('subtitle')}
           </p>
 
           {/* Список розыгрышей — кликабельные */}
@@ -352,6 +432,7 @@ export default function CatalogPage() {
                 key={g.id}
                 giveaway={g}
                 onClick={() => router.push(`/join/${g.id}`)}
+                t={t}
               />
             ))}
           </div>
@@ -363,7 +444,7 @@ export default function CatalogPage() {
               disabled={loadingMore}
               className="w-full mt-4 bg-tg-secondary text-tg-text rounded-xl py-3 px-4 font-medium hover:bg-tg-secondary/80 transition-colors"
             >
-              {loadingMore ? 'Загрузка...' : 'Загрузить ещё'}
+              {loadingMore ? tCommon('loading') : t('loadMore')}
             </button>
           )}
         </div>
@@ -373,13 +454,13 @@ export default function CatalogPage() {
           {/* Контент за overlay — виден, но не кликабелен */}
           <div className="max-w-xl mx-auto p-4 pointer-events-none">
             <p className="text-tg-hint text-sm mb-4">
-              Участвуйте в розыгрышах от разных каналов
+              {t('subtitle')}
             </p>
 
             {/* Показываем только превью карточек */}
             <div className="grid gap-4">
               {giveaways.slice(0, previewCount).map((g) => (
-                <CatalogCard key={g.id} giveaway={g} />
+                <CatalogCard key={g.id} giveaway={g} t={t} />
               ))}
             </div>
           </div>
@@ -389,13 +470,14 @@ export default function CatalogPage() {
             total={total}
             price={price}
             onShowModal={() => setShowModal(true)}
+            t={t}
           />
         </div>
       )}
 
       {/* Модалка подписки */}
       {showModal && (
-        <SubscriptionModal price={price} onClose={() => setShowModal(false)} />
+        <SubscriptionModal price={price} onClose={() => setShowModal(false)} t={t} tErrors={tErrors} />
       )}
     </div>
   );

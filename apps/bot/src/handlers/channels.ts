@@ -4,6 +4,7 @@ import { InlineKeyboard } from 'grammy';
 import { config } from '../config.js';
 import { apiService } from '../services/api.js';
 import { createMainMenuKeyboard } from '../keyboards/mainMenu.js';
+import { t, getUserLocale, Locale } from '../i18n/index.js';
 
 // Simple in-memory state for channel addition flow
 // In production, use conversations plugin or persistent sessions
@@ -48,19 +49,58 @@ export function clearUserAddingChannel(userId: number) {
 /**
  * Create inline keyboard for channel management
  */
-export function createChannelManagementKeyboard(): InlineKeyboard {
+export function createChannelManagementKeyboard(locale: Locale = 'ru'): InlineKeyboard {
+  const addChannel = locale === 'ru' ? '➕ Добавить канал' : locale === 'en' ? '➕ Add Channel' : '➕ Арна қосу';
+  const addGroup = locale === 'ru' ? '➕ Добавить группу' : locale === 'en' ? '➕ Add Group' : '➕ Топ қосу';
+  const back = t(locale, 'menu.back');
+  const toMenu = t(locale, 'menu.toMenu');
+  
   return new InlineKeyboard()
-    .text('➕ Добавить канал', 'add_channel')
-    .text('➕ Добавить группу', 'add_group')
+    .text(addChannel, 'add_channel')
+    .text(addGroup, 'add_group')
     .row()
-    .text('⬅️ Назад', 'back_to_menu')
-    .text('🏠 В меню', 'go_to_menu');
+    .text(back, 'back_to_menu')
+    .text(toMenu, 'go_to_menu');
 }
 
 /**
  * Message for channels section
  */
-export function getChannelsMessage(): string {
+export function getChannelsMessage(locale: Locale = 'ru'): string {
+  if (locale === 'en') {
+    return `📣 <b>My Channels and Groups</b>
+
+Here you can manage channels and groups where the bot will publish giveaways.
+
+<b>How to add a channel/group:</b>
+1. Make the bot an admin of the channel/group
+2. Click the button below and send:
+   • @username of the channel/group
+   • or forward a message from the channel/group
+   • or a t.me/... link
+
+<b>Requirements:</b>
+• Bot must be an administrator
+• You must be an admin of the channel/group`;
+  }
+  
+  if (locale === 'kk') {
+    return `📣 <b>Менің арналарым мен топтарым</b>
+
+Мұнда бот ұтыс ойындарын жариялайтын арналар мен топтарды басқара аласыз.
+
+<b>Арна/топ қосу жолы:</b>
+1. Ботты арна/топтың админі етіңіз
+2. Төмендегі түймені басып, жіберіңіз:
+   • Арна/топтың @username
+   • немесе арна/топтан хабар қайта жіберіңіз
+   • немесе t.me/... сілтемесі
+
+<b>Талаптар:</b>
+• Бот әкімші болуы керек
+• Сіз арна/топтың админі болуыңыз керек`;
+  }
+  
   return `📣 <b>Мои каналы и группы</b>
 
 Здесь вы можете управлять каналами и группами, в которых бот будет публиковать розыгрыши.
@@ -80,7 +120,31 @@ export function getChannelsMessage(): string {
 /**
  * Message when waiting for channel input
  */
-export function getWaitingForChannelMessage(type: 'CHANNEL' | 'GROUP'): string {
+export function getWaitingForChannelMessage(type: 'CHANNEL' | 'GROUP', locale: Locale = 'ru'): string {
+  if (locale === 'en') {
+    const entityName = type === 'CHANNEL' ? 'channel' : 'group';
+    return `📝 <b>Adding ${entityName}</b>
+
+Send one of:
+• @username of the ${entityName}
+• A t.me/... link
+• Forward any message from the ${entityName}
+
+<i>Send /cancel to abort</i>`;
+  }
+  
+  if (locale === 'kk') {
+    const entityName = type === 'CHANNEL' ? 'арна' : 'топ';
+    return `📝 <b>${entityName} қосу</b>
+
+Мыналардың бірін жіберіңіз:
+• ${entityName}ның @username
+• t.me/... сілтемесі
+• ${entityName}дан кез келген хабарды қайта жіберіңіз
+
+<i>Бас тарту үшін /cancel жіберіңіз</i>`;
+  }
+  
   const entityName = type === 'CHANNEL' ? 'канала' : 'группы';
   return `📝 <b>Добавление ${entityName}</b>
 
@@ -149,6 +213,8 @@ function getChatType(chat: Chat.ChannelChat | Chat.SupergroupChat | Chat.GroupCh
 export async function handleChannelAddition(ctx: Context, targetType: 'CHANNEL' | 'GROUP') {
   const userId = ctx.from?.id;
   if (!userId) return;
+  
+  const locale = getUserLocale(userId);
 
   // Get chat identifier
   let chatIdentifier: string | number | null = null;
@@ -162,10 +228,10 @@ export async function handleChannelAddition(ctx: Context, targetType: 'CHANNEL' 
   }
 
   if (!chatIdentifier) {
-    await ctx.reply(
-      '❌ Не удалось распознать канал/группу.\n\nОтправьте @username, ссылку t.me/... или перешлите сообщение.',
-      { parse_mode: 'HTML' }
-    );
+    const msg = locale === 'ru' ? '❌ Не удалось распознать канал/группу.\n\nОтправьте @username, ссылку t.me/... или перешлите сообщение.' :
+                locale === 'en' ? '❌ Could not recognize channel/group.\n\nSend @username, t.me/... link, or forward a message.' :
+                '❌ Арна/топты тану мүмкін болмады.\n\n@username, t.me/... сілтемесін жіберіңіз немесе хабарды қайта жіберіңіз.';
+    await ctx.reply(msg, { parse_mode: 'HTML' });
     return;
   }
 
@@ -174,25 +240,28 @@ export async function handleChannelAddition(ctx: Context, targetType: 'CHANNEL' 
 
   try {
     // Get chat info
-    await ctx.reply('⏳ Проверяю канал/группу...');
+    const checkingMsg = locale === 'ru' ? '⏳ Проверяю канал/группу...' : 
+                        locale === 'en' ? '⏳ Checking channel/group...' : '⏳ Арна/топты тексерудемін...';
+    await ctx.reply(checkingMsg);
 
     let chat: Chat.ChannelChat | Chat.SupergroupChat | Chat.GroupChat;
     try {
       const chatInfo = await ctx.api.getChat(chatIdentifier);
       if (chatInfo.type !== 'channel' && chatInfo.type !== 'supergroup' && chatInfo.type !== 'group') {
-        await ctx.reply('❌ Это не канал и не группа. Пожалуйста, отправьте канал или группу.');
+        const msg = locale === 'ru' ? '❌ Это не канал и не группа. Пожалуйста, отправьте канал или группу.' :
+                    locale === 'en' ? '❌ This is not a channel or group. Please send a channel or group.' :
+                    '❌ Бұл арна немесе топ емес. Арна немесе топ жіберіңіз.';
+        await ctx.reply(msg);
         return;
       }
       chat = chatInfo as Chat.ChannelChat | Chat.SupergroupChat | Chat.GroupChat;
     } catch {
-      await ctx.reply(
-        '❌ Не удалось получить информацию о канале/группе.\n\n' +
-          'Возможные причины:\n' +
-          '• Неверный username\n' +
-          '• Канал/группа приватный и бот не добавлен\n' +
-          '• Канал/группа не существует',
-        { parse_mode: 'HTML' }
-      );
+      const msg = locale === 'ru' 
+        ? '❌ Не удалось получить информацию о канале/группе.\n\nВозможные причины:\n• Неверный username\n• Канал/группа приватный и бот не добавлен\n• Канал/группа не существует'
+        : locale === 'en'
+        ? '❌ Could not get channel/group info.\n\nPossible reasons:\n• Invalid username\n• Channel/group is private and bot not added\n• Channel/group does not exist'
+        : '❌ Арна/топ туралы ақпарат алу мүмкін болмады.\n\nМүмкін себептер:\n• Дұрыс емес username\n• Арна/топ жеке және бот қосылмаған\n• Арна/топ жоқ';
+      await ctx.reply(msg, { parse_mode: 'HTML' });
       return;
     }
 
@@ -204,25 +273,23 @@ export async function handleChannelAddition(ctx: Context, targetType: 'CHANNEL' 
       const botInfo = await ctx.api.getMe();
       botMember = await ctx.api.getChatMember(chat.id, botInfo.id);
     } catch {
-      await ctx.reply(
-        '❌ Бот не является участником этого канала/группы.\n\n' +
-          'Добавьте бота как администратора и попробуйте снова.',
-        { parse_mode: 'HTML' }
-      );
+      const msg = locale === 'ru' 
+        ? '❌ Бот не является участником этого канала/группы.\n\nДобавьте бота как администратора и попробуйте снова.'
+        : locale === 'en'
+        ? '❌ Bot is not a member of this channel/group.\n\nAdd the bot as an admin and try again.'
+        : '❌ Бот осы арна/топтың мүшесі емес.\n\nБотты админ ретінде қосып, қайта көріңіз.';
+      await ctx.reply(msg, { parse_mode: 'HTML' });
       return;
     }
 
     const botIsAdmin = isAdmin(botMember);
     if (!botIsAdmin) {
-      await ctx.reply(
-        '❌ Бот не является администратором.\n\n' +
-          '<b>Как исправить:</b>\n' +
-          '1. Откройте настройки канала/группы\n' +
-          '2. Перейдите в "Администраторы"\n' +
-          '3. Добавьте бота как администратора\n' +
-          '4. Попробуйте снова',
-        { parse_mode: 'HTML' }
-      );
+      const msg = locale === 'ru'
+        ? '❌ Бот не является администратором.\n\n<b>Как исправить:</b>\n1. Откройте настройки канала/группы\n2. Перейдите в "Администраторы"\n3. Добавьте бота как администратора\n4. Попробуйте снова'
+        : locale === 'en'
+        ? '❌ Bot is not an administrator.\n\n<b>How to fix:</b>\n1. Open channel/group settings\n2. Go to "Administrators"\n3. Add the bot as an admin\n4. Try again'
+        : '❌ Бот әкімші емес.\n\n<b>Қалай түзетуге болады:</b>\n1. Арна/топ параметрлерін ашыңыз\n2. "Әкімшілер" бөліміне өтіңіз\n3. Ботты админ ретінде қосыңыз\n4. Қайта көріңіз';
+      await ctx.reply(msg, { parse_mode: 'HTML' });
       return;
     }
 
@@ -231,21 +298,23 @@ export async function handleChannelAddition(ctx: Context, targetType: 'CHANNEL' 
     try {
       userMember = await ctx.api.getChatMember(chat.id, userId);
     } catch {
-      await ctx.reply(
-        '❌ Не удалось проверить ваши права в канале/группе.\n\n' +
-          'Убедитесь, что вы являетесь администратором.',
-        { parse_mode: 'HTML' }
-      );
+      const msg = locale === 'ru'
+        ? '❌ Не удалось проверить ваши права в канале/группе.\n\nУбедитесь, что вы являетесь администратором.'
+        : locale === 'en'
+        ? '❌ Could not verify your permissions in channel/group.\n\nMake sure you are an admin.'
+        : '❌ Арна/топтағы құқықтарыңызды тексеру мүмкін болмады.\n\nСіз админ екеніңізге көз жеткізіңіз.';
+      await ctx.reply(msg, { parse_mode: 'HTML' });
       return;
     }
 
     const userIsAdmin = isAdmin(userMember);
     if (!userIsAdmin) {
-      await ctx.reply(
-        '❌ Вы не являетесь администратором этого канала/группы.\n\n' +
-          'Только администраторы могут добавлять каналы/группы.',
-        { parse_mode: 'HTML' }
-      );
+      const msg = locale === 'ru'
+        ? '❌ Вы не являетесь администратором этого канала/группы.\n\nТолько администраторы могут добавлять каналы/группы.'
+        : locale === 'en'
+        ? '❌ You are not an admin of this channel/group.\n\nOnly admins can add channels/groups.'
+        : '❌ Сіз осы арна/топтың админі емессіз.\n\nТек админдер арна/топтарды қоса алады.';
+      await ctx.reply(msg, { parse_mode: 'HTML' });
       return;
     }
 
@@ -274,33 +343,50 @@ export async function handleChannelAddition(ctx: Context, targetType: 'CHANNEL' 
     });
 
     if (!result.ok) {
-      await ctx.reply(`❌ Ошибка сохранения: ${result.error}`, { parse_mode: 'HTML' });
+      const errorPrefix = locale === 'ru' ? '❌ Ошибка сохранения:' : locale === 'en' ? '❌ Save error:' : '❌ Сақтау қатесі:';
+      await ctx.reply(`${errorPrefix} ${result.error}`, { parse_mode: 'HTML' });
       return;
     }
 
     // Success message
-    const typeLabel = actualType === 'CHANNEL' ? 'Канал' : 'Группа';
+    const typeLabel = locale === 'ru' 
+      ? (actualType === 'CHANNEL' ? 'Канал' : 'Группа')
+      : locale === 'en'
+      ? (actualType === 'CHANNEL' ? 'Channel' : 'Group')
+      : (actualType === 'CHANNEL' ? 'Арна' : 'Топ');
     const username = 'username' in chat && chat.username ? `@${chat.username}` : '';
-    const memberInfo = memberCount ? `\n👥 Подписчиков: ${memberCount.toLocaleString('ru-RU')}` : '';
+    const subscribersLabel = locale === 'ru' ? 'Подписчиков' : locale === 'en' ? 'Subscribers' : 'Жазылушылар';
+    const memberInfo = memberCount ? `\n👥 ${subscribersLabel}: ${memberCount.toLocaleString(locale === 'kk' ? 'kk-KZ' : locale === 'en' ? 'en-US' : 'ru-RU')}` : '';
+    
+    const addedMsg = locale === 'ru' ? 'добавлен' : locale === 'en' ? 'added' : 'қосылды';
+    const useMsg = locale === 'ru' 
+      ? `Теперь вы можете использовать этот ${typeLabel.toLowerCase()} в розыгрышах.`
+      : locale === 'en'
+      ? `Now you can use this ${typeLabel.toLowerCase()} in giveaways.`
+      : `Енді осы ${typeLabel.toLowerCase()} ұтыс ойындарында пайдалана аласыз.`;
+    const openApp = locale === 'ru' ? '📱 Открыть приложение' : locale === 'en' ? '📱 Open App' : '📱 Қолданбаны ашу';
+    const addMore = locale === 'ru' ? '➕ Добавить ещё' : locale === 'en' ? '➕ Add more' : '➕ Тағы қосу';
 
     await ctx.reply(
-      `✅ <b>${typeLabel} добавлен!</b>\n\n` +
+      `✅ <b>${typeLabel} ${addedMsg}!</b>\n\n` +
         `📝 ${chat.title} ${username}${memberInfo}\n\n` +
-        `Теперь вы можете использовать этот ${typeLabel.toLowerCase()} в розыгрышах.`,
+        useMsg,
       {
         parse_mode: 'HTML',
         reply_markup: new InlineKeyboard()
-          .webApp('📱 Открыть приложение', config.webappUrl)
+          .webApp(openApp, config.webappUrl)
           .row()
-          .text('➕ Добавить ещё', actualType === 'CHANNEL' ? 'add_channel' : 'add_group'),
+          .text(addMore, actualType === 'CHANNEL' ? 'add_channel' : 'add_group'),
       }
     );
   } catch (error) {
     console.error('Channel addition error:', error);
-    await ctx.reply(
-      '❌ Произошла ошибка при добавлении канала/группы.\n\nПопробуйте позже.',
-      { parse_mode: 'HTML' }
-    );
+    const msg = locale === 'ru' 
+      ? '❌ Произошла ошибка при добавлении канала/группы.\n\nПопробуйте позже.'
+      : locale === 'en'
+      ? '❌ An error occurred while adding channel/group.\n\nTry again later.'
+      : '❌ Арна/топ қосу кезінде қате пайда болды.\n\nКейінірек көріңіз.';
+    await ctx.reply(msg, { parse_mode: 'HTML' });
   }
 }
 
@@ -312,10 +398,12 @@ export function registerChannelHandlers(bot: import('grammy').Bot) {
   bot.callbackQuery('add_channel', async (ctx) => {
     const userId = ctx.from?.id;
     if (!userId) return;
+    
+    const locale = getUserLocale(userId);
 
     setUserAddingChannel(userId, 'CHANNEL');
     await ctx.answerCallbackQuery();
-    await ctx.reply(getWaitingForChannelMessage('CHANNEL'), {
+    await ctx.reply(getWaitingForChannelMessage('CHANNEL', locale), {
       parse_mode: 'HTML',
     });
   });
@@ -324,40 +412,40 @@ export function registerChannelHandlers(bot: import('grammy').Bot) {
   bot.callbackQuery('add_group', async (ctx) => {
     const userId = ctx.from?.id;
     if (!userId) return;
+    
+    const locale = getUserLocale(userId);
 
     setUserAddingChannel(userId, 'GROUP');
     await ctx.answerCallbackQuery();
-    await ctx.reply(getWaitingForChannelMessage('GROUP'), {
+    await ctx.reply(getWaitingForChannelMessage('GROUP', locale), {
       parse_mode: 'HTML',
     });
   });
 
   // Handle "Back to menu" button
   bot.callbackQuery('back_to_menu', async (ctx) => {
+    const userId = ctx.from?.id;
+    const locale = userId ? getUserLocale(userId) : 'ru';
+    
     await ctx.answerCallbackQuery();
-    await ctx.reply('🏠 Главное меню', {
-      reply_markup: createMainMenuKeyboard(),
+    const menuMsg = locale === 'ru' ? '🏠 Главное меню' : locale === 'en' ? '🏠 Main Menu' : '🏠 Басты мәзір';
+    await ctx.reply(menuMsg, {
+      reply_markup: createMainMenuKeyboard(locale),
     });
   });
 
   // Handle "Go to menu" button
   bot.callbackQuery('go_to_menu', async (ctx) => {
+    const userId = ctx.from?.id;
+    const locale = userId ? getUserLocale(userId) : 'ru';
+    
     await ctx.answerCallbackQuery();
-    await ctx.reply('🏠 Главное меню', {
-      reply_markup: createMainMenuKeyboard(),
+    const menuMsg = locale === 'ru' ? '🏠 Главное меню' : locale === 'en' ? '🏠 Main Menu' : '🏠 Басты мәзір';
+    await ctx.reply(menuMsg, {
+      reply_markup: createMainMenuKeyboard(locale),
     });
   });
 
   // Handle /cancel command during channel addition
-  bot.command('cancel', async (ctx) => {
-    const userId = ctx.from?.id;
-    if (!userId) return;
-
-    if (getUserAddingChannel(userId)) {
-      clearUserAddingChannel(userId);
-      await ctx.reply('❌ Добавление отменено.', {
-        reply_markup: createMainMenuKeyboard(),
-      });
-    }
-  });
+  // Note: This is handled by the main /cancel handler in bot.ts
 }

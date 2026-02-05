@@ -1,0 +1,631 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "next": "Next",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "refresh": "Refresh",
+    "tryAgain": "Try again",
+    "goHome": "Go home"
+  },
+  "nav": {
+    "participant": "🎫 Participant",
+    "creator": "🎁 Creator",
+    "catalog": "Catalog",
+    "channels": "Channels",
+    "settings": "Settings"
+  },
+  "participant": {
+    "title": "🎫 My Participations",
+    "subtitle": "Giveaways you're participating in",
+    "catalogButton": "🎁 Giveaway Catalog",
+    "filters": {
+      "all": "All",
+      "active": "Active",
+      "finished": "Finished",
+      "won": "Won"
+    },
+    "empty": {
+      "all": {
+        "title": "You haven't participated yet",
+        "subtitle": "Find an interesting giveaway and join!"
+      },
+      "active": {
+        "title": "No active giveaways",
+        "subtitle": "Your active giveaways will appear here"
+      },
+      "finished": {
+        "title": "No finished giveaways",
+        "subtitle": "Finished giveaways will appear here"
+      },
+      "won": {
+        "title": "No wins yet",
+        "subtitle": "Participate in giveaways — luck will smile!"
+      },
+      "cancelled": {
+        "title": "No cancelled giveaways",
+        "subtitle": "Cancelled giveaways will appear here"
+      }
+    },
+    "tickets": "{count, plural, one {# ticket} other {# tickets}}",
+    "participants": "{count} participants",
+    "timeLeft": "⏰ {time}",
+    "youWon": "🏆 You won!",
+    "place": "Place {place}"
+  },
+  "creator": {
+    "title": "🎁 My Giveaways",
+    "subtitle": "Giveaways you've created",
+    "createButton": "➕ Create Giveaway",
+    "channels": "📣 My Channels",
+    "posts": "📝 Posts",
+    "totalGiveaways": "Total giveaways",
+    "activeGiveaways": "Active",
+    "openDashboard": "📊 Open Dashboard",
+    "noChannels": "No channels",
+    "noPosts": "No posts",
+    "postDeleted": "Post deleted",
+    "undo": "↩️ Undo",
+    "mediaType": {
+      "text": "Text",
+      "photo": "Photo",
+      "video": "Video"
+    }
+  },
+  "giveaway": {
+    "status": {
+      "draft": "Draft",
+      "pending": "Pending",
+      "scheduled": "Scheduled",
+      "active": "Active",
+      "finished": "Finished",
+      "cancelled": "Cancelled"
+    },
+    "participants": "{count} participants",
+    "winners": "{count} winners",
+    "timeLeft": "{time} left",
+    "ended": "Ended {date}",
+    "created": "Created {date}",
+    "viewResults": "View results",
+    "openGiveaway": "Open giveaway"
+  },
+  "wizard": {
+    "step": "Step {current} of {total}",
+    "steps": {
+      "TYPE": "Type",
+      "BASICS": "Settings",
+      "SUBSCRIPTIONS": "Subscriptions",
+      "PUBLISH": "Publish",
+      "RESULTS": "Results",
+      "DATES": "Dates",
+      "WINNERS": "Winners",
+      "PROTECTION": "Protection",
+      "EXTRAS": "Extra tickets",
+      "REVIEW": "Review"
+    },
+    "header": {
+      "title": "New Giveaway",
+      "backToMenu": "Menu"
+    },
+    "nav": {
+      "back": "Back",
+      "next": "Next",
+      "create": "Create Giveaway",
+      "creating": "Creating..."
+    },
+    "success": {
+      "title": "Giveaway created!",
+      "description": "Now confirm publishing in the bot. You can preview and publish the giveaway to selected channels.",
+      "openBot": "Open bot for confirmation",
+      "backToMenu": "Back to menu"
+    },
+    "types": {
+      "STANDARD": {
+        "label": "🎁 Standard",
+        "desc": "Basic giveaway with subscription check"
+      },
+      "BOOST_REQUIRED": {
+        "label": "🚀 With Boosts",
+        "desc": "Requires channel boost to participate"
+      },
+      "INVITE_REQUIRED": {
+        "label": "👥 With Invites",
+        "desc": "Bonuses for inviting friends"
+      },
+      "CUSTOM": {
+        "label": "⚙️ Custom",
+        "desc": "Flexible conditions and tasks"
+      }
+    },
+    "basics": {
+      "title": "Giveaway Title",
+      "titlePlaceholder": "iPhone 15 Giveaway",
+      "language": "Language",
+      "postTemplate": "Post Template",
+      "selectTemplate": "Select template...",
+      "noTemplates": "No templates. Create a post in bot → 📝 Posts",
+      "buttonText": "Button Text",
+      "buttonPlaceholder": "🎁 Participate"
+    },
+    "subscriptions": {
+      "description": "Select channels participants must subscribe to:",
+      "noChannels": "No channels. Add a channel in bot → 📣 My Channels"
+    },
+    "publish": {
+      "description": "Select channels for publishing the giveaway (minimum 1):",
+      "noChannels": "No channels. Add a channel in bot → 📣 My Channels",
+      "noBotAdmin": "No channels where bot is an administrator"
+    },
+    "resultsStep": {
+      "description": "Select channels for publishing results:",
+      "publishModeLabel": "Results publishing method:",
+      "separatePosts": "Separate posts",
+      "separatePostsHint": "Results will be published as new messages",
+      "editStartPost": "In start post",
+      "editStartPostHint": "Giveaway post will be edited"
+    },
+    "dates": {
+      "startNow": "Start immediately",
+      "startNowHint": "Giveaway starts after confirmation",
+      "startDateTime": "Start date and time",
+      "endDateTime": "End date and time (optional)",
+      "clearEndDate": "Clear end date",
+      "timezoneHint": "Bot operates in Moscow time (GMT+3)"
+    },
+    "winners": {
+      "title": "Number of Winners",
+      "count": "Winners",
+      "randomHint": "Winners will be selected randomly",
+      "maxFree": "Maximum for free account: {max}"
+    },
+    "protection": {
+      "botProtection": "Bot Protection",
+      "defaultHint": "We check suspicious users by default",
+      "recommended": "Recommended",
+      "captcha": {
+        "OFF": {
+          "label": "Disabled",
+          "desc": "No verification. Not recommended."
+        },
+        "SUSPICIOUS_ONLY": {
+          "label": "For suspicious",
+          "desc": "Check only suspicious accounts (new, no photo, etc.)"
+        },
+        "ALL": {
+          "label": "For everyone",
+          "desc": "Mandatory check for all participants"
+        }
+      },
+      "livenessTitle": "Liveness Check",
+      "livenessHint": "Camera verification of participant — protection close to 100%",
+      "livenessProAlert": "🔒 This feature is available in PRO subscription\n\nLiveness Check verifies that a real person is behind the screen, not a bot.",
+      "availableInPro": "Available in PRO subscription"
+    },
+    "extras": {
+      "title": "Extra Tickets",
+      "subtitle": "Participants can increase their chances of winning",
+      "inviteFriends": "Invite Friends",
+      "inviteDescription": "Users can invite friends and get extra tickets. Each invited friend = +1 ticket.",
+      "maxInvites": "Max invites per participant",
+      "maxInvitesFree": "max {max} for free account",
+      "channelBoosts": "Channel Boosts",
+      "boostDescription": "Participants can get extra tickets for channel boosts. Each boost = +1 ticket (max 10 tickets).",
+      "selectBoostChannels": "Select channels for boost (max {max})",
+      "noBoostChannels": "No channels for boost. Add a channel in bot.",
+      "selectAtLeastOneBoost": "Select at least one channel for boosts",
+      "stories": "Post in Stories",
+      "storiesDescription": "Participants get an extra ticket for publishing giveaway in stories.",
+      "storiesManualCheck": "Manual review required. Participant submits request, you verify their story and approve/reject.",
+      "moderationPage": "Moderation page",
+      "storiesPremiumOnly": "Only Telegram Premium users can post stories.",
+      "catalogPromotion": "Catalog Promotion",
+      "catalogDescription": "Your giveaway will be shown in RandomBeast catalog and available to all users.",
+      "comingSoon": "Paid feature. Coming soon."
+    },
+    "review": {
+      "title": "Review Data",
+      "type": "Type",
+      "name": "Name",
+      "language": "Language",
+      "button": "Button",
+      "postTemplate": "Post Template",
+      "selected": "✓ Selected",
+      "notSelected": "❌ Not selected",
+      "dates": "Dates",
+      "start": "Start",
+      "end": "End",
+      "afterConfirmation": "Immediately after confirmation",
+      "notSpecified": "Not specified",
+      "winners": "Winners",
+      "count": "Count",
+      "channels": "Channels",
+      "subscriptions": "Subscriptions",
+      "publication": "Publication",
+      "results": "Results",
+      "protection": "Protection",
+      "captcha": "Captcha",
+      "enabled": "✅ Enabled",
+      "disabled": "❌ Disabled",
+      "extraTickets": "Extra Tickets",
+      "invites": "Invites",
+      "upToFriends": "Up to {count} friends",
+      "boosts": "Boosts",
+      "channelsCount": "{count} channels",
+      "stories": "Stories",
+      "enabledManual": "Enabled (manual moderation)",
+      "catalog": "Catalog",
+      "fillRequired": "Fill in required fields",
+      "required": {
+        "type": "Giveaway type",
+        "title": "Title",
+        "buttonText": "Button text",
+        "postTemplate": "Post template",
+        "publishChannel": "At least 1 publish channel"
+      }
+    }
+  },
+  "join": {
+    "title": "Join Giveaway",
+    "auth": {
+      "title": "Authorization",
+      "description": "To participate in the giveaway, open this page in Telegram",
+      "openInTelegram": "Open in Telegram"
+    },
+    "error": {
+      "title": "Error",
+      "goHome": "Go home"
+    },
+    "finished": {
+      "title": "Giveaway finished",
+      "goHome": "Go home"
+    },
+    "info": {
+      "invitedByFriend": "You were invited by a friend! Participate and get a bonus ticket.",
+      "participants": "participants",
+      "winners": "winners",
+      "timeLeft": "left",
+      "conditions": "Participation conditions",
+      "aboutGiveaway": "About giveaway",
+      "buttonText": "Participate"
+    },
+    "checkSubscription": {
+      "title": "Subscription check",
+      "description": "Subscribe to channels to participate",
+      "subscribed": "✓ Subscribed",
+      "notSubscribed": "Not subscribed",
+      "subscribe": "Subscribe",
+      "checkButton": "Check subscription"
+    },
+    "captcha": {
+      "title": "Verification",
+      "description": "Solve the problem to continue",
+      "placeholder": "Your answer",
+      "invalidNumber": "Enter a number",
+      "checkButton": "Verify",
+      "wrong": "Wrong answer, try again"
+    },
+    "success": {
+      "title": "You're in!",
+      "subtitle": "Good luck!",
+      "yourTickets": "Your tickets",
+      "ticketsFromInvites": "incl. +{count} from invites",
+      "increaseChances": "Increase chances",
+      "goHome": "Go home"
+    },
+    "alreadyJoined": {
+      "title": "You're already participating!",
+      "yourTickets": "Your tickets",
+      "ticketsFromInvites": "incl. +{count} from invites"
+    },
+    "extras": {
+      "title": "Increase chances",
+      "inviteFriends": "Invite friends",
+      "inviteDescription": "+1 ticket per friend (invited: {current}/{max})",
+      "linkCopied": "✅ Link copied!",
+      "shareInTelegram": "Share in Telegram",
+      "inviteLimitReached": "Invite limit reached!",
+      "invitedFriends": "Invited friends",
+      "moreFriends": "and {count} more...",
+      "boostChannels": "Boost channels",
+      "boostDescription": "+1 ticket per boost (max. 10 per channel)",
+      "boostCount": "{count} boost(s)",
+      "notBoosted": "No",
+      "boostButton": "Boost",
+      "verifyButton": "Verify",
+      "boostSuccess": "✅ Boost counted! +{tickets} ticket(s)",
+      "boostNotFound": "Boost not found. Try again.",
+      "totalTicketsFromBoosts": "Total tickets from boosts: +{count}",
+      "publishStory": "Publish in stories",
+      "storyDescription": "+1 ticket (Telegram Premium required)",
+      "ticketReceived": "Ticket received",
+      "requestPending": "Request under review",
+      "requestRejected": "Request rejected",
+      "resubmitStory": "Submit again",
+      "howToPublish": "How to publish",
+      "copyLinkInstruction": "Copy the link below",
+      "openTelegramInstruction": "Open Telegram",
+      "createStoryInstruction": "Tap + → Create story",
+      "addLinkInstruction": "Add link to story",
+      "publishAndSubmitInstruction": "Publish and tap button below",
+      "storyLinkCopied": "Link copied!",
+      "submitStoryButton": "I published — get ticket",
+      "storySubmitted": "✅ Request submitted for review",
+      "storyAlreadyPending": "Your request is already under review",
+      "storyAlreadyApproved": "You already got a ticket for story",
+      "cancel": "Cancel"
+    },
+    "shareLink": "🔗 Your referral link",
+    "copyLink": "Copy link",
+    "linkCopied": "✅ Link copied!",
+    "invitedFriends": "Friends invited: {count}"
+  },
+  "catalog": {
+    "title": "🎁 Giveaway Catalog",
+    "subtitle": "Participate in giveaways from various channels",
+    "empty": "Catalog is empty",
+    "emptySubtitle": "Giveaways will appear here soon",
+    "getAccessEarly": "Get early access and be the first!",
+    "hasAccess": "✅ You have catalog access",
+    "time": {
+      "ending": "Ending...",
+      "daysHours": "{days}d {hours}h",
+      "hours": "{hours}h"
+    },
+    "subscribers": "subscribers",
+    "participate": "Participate",
+    "giveawaysCount": "{count} giveaways",
+    "paywall": {
+      "title": "Access to {count} giveaways",
+      "description": "Get access to the giveaway catalog",
+      "price": "{price} ₽/month",
+      "perMonth": "/ month",
+      "unlock": "🔓 Get access",
+      "modalTitle": "Giveaway Catalog",
+      "features": {
+        "access": "Access to all giveaways",
+        "noCaptcha": "No captcha required",
+        "notifications": "New giveaway notifications"
+      },
+      "pay": "💳 Pay",
+      "loading": "⏳ Loading...",
+      "secure": "Secure payment via YooKassa",
+      "paymentError": "Payment creation error"
+    },
+    "loadMore": "Load more"
+  },
+  "channels": {
+    "title": "📣 My Channels",
+    "add": "➕ Add channel",
+    "addTitle": "Add channel",
+    "addDescription": "To add a channel, go to the bot and follow the instructions. Bot must be a channel admin with posting rights.",
+    "botAdmin": "Bot admin",
+    "youAdmin": "You admin",
+    "recheck": "Re-check status",
+    "recheckShort": "Check",
+    "delete": "Delete",
+    "deleteShort": "Delete",
+    "deleteConfirm": "Are you sure?",
+    "deleted": "✅ Channel deleted",
+    "empty": {
+      "title": "No channels added",
+      "subtitle": "Add channels to publish giveaways and verify subscriber participation.",
+      "addFirst": "➕ Add first channel"
+    },
+    "channel": "Channel",
+    "group": "Group",
+    "private": "Private",
+    "members": "subscribers",
+    "lastChecked": "Checked",
+    "statusUpdated": "✅ Status updated",
+    "count": "Channels added: {count}"
+  },
+  "dashboard": {
+    "title": "My Giveaways",
+    "channels": "Manage Channels",
+    "channelsShort": "Channels",
+    "create": "Create",
+    "createGiveaway": "Create Giveaway",
+    "filters": {
+      "all": "All",
+      "draft": "Drafts",
+      "active": "Active",
+      "scheduled": "Scheduled",
+      "finished": "Finished"
+    },
+    "menu": {
+      "edit": "✏️ Edit",
+      "publish": "📤 Publish",
+      "share": "🔗 Share",
+      "results": "🏆 Results",
+      "delete": "🗑️ Delete",
+      "stats": "Stats",
+      "copy": "Copy"
+    },
+    "card": {
+      "noTitle": "No title",
+      "timeLeft": "Left",
+      "noEndDate": "No end date",
+      "finished": "Finished",
+      "startsAt": "Starts",
+      "noStartDate": "No start date",
+      "pendingConfirm": "Awaiting confirmation",
+      "created": "Created",
+      "cancelled": "Giveaway cancelled"
+    },
+    "empty": {
+      "title": "You don't have any giveaways yet",
+      "titleFiltered": "No giveaways with this status",
+      "subtitle": "Create your first giveaway and attract subscribers!"
+    },
+    "deleteConfirm": "Delete giveaway \"{title}\"?",
+    "deleteConfirmSimple": "Delete giveaway? This action cannot be undone.",
+    "deleted": "✅ Giveaway deleted",
+    "duplicated": "✅ Giveaway duplicated",
+    "linkCopied": "✅ Link copied"
+  },
+  "payment": {
+    "processing": "Checking payment...",
+    "processingHint": "This may take a few seconds",
+    "pending": "Waiting for confirmation...",
+    "pendingHint": "Payment is being processed",
+    "success": "Payment successful!",
+    "catalogAccess": "Catalog access",
+    "activated": "activated",
+    "accessDuration": "Access valid for 30 days",
+    "error": "Something went wrong",
+    "errorHint": "Payment not found or an error occurred. If money was charged, please contact support.",
+    "goToCatalog": "🎁 Go to catalog",
+    "goHome": "Go home",
+    "backToCatalog": "Back to catalog",
+    "checkCount": "Check {current}/{max}"
+  },
+  "settings": {
+    "title": "⚙️ Settings",
+    "language": "🌐 Language",
+    "notifications": "🔔 Notifications",
+    "about": "ℹ️ About"
+  },
+  "results": {
+    "loading": "Loading results...",
+    "subtitle": "Giveaway results",
+    "giveaway": "Giveaway",
+    "notFinished": "Giveaway hasn't finished yet. Winners will be announced after completion.",
+    "participate": "Participate",
+    "myResult": {
+      "congratulations": "Congratulations!",
+      "place": "You took {place} place!",
+      "notWinner": "You participated but didn't win this time.",
+      "goodLuck": "Good luck in future giveaways!"
+    },
+    "participants": "participants",
+    "winnersCount": "winners",
+    "winners": "Winners",
+    "noWinners": "No winners",
+    "finishedAt": "Finished"
+  },
+  "storiesModeration": {
+    "title": "Story Requests",
+    "subtitle": "Story publication moderation",
+    "stats": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "total": "Total"
+    },
+    "pendingSection": "Pending",
+    "historySection": "History",
+    "submitted": "Submitted",
+    "profile": "Profile",
+    "approve": "Approve",
+    "reject": "Reject",
+    "approved": "✅ Request approved",
+    "rejected": "❌ Request rejected",
+    "approveError": "Approval error",
+    "rejectError": "Rejection error",
+    "rejectReasonPrompt": "Rejection reason (optional):",
+    "statusApproved": "Approved",
+    "statusRejected": "Rejected",
+    "reason": "Reason",
+    "empty": "No requests yet",
+    "noUsernameAlert": "Telegram ID: {id}\n\nUser has no username. Open Telegram and find them by ID, or test via Mini App."
+  },
+  "giveawayDetails": {
+    "backToList": "Back to list",
+    "status": {
+      "draft": "Draft",
+      "pendingConfirm": "Awaiting confirmation",
+      "scheduled": "Scheduled",
+      "active": "Active",
+      "finished": "Finished",
+      "cancelled": "Cancelled"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "participants": "Participants",
+      "winners": "Winners",
+      "stories": "Stories"
+    },
+    "stats": {
+      "participants": "Participants",
+      "tickets": "Tickets",
+      "invites": "Invites",
+      "boosts": "Boosts",
+      "today": "today"
+    },
+    "info": {
+      "title": "Information",
+      "winnersCount": "Winners",
+      "start": "Start",
+      "end": "End",
+      "created": "Created",
+      "publishChannels": "Publish channels"
+    },
+    "conditions": {
+      "title": "Conditions",
+      "invites": "Invites",
+      "boosts": "Boosts",
+      "stories": "Stories",
+      "captcha": "Captcha",
+      "upTo": "up to"
+    },
+    "growth": {
+      "title": "Participants growth (7 days)"
+    },
+    "actions": {
+      "copyLink": "Copy link",
+      "duplicate": "Duplicate",
+      "storiesModeration": "Stories moderation"
+    },
+    "duplicated": "✅ Giveaway duplicated",
+    "duplicateError": "Duplication error",
+    "linkCopied": "✅ Link copied",
+    "participantsTab": {
+      "searchPlaceholder": "Search by name or username...",
+      "user": "User",
+      "tickets": "Tickets",
+      "invites": "Invites",
+      "date": "Date",
+      "showing": "Showing {shown} of {total}",
+      "notFound": "Participants not found",
+      "empty": "No participants yet"
+    },
+    "winnersTab": {
+      "notDetermined": "Winners not yet determined"
+    },
+    "storiesTab": {
+      "description": "Story requests moderation",
+      "openModeration": "Open moderation"
+    }
+  },
+  "auth": {
+    "openInTelegram": "Open in Telegram",
+    "telegramOnly": "This app only works inside Telegram Mini App.",
+    "devLogin": "Dev Login (development only)",
+    "clickToLogin": "Click the button to login via Telegram.",
+    "loginButton": "Login",
+    "logout": "Logout"
+  },
+  "errors": {
+    "connectionError": "Connection error",
+    "loadFailed": "Loading failed",
+    "notFound": "Not found",
+    "unauthorized": "Authorization required",
+    "giveawayNotFound": "Giveaway not found",
+    "alreadyParticipating": "You're already participating",
+    "giveawayEnded": "Giveaway has ended",
+    "subscriptionRequired": "Subscription to channels required",
+    "confirmFailed": "Failed to confirm giveaway",
+    "confirmError": "Confirmation error",
+    "noTelegramData": "No Telegram initData available",
+    "authFailed": "Authentication failed",
+    "authError": "Authentication error",
+    "devLoginFailed": "Dev login failed",
+    "devLoginError": "Dev login error"
+  }
+}

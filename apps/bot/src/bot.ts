@@ -12,6 +12,9 @@ import {
   getCreateGiveawayMessage,
   getSettingsMessage,
   getSupportMessage,
+  getMainMenuMessage,
+  getBackToMenuMessage,
+  getCreateInBotSoonMessage,
 } from './keyboards/mainMenu.js';
 import {
   registerChannelHandlers,
@@ -33,6 +36,7 @@ import {
   registerGiveawayHandlers,
   handleConfirmStart,
 } from './handlers/giveaways.js';
+import { t, updateUserLocale, getUserLocale, localeNames, Locale } from './i18n/index.js';
 
 // This module should only be imported when BOT_TOKEN is available
 if (!config.botToken) {
@@ -68,7 +72,9 @@ function clearAllUserStates(userId: number) {
 
 // Handle /start command
 bot.command('start', async (ctx) => {
-  const firstName = ctx.from?.first_name || 'друг';
+  const userId = ctx.from?.id;
+  const locale = userId ? getUserLocale(userId) : 'ru';
+  const firstName = ctx.from?.first_name || (locale === 'ru' ? 'друг' : locale === 'en' ? 'friend' : 'дос');
 
   // Check for deep link parameters
   const startParam = ctx.match;
@@ -86,45 +92,51 @@ bot.command('start', async (ctx) => {
       const giveawayId = startParam.replace('join_', '');
       const webAppUrl = `${config.webappUrl}?startapp=join_${giveawayId}`;
       
-      const keyboard = new InlineKeyboard()
-        .webApp('🎁 Участвовать в розыгрыше', webAppUrl);
+      const buttonText = locale === 'ru' ? '🎁 Участвовать в розыгрыше' : 
+                         locale === 'en' ? '🎁 Join Giveaway' : '🎁 Ұтыс ойынына қатысу';
+      const messageText = locale === 'ru' ? '🎉 <b>Отлично!</b>\n\nНажмите кнопку ниже, чтобы принять участие в розыгрыше:' :
+                          locale === 'en' ? '🎉 <b>Great!</b>\n\nTap the button below to participate in the giveaway:' :
+                          '🎉 <b>Керемет!</b>\n\nҰтыс ойынына қатысу үшін төмендегі түймені басыңыз:';
       
-      await ctx.reply(
-        '🎉 <b>Отлично!</b>\n\nНажмите кнопку ниже, чтобы принять участие в розыгрыше:',
-        {
-          parse_mode: 'HTML',
-          reply_markup: keyboard,
-        }
-      );
+      const keyboard = new InlineKeyboard()
+        .webApp(buttonText, webAppUrl);
+      
+      await ctx.reply(messageText, {
+        parse_mode: 'HTML',
+        reply_markup: keyboard,
+      });
       return;
     }
 
     // Handle add_channel - открыть меню добавления канала
     if (startParam === 'add_channel') {
-      const keyboard = new InlineKeyboard()
-        .text('➕ Добавить канал', 'menu_add_channel')
-        .row()
-        .text('➕ Добавить группу', 'menu_add_group')
-        .row()
-        .webApp('📱 Открыть приложение', config.webappUrl + '/creator/channels');
+      const addChannel = locale === 'ru' ? '➕ Добавить канал' : locale === 'en' ? '➕ Add Channel' : '➕ Арна қосу';
+      const addGroup = locale === 'ru' ? '➕ Добавить группу' : locale === 'en' ? '➕ Add Group' : '➕ Топ қосу';
+      const openApp = locale === 'ru' ? '📱 Открыть приложение' : locale === 'en' ? '📱 Open App' : '📱 Қолданбаны ашу';
       
-      await ctx.reply(
-        '📣 <b>Добавление канала</b>\n\n' +
-        'Выберите тип:\n' +
-        '• <b>Канал</b> — для публикации розыгрышей и проверки подписки\n' +
-        '• <b>Группа</b> — для проверки подписки участников\n\n' +
-        '⚠️ Бот должен быть админом канала/группы с правами на публикацию.',
-        {
-          parse_mode: 'HTML',
-          reply_markup: keyboard,
-        }
-      );
+      const keyboard = new InlineKeyboard()
+        .text(addChannel, 'menu_add_channel')
+        .row()
+        .text(addGroup, 'menu_add_group')
+        .row()
+        .webApp(openApp, config.webappUrl + '/creator/channels');
+      
+      const message = locale === 'ru' 
+        ? '📣 <b>Добавление канала</b>\n\nВыберите тип:\n• <b>Канал</b> — для публикации розыгрышей и проверки подписки\n• <b>Группа</b> — для проверки подписки участников\n\n⚠️ Бот должен быть админом канала/группы с правами на публикацию.'
+        : locale === 'en'
+        ? '📣 <b>Add Channel</b>\n\nChoose type:\n• <b>Channel</b> — for publishing giveaways and checking subscriptions\n• <b>Group</b> — for checking participant subscriptions\n\n⚠️ Bot must be an admin with posting permissions.'
+        : '📣 <b>Арна қосу</b>\n\nТүрін таңдаңыз:\n• <b>Арна</b> — ұтыс ойындарын жариялау және жазылымды тексеру үшін\n• <b>Топ</b> — қатысушылардың жазылымын тексеру үшін\n\n⚠️ Бот жариялау құқықтары бар админ болуы керек.';
+      
+      await ctx.reply(message, {
+        parse_mode: 'HTML',
+        reply_markup: keyboard,
+      });
       return;
     }
   }
 
   // Default welcome message
-  const keyboard = createMainMenuKeyboard();
+  const keyboard = createMainMenuKeyboard(locale);
 
   if (ctx.from) {
     clearMenuStack(ctx.from.id);
@@ -132,7 +144,7 @@ bot.command('start', async (ctx) => {
     clearAllUserStates(ctx.from.id);
   }
 
-  await ctx.reply(getWelcomeMessage(firstName), {
+  await ctx.reply(getWelcomeMessage(firstName, locale), {
     reply_markup: keyboard,
     parse_mode: 'HTML',
   });
@@ -140,81 +152,98 @@ bot.command('start', async (ctx) => {
 
 // Handle /help command
 bot.command('help', async (ctx) => {
-  await ctx.reply(
-    `❓ <b>Помощь</b>
-
-Команды:
-/start — Начать работу с ботом
-/help — Показать эту справку
-/cancel — Отменить текущую операцию
-
-Используйте меню для навигации 👇`,
-    {
-      reply_markup: createMainMenuKeyboard(),
-      parse_mode: 'HTML',
-    }
-  );
+  const userId = ctx.from?.id;
+  const locale = userId ? getUserLocale(userId) : 'ru';
+  
+  const helpText = locale === 'ru' 
+    ? `❓ <b>Помощь</b>\n\nКоманды:\n/start — Начать работу с ботом\n/help — Показать эту справку\n/cancel — Отменить текущую операцию\n\nИспользуйте меню для навигации 👇`
+    : locale === 'en'
+    ? `❓ <b>Help</b>\n\nCommands:\n/start — Start the bot\n/help — Show this help\n/cancel — Cancel current operation\n\nUse the menu to navigate 👇`
+    : `❓ <b>Көмек</b>\n\nКомандалар:\n/start — Ботты бастау\n/help — Осы көмекті көрсету\n/cancel — Ағымдағы операцияны болдырмау\n\nШарлау үшін мәзірді пайдаланыңыз 👇`;
+  
+  await ctx.reply(helpText, {
+    reply_markup: createMainMenuKeyboard(locale),
+    parse_mode: 'HTML',
+  });
 });
 
 // Handle /cancel command
 bot.command('cancel', async (ctx) => {
   const userId = ctx.from?.id;
+  const locale = userId ? getUserLocale(userId) : 'ru';
+  
   if (userId) {
     clearAllUserStates(userId);
   }
-  await ctx.reply('❌ Операция отменена.', {
-    reply_markup: createMainMenuKeyboard(),
+  
+  const cancelText = locale === 'ru' ? '❌ Операция отменена.' : 
+                     locale === 'en' ? '❌ Operation cancelled.' : '❌ Операция болдырылмады.';
+  
+  await ctx.reply(cancelText, {
+    reply_markup: createMainMenuKeyboard(locale),
   });
 });
 
 // Handle "Open app" button
 bot.hears(MENU.OPEN_APP, async (ctx) => {
+  const userId = ctx.from?.id;
+  const locale = userId ? getUserLocale(userId) : 'ru';
+  
   if (ctx.from) {
     pushMenu(ctx.from.id, 'open_app');
     clearAllUserStates(ctx.from.id);
   }
 
-  await ctx.reply(getOpenAppMessage(), {
-    reply_markup: createWebAppInlineKeyboard(),
+  await ctx.reply(getOpenAppMessage(locale), {
+    reply_markup: createWebAppInlineKeyboard(locale),
     parse_mode: 'HTML',
   });
 });
 
 // Handle "Create giveaway" button
 bot.hears(MENU.CREATE_GIVEAWAY, async (ctx) => {
+  const userId = ctx.from?.id;
+  const locale = userId ? getUserLocale(userId) : 'ru';
+  
   if (ctx.from) {
     pushMenu(ctx.from.id, 'create_giveaway');
     clearAllUserStates(ctx.from.id);
   }
 
-  await ctx.reply(getCreateGiveawayMessage(), {
-    reply_markup: createGiveawayMethodKeyboard(),
+  await ctx.reply(getCreateGiveawayMessage(locale), {
+    reply_markup: createGiveawayMethodKeyboard(locale),
     parse_mode: 'HTML',
   });
 });
 
 // Handle "My channels" button
 bot.hears(MENU.MY_CHANNELS, async (ctx) => {
+  const userId = ctx.from?.id;
+  const locale = userId ? getUserLocale(userId) : 'ru';
+  
   if (ctx.from) {
     pushMenu(ctx.from.id, 'my_channels');
     clearAllUserStates(ctx.from.id);
   }
 
-  await ctx.reply(getChannelsMessage(), {
-    reply_markup: createChannelManagementKeyboard(),
+  await ctx.reply(getChannelsMessage(locale), {
+    reply_markup: createChannelManagementKeyboard(locale),
     parse_mode: 'HTML',
   });
 });
 
 // Handle "My posts" button
 bot.hears(MENU.MY_POSTS, async (ctx) => {
+  const userId = ctx.from?.id;
+  const locale = userId ? getUserLocale(userId) : 'ru';
+  
   if (ctx.from) {
     pushMenu(ctx.from.id, 'my_posts');
     clearAllUserStates(ctx.from.id);
   }
 
-  await ctx.reply(getPostsMessage(), {
-    reply_markup: createPostsKeyboard(),
+  await ctx.reply(getPostsMessage(locale), {
+    reply_markup: createPostsKeyboard(locale),
     parse_mode: 'HTML',
   });
 });
@@ -226,7 +255,10 @@ bot.hears(MENU.SETTINGS, async (ctx) => {
     clearAllUserStates(ctx.from.id);
   }
 
-  await ctx.reply(getSettingsMessage(), {
+  // Получаем текущий язык пользователя
+  const locale = ctx.from?.id ? getUserLocale(ctx.from.id) : 'ru';
+
+  await ctx.reply(getSettingsMessage(locale), {
     reply_markup: createLanguageKeyboard(),
     parse_mode: 'HTML',
   });
@@ -234,13 +266,16 @@ bot.hears(MENU.SETTINGS, async (ctx) => {
 
 // Handle "Support" button
 bot.hears(MENU.SUPPORT, async (ctx) => {
+  const userId = ctx.from?.id;
+  const locale = userId ? getUserLocale(userId) : 'ru';
+  
   if (ctx.from) {
     pushMenu(ctx.from.id, 'support');
     clearAllUserStates(ctx.from.id);
   }
 
-  await ctx.reply(getSupportMessage(), {
-    reply_markup: createSubMenuKeyboard(),
+  await ctx.reply(getSupportMessage(locale), {
+    reply_markup: createSubMenuKeyboard(locale),
     parse_mode: 'HTML',
   });
 });
@@ -249,52 +284,89 @@ bot.hears(MENU.SUPPORT, async (ctx) => {
 bot.hears(MENU.BACK, async (ctx) => {
   const userId = ctx.from?.id;
   if (!userId) return;
+  
+  const locale = getUserLocale(userId);
 
   popMenu(userId);
   clearAllUserStates(userId);
 
   // Go back to main menu for simplicity
-  await ctx.reply('⬅️ Главное меню', {
-    reply_markup: createMainMenuKeyboard(),
+  await ctx.reply(getBackToMenuMessage(locale), {
+    reply_markup: createMainMenuKeyboard(locale),
     parse_mode: 'HTML',
   });
 });
 
 // Handle "To menu" button
 bot.hears(MENU.TO_MENU, async (ctx) => {
+  const userId = ctx.from?.id;
+  const locale = userId ? getUserLocale(userId) : 'ru';
+  
   if (ctx.from) {
     clearMenuStack(ctx.from.id);
     pushMenu(ctx.from.id, 'main');
     clearAllUserStates(ctx.from.id);
   }
 
-  await ctx.reply('🏠 Главное меню\n\nВыберите нужный пункт 👇', {
-    reply_markup: createMainMenuKeyboard(),
+  await ctx.reply(getMainMenuMessage(locale), {
+    reply_markup: createMainMenuKeyboard(locale),
     parse_mode: 'HTML',
   });
 });
 
 // Handle inline button "Create in bot" (stub)
 bot.callbackQuery('create_in_bot', async (ctx) => {
+  const userId = ctx.from?.id;
+  const locale = userId ? getUserLocale(userId) : 'ru';
+  
   await ctx.answerCallbackQuery({
-    text: '🔜 Создание в боте скоро будет доступно!',
+    text: getCreateInBotSoonMessage(locale),
     show_alert: true,
   });
 });
 
 // Handle language selection callbacks
 bot.callbackQuery(/^lang_/, async (ctx) => {
-  const lang = ctx.callbackQuery.data.replace('lang_', '');
-  const langNames: Record<string, string> = {
-    ru: '🇷🇺 Русский',
-    en: '🇬🇧 English',
-    kk: '🇰🇿 Қазақша',
-  };
+  const lang = ctx.callbackQuery.data.replace('lang_', '') as Locale;
+  const userId = ctx.from?.id;
+  
+  if (!userId) {
+    await ctx.answerCallbackQuery({ text: '❌ Error' });
+    return;
+  }
 
-  await ctx.answerCallbackQuery({
-    text: `Язык выбран: ${langNames[lang] || lang}\n(Сохранение в разработке)`,
-    show_alert: true,
-  });
+  // Сохраняем язык в БД
+  const success = await updateUserLocale(userId, lang);
+  
+  if (success) {
+    // Показываем уведомление на выбранном языке
+    const message = t(lang, 'settings.languageChanged', { language: localeNames[lang] });
+    await ctx.answerCallbackQuery({
+      text: message,
+      show_alert: false,
+    });
+
+    // Обновляем сообщение с настройками на новом языке
+    try {
+      await ctx.editMessageText(getSettingsMessage(lang), {
+        reply_markup: createLanguageKeyboard(),
+        parse_mode: 'HTML',
+      });
+    } catch {
+      // Игнорируем ошибку если сообщение не изменилось
+    }
+
+    // Отправляем новое сообщение с обновлённой клавиатурой главного меню
+    await ctx.reply(getMainMenuMessage(lang), {
+      reply_markup: createMainMenuKeyboard(lang),
+      parse_mode: 'HTML',
+    });
+  } else {
+    await ctx.answerCallbackQuery({
+      text: t(lang, 'errors.generic'),
+      show_alert: true,
+    });
+  }
 });
 
 // Register handlers
@@ -365,9 +437,16 @@ bot.on('message:forward_origin', async (ctx, next) => {
 
 // Handle WebApp data (when user comes from mini app)
 bot.on('message:web_app_data', async (ctx) => {
+  const userId = ctx.from?.id;
+  const locale = userId ? getUserLocale(userId) : 'ru';
+  
   console.log('Received web_app_data:', ctx.message.web_app_data);
-  await ctx.reply('Данные получены!', {
-    reply_markup: createMainMenuKeyboard(),
+  
+  const receivedText = locale === 'ru' ? 'Данные получены!' : 
+                       locale === 'en' ? 'Data received!' : 'Деректер алынды!';
+  
+  await ctx.reply(receivedText, {
+    reply_markup: createMainMenuKeyboard(locale),
   });
 });
 

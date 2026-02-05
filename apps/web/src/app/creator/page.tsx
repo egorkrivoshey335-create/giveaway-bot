@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   getGiveawaysList,
   duplicateGiveaway,
@@ -13,18 +14,31 @@ import { InlineToast } from '@/components/Toast';
 // Статусы для фильтрации
 type StatusFilter = 'all' | 'DRAFT' | 'PENDING_CONFIRM' | 'SCHEDULED' | 'ACTIVE' | 'FINISHED' | 'CANCELLED';
 
-// Получить метку статуса
-function getStatusLabel(status: string): string {
-  switch (status) {
-    case 'DRAFT': return '📝 Черновик';
-    case 'PENDING_CONFIRM': return '⏳ Ожидает';
-    case 'SCHEDULED': return '⏰ Запланирован';
-    case 'ACTIVE': return '🟢 Активен';
-    case 'FINISHED': return '✅ Завершён';
-    case 'CANCELLED': return '❌ Отменён';
-    case 'ERROR': return '⚠️ Ошибка';
-    default: return status;
+// Получить метку статуса (будет заменено на переводы в компоненте)
+function getStatusLabel(status: string, tGiveaway: ReturnType<typeof useTranslations<'giveaway'>>): string {
+  const icons: Record<string, string> = {
+    'DRAFT': '📝',
+    'PENDING_CONFIRM': '⏳',
+    'SCHEDULED': '⏰',
+    'ACTIVE': '🟢',
+    'FINISHED': '✅',
+    'CANCELLED': '❌',
+    'ERROR': '⚠️',
+  };
+  const statusMap: Record<string, string> = {
+    'DRAFT': 'draft',
+    'PENDING_CONFIRM': 'pending',
+    'SCHEDULED': 'scheduled',
+    'ACTIVE': 'active',
+    'FINISHED': 'finished',
+    'CANCELLED': 'cancelled',
+  };
+  const icon = icons[status] || '';
+  const key = statusMap[status];
+  if (key) {
+    return `${icon} ${tGiveaway(`status.${key}`)}`;
   }
+  return status;
 }
 
 // Получить CSS класс для бейджа статуса
@@ -85,28 +99,31 @@ function GiveawayCard({
   onEdit: (id: string) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const t = useTranslations('dashboard');
+  const tGiveaway = useTranslations('giveaway');
+  const tCard = useTranslations('dashboard.card');
 
   // Получить текст даты для карточки (всегда показываем, чтобы высота была одинаковой)
   const getDateInfo = () => {
     switch (giveaway.status) {
       case 'ACTIVE':
         return giveaway.endAt 
-          ? { text: `⏰ Осталось: ${formatTimeLeft(giveaway.endAt)}`, className: 'text-orange-500' }
-          : { text: 'Без даты окончания', className: 'text-tg-hint' };
+          ? { text: `⏰ ${tCard('timeLeft')}: ${formatTimeLeft(giveaway.endAt)}`, className: 'text-orange-500' }
+          : { text: tCard('noEndDate'), className: 'text-tg-hint' };
       case 'FINISHED':
-        return { text: `Завершён ${giveaway.endAt ? formatDate(giveaway.endAt) : ''}`, className: 'text-tg-hint' };
+        return { text: `${tCard('finished')} ${giveaway.endAt ? formatDate(giveaway.endAt) : ''}`, className: 'text-tg-hint' };
       case 'SCHEDULED':
         return giveaway.startAt
-          ? { text: `Старт: ${formatDate(giveaway.startAt)}`, className: 'text-blue-500' }
-          : { text: 'Дата старта не указана', className: 'text-tg-hint' };
+          ? { text: `${tCard('startsAt')}: ${formatDate(giveaway.startAt)}`, className: 'text-blue-500' }
+          : { text: tCard('noStartDate'), className: 'text-tg-hint' };
       case 'PENDING_CONFIRM':
-        return { text: 'Ожидает подтверждения', className: 'text-yellow-600' };
+        return { text: tCard('pendingConfirm'), className: 'text-yellow-600' };
       case 'DRAFT':
-        return { text: `Создан ${formatDate(giveaway.createdAt)}`, className: 'text-tg-hint' };
+        return { text: `${tCard('created')} ${formatDate(giveaway.createdAt)}`, className: 'text-tg-hint' };
       case 'CANCELLED':
-        return { text: 'Розыгрыш отменён', className: 'text-red-500' };
+        return { text: tCard('cancelled'), className: 'text-red-500' };
       default:
-        return { text: `Создан ${formatDate(giveaway.createdAt)}`, className: 'text-tg-hint' };
+        return { text: `${tCard('created')} ${formatDate(giveaway.createdAt)}`, className: 'text-tg-hint' };
     }
   };
 
@@ -120,9 +137,9 @@ function GiveawayCard({
       {/* Заголовок карточки */}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="font-semibold text-lg line-clamp-2">{giveaway.title || 'Без названия'}</h3>
+          <h3 className="font-semibold text-lg line-clamp-2">{giveaway.title || tCard('noTitle')}</h3>
           <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${getStatusBadgeClass(giveaway.status)}`}>
-            {getStatusLabel(giveaway.status)}
+            {getStatusLabel(giveaway.status, tGiveaway)}
           </span>
         </div>
 
@@ -153,7 +170,7 @@ function GiveawayCard({
           }}
           className="flex-1 py-3 text-sm text-tg-link hover:bg-tg-bg/50 transition-colors"
         >
-          📊 Статистика
+          📊 {t('menu.stats')}
         </button>
         <button
           onClick={(e) => {
@@ -162,7 +179,7 @@ function GiveawayCard({
           }}
           className="flex-1 py-3 text-sm text-tg-link hover:bg-tg-bg/50 transition-colors border-l border-tg-bg"
         >
-          📋 Копия
+          📋 {t('menu.copy')}
         </button>
         {/* Меню с действиями */}
         <div className="relative">
@@ -195,7 +212,7 @@ function GiveawayCard({
                     }}
                     className="w-full px-4 py-2 text-left text-sm text-tg-text hover:bg-tg-secondary"
                   >
-                    ✏️ Редактировать
+                    {t('menu.edit')}
                   </button>
                 )}
                 {/* Опубликовать — для ожидающих подтверждения */}
@@ -208,7 +225,7 @@ function GiveawayCard({
                     }}
                     className="w-full px-4 py-2 text-left text-sm text-tg-text hover:bg-tg-secondary"
                   >
-                    📤 Опубликовать
+                    {t('menu.publish')}
                   </button>
                 )}
                 {/* Поделиться — для активных и запланированных */}
@@ -221,7 +238,7 @@ function GiveawayCard({
                     }}
                     className="w-full px-4 py-2 text-left text-sm text-tg-text hover:bg-tg-secondary"
                   >
-                    🔗 Поделиться
+                    {t('menu.share')}
                   </button>
                 )}
                 {/* Результаты — для завершённых */}
@@ -234,7 +251,7 @@ function GiveawayCard({
                     }}
                     className="w-full px-4 py-2 text-left text-sm text-tg-text hover:bg-tg-secondary"
                   >
-                    🏆 Результаты
+                    {t('menu.results')}
                   </button>
                 )}
                 {/* Удалить — для черновиков, ожидающих и отменённых */}
@@ -247,7 +264,7 @@ function GiveawayCard({
                     }}
                     className="w-full px-4 py-2 text-left text-sm text-red-500 hover:bg-tg-secondary"
                   >
-                    🗑️ Удалить
+                    {t('menu.delete')}
                   </button>
                 )}
               </div>
@@ -261,6 +278,10 @@ function GiveawayCard({
 
 export default function CreatorDashboardPage() {
   const router = useRouter();
+  const t = useTranslations('dashboard');
+  const tGiveaway = useTranslations('giveaway');
+  const tCommon = useTranslations('common');
+  const tErrors = useTranslations('errors');
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -278,7 +299,7 @@ export default function CreatorDashboardPage() {
       });
 
       if (!res.ok) {
-        setError(res.error || 'Ошибка загрузки');
+        setError(res.error || tErrors('loadFailed'));
         return;
       }
 
@@ -296,7 +317,7 @@ export default function CreatorDashboardPage() {
       }
     } catch (err) {
       console.error('Failed to load giveaways:', err);
-      setError('Ошибка загрузки розыгрышей');
+      setError(tErrors('loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -311,36 +332,36 @@ export default function CreatorDashboardPage() {
     try {
       const res = await duplicateGiveaway(id);
       if (res.ok && res.newGiveawayId) {
-        setMessage('✅ Розыгрыш скопирован');
+        setMessage(t('duplicated'));
         // Переходим к редактированию копии
         router.push(`/creator/giveaway/new?draft=${res.newGiveawayId}`);
       } else {
-        setMessage(res.error || 'Ошибка копирования');
+        setMessage(res.error || tErrors('error'));
       }
     } catch (err) {
       console.error('Duplicate error:', err);
-      setMessage('Ошибка копирования');
+      setMessage(tErrors('error'));
     }
     setTimeout(() => setMessage(null), 3000);
   };
 
   // Удалить розыгрыш
   const handleDelete = async (id: string) => {
-    if (!confirm('Удалить розыгрыш? Это действие нельзя отменить.')) {
+    if (!confirm(t('deleteConfirmSimple'))) {
       return;
     }
 
     try {
       const res = await deleteGiveaway(id);
       if (res.ok) {
-        setMessage('✅ Розыгрыш удалён');
+        setMessage(t('deleted'));
         loadGiveaways();
       } else {
-        setMessage(res.error || 'Ошибка удаления');
+        setMessage(res.error || tErrors('error'));
       }
     } catch (err) {
       console.error('Delete error:', err);
-      setMessage('Ошибка удаления');
+      setMessage(tErrors('error'));
     }
     setTimeout(() => setMessage(null), 3000);
   };
@@ -354,7 +375,7 @@ export default function CreatorDashboardPage() {
   const handleCopyLink = (id: string) => {
     const link = `https://t.me/BeastRandomBot/participate?startapp=join_${id}`;
     navigator.clipboard.writeText(link);
-    setMessage('✅ Ссылка скопирована');
+    setMessage(t('linkCopied'));
     setTimeout(() => setMessage(null), 2000);
   };
 
@@ -365,11 +386,11 @@ export default function CreatorDashboardPage() {
 
   // Фильтры
   const filters: { key: StatusFilter; label: string; icon: string }[] = [
-    { key: 'all', label: 'Все', icon: '' },
-    { key: 'ACTIVE', label: 'Активные', icon: '🟢' },
-    { key: 'SCHEDULED', label: 'Запланированные', icon: '⏰' },
-    { key: 'FINISHED', label: 'Завершённые', icon: '✅' },
-    { key: 'DRAFT', label: 'Черновики', icon: '📝' },
+    { key: 'all', label: t('filters.all'), icon: '' },
+    { key: 'ACTIVE', label: t('filters.active'), icon: '🟢' },
+    { key: 'SCHEDULED', label: t('filters.scheduled'), icon: '⏰' },
+    { key: 'FINISHED', label: t('filters.finished'), icon: '✅' },
+    { key: 'DRAFT', label: t('filters.draft'), icon: '📝' },
   ];
 
   if (loading) {
@@ -377,7 +398,7 @@ export default function CreatorDashboardPage() {
       <main className="min-h-screen p-4">
         <div className="max-w-4xl mx-auto text-center py-12">
           <div className="text-4xl mb-4">⏳</div>
-          <p className="text-tg-hint">Загрузка...</p>
+          <p className="text-tg-hint">{tCommon('loading')}</p>
         </div>
       </main>
     );
@@ -393,7 +414,7 @@ export default function CreatorDashboardPage() {
             onClick={() => window.location.reload()}
             className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2"
           >
-            Обновить
+            {tCommon('refresh')}
           </button>
         </div>
       </main>
@@ -405,22 +426,22 @@ export default function CreatorDashboardPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Мои розыгрыши</h1>
+          <h1 className="text-2xl font-bold">{t('title')}</h1>
           <div className="flex items-center gap-2">
             <button
               onClick={() => router.push('/creator/channels')}
               className="bg-tg-secondary text-tg-text rounded-lg px-3 py-2 font-medium flex items-center gap-2 hover:bg-tg-secondary/80 transition-colors"
-              title="Управление каналами"
+              title={t('channels')}
             >
               <span>📣</span>
-              <span className="hidden sm:inline">Каналы</span>
+              <span className="hidden sm:inline">{t('channelsShort')}</span>
             </button>
             <button
               onClick={() => router.push('/creator/giveaway/new')}
               className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2 font-medium flex items-center gap-2"
             >
               <span>➕</span>
-              <span>Создать</span>
+              <span>{t('create')}</span>
             </button>
           </div>
         </div>
@@ -468,16 +489,16 @@ export default function CreatorDashboardPage() {
           <div className="text-center py-12 bg-tg-secondary rounded-xl">
             <div className="text-6xl mb-4">🎁</div>
             <h2 className="text-xl font-semibold mb-2">
-              {statusFilter === 'all' ? 'У вас пока нет розыгрышей' : 'Нет розыгрышей с таким статусом'}
+              {statusFilter === 'all' ? t('empty.title') : t('empty.titleFiltered')}
             </h2>
             <p className="text-tg-hint mb-6">
-              Создайте свой первый розыгрыш и привлекайте подписчиков!
+              {t('empty.subtitle')}
             </p>
             <button
               onClick={() => router.push('/creator/giveaway/new')}
               className="bg-tg-button text-tg-button-text rounded-lg px-6 py-3 font-medium"
             >
-              Создать розыгрыш
+              {t('createGiveaway')}
             </button>
           </div>
         )}

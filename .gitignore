@@ -36,3 +36,6 @@ prisma/migrations/.migration_lock
 
 # Misc
 *.tsbuildinfo
+
+# Reference projects (not part of main codebase)
+winner-show-old/

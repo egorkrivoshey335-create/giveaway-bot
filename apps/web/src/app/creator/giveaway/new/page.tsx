@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   getDraft,
   createDraft,
@@ -22,19 +23,6 @@ const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
 const WIZARD_STEPS = ['TYPE', 'BASICS', 'SUBSCRIPTIONS', 'PUBLISH', 'RESULTS', 'DATES', 'WINNERS', 'PROTECTION', 'EXTRAS', 'REVIEW'] as const;
 type WizardStep = (typeof WIZARD_STEPS)[number];
 
-const STEP_LABELS: Record<WizardStep, string> = {
-  TYPE: 'Тип',
-  BASICS: 'Настройки',
-  SUBSCRIPTIONS: 'Подписки',
-  PUBLISH: 'Публикация',
-  RESULTS: 'Итоги',
-  DATES: 'Даты',
-  WINNERS: 'Победители',
-  PROTECTION: 'Защита',
-  EXTRAS: 'Доп. билеты',
-  REVIEW: 'Проверка',
-};
-
 // Лимиты для победителей (бесплатный аккаунт)
 const MAX_WINNERS_FREE = 10;
 
@@ -42,37 +30,6 @@ const MAX_WINNERS_FREE = 10;
 const MAX_INVITES_FREE = 10;
 const MAX_BOOST_CHANNELS = 5;
 
-// Режимы капчи
-const CAPTCHA_MODES = [
-  { 
-    value: 'OFF' as const, 
-    label: 'Выключена', 
-    icon: '🚫', 
-    desc: 'Без проверки. Не рекомендуется.',
-    recommended: false,
-  },
-  { 
-    value: 'SUSPICIOUS_ONLY' as const, 
-    label: 'Для подозрительных', 
-    icon: '⚠️', 
-    desc: 'Проверка только для подозрительных аккаунтов (новые, без фото и т.д.)',
-    recommended: true,
-  },
-  { 
-    value: 'ALL' as const, 
-    label: 'Для всех', 
-    icon: '✅', 
-    desc: 'Обязательная проверка для всех участников',
-    recommended: false,
-  },
-];
-
-// Названия режимов капчи для отображения
-const CAPTCHA_MODE_LABELS: Record<string, string> = {
-  OFF: 'Выключена',
-  SUSPICIOUS_ONLY: 'Для подозрительных',
-  ALL: 'Для всех',
-};
 
 /**
  * Форматирует Date в строку для datetime-local input (локальное время)
@@ -136,15 +93,11 @@ function formatDisplayDate(isoString: string | null | undefined): string {
   }
 }
 
-const GIVEAWAY_TYPES = [
-  { value: 'STANDARD', label: '🎁 Стандартный', desc: 'Базовый розыгрыш с проверкой подписки' },
-  { value: 'BOOST_REQUIRED', label: '🚀 С бустами', desc: 'Требует буст канала для участия' },
-  { value: 'INVITE_REQUIRED', label: '👥 С инвайтами', desc: 'Бонусы за приглашение друзей' },
-  { value: 'CUSTOM', label: '⚙️ Кастомный', desc: 'Гибкие условия и задания' },
-] as const;
-
 export default function GiveawayWizardPage() {
   const router = useRouter();
+  const t = useTranslations('wizard');
+  const tCommon = useTranslations('common');
+  const tErrors = useTranslations('errors');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -224,7 +177,7 @@ export default function GiveawayWizardPage() {
         }
       } catch (err) {
         console.error('Failed to load data:', err);
-        setError('Не удалось загрузить данные');
+        setError(tErrors('loadFailed'));
       } finally {
         setLoading(false);
       }
@@ -307,14 +260,14 @@ export default function GiveawayWizardPage() {
         setConfirmedGiveawayId(result.giveawayId);
       } else {
         // Build error message with details if available
-        let errorMsg = result.error || 'Не удалось подтвердить розыгрыш';
+        let errorMsg = result.error || tErrors('confirmFailed');
         if (result.details && result.details.length > 0) {
           errorMsg = result.details.map(d => `• ${d.message}`).join('\n');
         }
         setError(errorMsg);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка подтверждения');
+      setError(err instanceof Error ? err.message : tErrors('confirmError'));
     } finally {
       setConfirming(false);
     }
@@ -337,9 +290,9 @@ export default function GiveawayWizardPage() {
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
           <div className="text-6xl mb-4">🎉</div>
-          <h1 className="text-2xl font-bold mb-2">Розыгрыш создан!</h1>
+          <h1 className="text-2xl font-bold mb-2">{t('success.title')}</h1>
           <p className="text-tg-hint mb-6">
-            Теперь подтвердите публикацию в боте. Вы сможете посмотреть превью и опубликовать розыгрыш в выбранные каналы.
+            {t('success.description')}
           </p>
           
           <a
@@ -348,14 +301,14 @@ export default function GiveawayWizardPage() {
             rel="noopener noreferrer"
             className="block w-full bg-tg-button text-tg-button-text rounded-lg py-4 font-medium text-lg mb-4"
           >
-            🤖 Открыть бота для подтверждения
+            🤖 {t('success.openBot')}
           </a>
           
           <button
             onClick={() => router.push('/')}
             className="text-tg-hint text-sm underline"
           >
-            Вернуться в меню
+            {t('success.backToMenu')}
           </button>
         </div>
       </main>
@@ -367,7 +320,7 @@ export default function GiveawayWizardPage() {
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-2 border-tg-button border-t-transparent rounded-full mx-auto mb-3" />
-          <p className="text-tg-hint">Загрузка...</p>
+          <p className="text-tg-hint">{tCommon('loading')}</p>
         </div>
       </main>
     );
@@ -382,9 +335,9 @@ export default function GiveawayWizardPage() {
             onClick={() => router.push('/')}
             className="text-tg-hint text-sm"
           >
-            ← В меню
+            ← {t('header.backToMenu')}
           </button>
-          <h1 className="text-lg font-semibold">🎁 Новый розыгрыш</h1>
+          <h1 className="text-lg font-semibold">🎁 {t('header.title')}</h1>
           <span className="text-xs text-tg-hint">
             {saving ? '💾...' : '✓'}
           </span>
@@ -399,7 +352,7 @@ export default function GiveawayWizardPage() {
               className={`flex-1 h-1.5 rounded-full transition-colors ${
                 i <= currentStepIndex ? 'bg-tg-button' : 'bg-tg-secondary'
               }`}
-              title={STEP_LABELS[step]}
+              title={t(`steps.${step}`)}
             />
           ))}
         </div>
@@ -407,9 +360,9 @@ export default function GiveawayWizardPage() {
         {/* Step Label */}
         <div className="text-center mb-6">
           <span className="text-xs text-tg-hint">
-            Шаг {currentStepIndex + 1} из {WIZARD_STEPS.length}
+            {t('step', { current: currentStepIndex + 1, total: WIZARD_STEPS.length })}
           </span>
-          <h2 className="text-xl font-semibold mt-1">{STEP_LABELS[currentStep]}</h2>
+          <h2 className="text-xl font-semibold mt-1">{t(`steps.${currentStep}`)}</h2>
         </div>
 
         {/* Error */}
@@ -424,18 +377,18 @@ export default function GiveawayWizardPage() {
           {/* Step 1: Type */}
           {currentStep === 'TYPE' && (
             <div className="space-y-3">
-              {GIVEAWAY_TYPES.map(({ value, label, desc }) => (
+              {(['STANDARD', 'BOOST_REQUIRED', 'INVITE_REQUIRED', 'CUSTOM'] as const).map((typeValue) => (
                 <button
-                  key={value}
-                  onClick={() => updatePayload({ type: value as GiveawayDraftPayload['type'] })}
+                  key={typeValue}
+                  onClick={() => updatePayload({ type: typeValue as GiveawayDraftPayload['type'] })}
                   className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
-                    payload.type === value
+                    payload.type === typeValue
                       ? 'border-tg-button bg-tg-button/10'
                       : 'border-transparent bg-tg-bg'
                   }`}
                 >
-                  <div className="font-medium">{label}</div>
-                  <div className="text-sm text-tg-hint mt-1">{desc}</div>
+                  <div className="font-medium">{t(`types.${typeValue}.label`)}</div>
+                  <div className="text-sm text-tg-hint mt-1">{t(`types.${typeValue}.desc`)}</div>
                 </button>
               ))}
             </div>
@@ -445,18 +398,18 @@ export default function GiveawayWizardPage() {
           {currentStep === 'BASICS' && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-tg-hint mb-1">Название розыгрыша *</label>
+                <label className="block text-sm text-tg-hint mb-1">{t('basics.title')} *</label>
                 <input
                   type="text"
                   value={payload.title || ''}
                   onChange={(e) => updatePayload({ title: e.target.value })}
-                  placeholder="Розыгрыш iPhone 15"
+                  placeholder={t('basics.titlePlaceholder')}
                   className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text placeholder:text-tg-hint/50"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-tg-hint mb-1">Язык</label>
+                <label className="block text-sm text-tg-hint mb-1">{t('basics.language')}</label>
                 <select
                   value={payload.language || 'ru'}
                   onChange={(e) => updatePayload({ language: e.target.value as 'ru' | 'en' | 'kk' })}
@@ -469,13 +422,13 @@ export default function GiveawayWizardPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-tg-hint mb-1">Шаблон поста *</label>
+                <label className="block text-sm text-tg-hint mb-1">{t('basics.postTemplate')} *</label>
                 <select
                   value={payload.postTemplateId || ''}
                   onChange={(e) => updatePayload({ postTemplateId: e.target.value || null })}
                   className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text"
                 >
-                  <option value="">Выберите шаблон...</option>
+                  <option value="">{t('basics.selectTemplate')}</option>
                   {postTemplates.map((tpl) => (
                     <option key={tpl.id} value={tpl.id}>
                       {tpl.mediaType !== 'NONE' ? (tpl.mediaType === 'PHOTO' ? '🖼️ ' : '🎬 ') : '📄 '}
@@ -485,18 +438,18 @@ export default function GiveawayWizardPage() {
                 </select>
                 {postTemplates.length === 0 && (
                   <p className="text-xs text-tg-hint mt-1">
-                    Нет шаблонов. Создайте пост в боте → 📝 Посты
+                    {t('basics.noTemplates')}
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm text-tg-hint mb-1">Текст кнопки *</label>
+                <label className="block text-sm text-tg-hint mb-1">{t('basics.buttonText')} *</label>
                 <input
                   type="text"
                   value={payload.buttonText || ''}
                   onChange={(e) => updatePayload({ buttonText: e.target.value })}
-                  placeholder="🎁 Участвовать"
+                  placeholder={t('basics.buttonPlaceholder')}
                   className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text placeholder:text-tg-hint/50"
                 />
               </div>
@@ -507,11 +460,11 @@ export default function GiveawayWizardPage() {
           {currentStep === 'SUBSCRIPTIONS' && (
             <div>
               <p className="text-sm text-tg-hint mb-4">
-                Выберите каналы, на которые участники должны подписаться:
+                {t('subscriptions.description')}
               </p>
               {channels.length === 0 ? (
                 <p className="text-center text-tg-hint py-8">
-                  Нет каналов. Добавьте канал в боте → 📣 Мои каналы
+                  {t('subscriptions.noChannels')}
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -556,11 +509,11 @@ export default function GiveawayWizardPage() {
           {currentStep === 'PUBLISH' && (
             <div>
               <p className="text-sm text-tg-hint mb-4">
-                Выберите каналы для публикации розыгрыша (минимум 1):
+                {t('publish.description')}
               </p>
               {channels.length === 0 ? (
                 <p className="text-center text-tg-hint py-8">
-                  Нет каналов. Добавьте канал в боте → 📣 Мои каналы
+                  {t('publish.noChannels')}
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -598,7 +551,7 @@ export default function GiveawayWizardPage() {
                   })}
                   {channels.filter(c => c.botIsAdmin).length === 0 && (
                     <p className="text-center text-tg-hint py-4">
-                      Нет каналов, где бот является администратором
+                      {t('publish.noBotAdmin')}
                     </p>
                   )}
                 </div>
@@ -610,7 +563,7 @@ export default function GiveawayWizardPage() {
           {currentStep === 'RESULTS' && (
             <div>
               <p className="text-sm text-tg-hint mb-4">
-                Выберите каналы для публикации итогов:
+                {t('resultsStep.description')}
               </p>
               
               <div className="space-y-2 mb-6">
@@ -646,7 +599,7 @@ export default function GiveawayWizardPage() {
               </div>
 
               <div className="border-t border-tg-bg pt-4">
-                <label className="block text-sm text-tg-hint mb-3">Способ публикации итогов:</label>
+                <label className="block text-sm text-tg-hint mb-3">{t('resultsStep.publishModeLabel')}</label>
                 <div className="space-y-2">
                   <button
                     onClick={() => updatePayload({ publishResultsMode: 'SEPARATE_POSTS' })}
@@ -664,8 +617,8 @@ export default function GiveawayWizardPage() {
                       {(payload.publishResultsMode || 'SEPARATE_POSTS') === 'SEPARATE_POSTS' ? '●' : ''}
                     </span>
                     <div>
-                      <div className="font-medium">Отдельные посты</div>
-                      <div className="text-xs text-tg-hint">Итоги будут опубликованы как новые сообщения</div>
+                      <div className="font-medium">{t('resultsStep.separatePosts')}</div>
+                      <div className="text-xs text-tg-hint">{t('resultsStep.separatePostsHint')}</div>
                     </div>
                   </button>
                   <button
@@ -684,8 +637,8 @@ export default function GiveawayWizardPage() {
                       {payload.publishResultsMode === 'EDIT_START_POST' ? '●' : ''}
                     </span>
                     <div>
-                      <div className="font-medium">В стартовом посте</div>
-                      <div className="text-xs text-tg-hint">Пост розыгрыша будет отредактирован</div>
+                      <div className="font-medium">{t('resultsStep.editStartPost')}</div>
+                      <div className="text-xs text-tg-hint">{t('resultsStep.editStartPostHint')}</div>
                     </div>
                   </button>
                 </div>
@@ -699,8 +652,8 @@ export default function GiveawayWizardPage() {
               {/* Тумблер "Начать сразу" */}
               <div className="flex items-center justify-between p-3 bg-tg-bg rounded-lg">
                 <div>
-                  <div className="font-medium">Начать сразу</div>
-                  <div className="text-xs text-tg-hint">Розыгрыш стартует после подтверждения</div>
+                  <div className="font-medium">{t('dates.startNow')}</div>
+                  <div className="text-xs text-tg-hint">{t('dates.startNowHint')}</div>
                 </div>
                 <button
                   onClick={() => updatePayload({ startAt: payload.startAt ? null : new Date().toISOString() })}
@@ -717,7 +670,7 @@ export default function GiveawayWizardPage() {
               {/* Выбор даты начала */}
               {payload.startAt && (
                 <div>
-                  <label className="block text-sm text-tg-hint mb-1">Дата и время начала</label>
+                  <label className="block text-sm text-tg-hint mb-1">{t('dates.startDateTime')}</label>
                   <input
                     type="datetime-local"
                     value={payload.startAt ? formatDateTimeLocal(payload.startAt) : ''}
@@ -734,7 +687,7 @@ export default function GiveawayWizardPage() {
 
               {/* Выбор даты окончания */}
               <div>
-                <label className="block text-sm text-tg-hint mb-1">Дата и время окончания (опционально)</label>
+                <label className="block text-sm text-tg-hint mb-1">{t('dates.endDateTime')}</label>
                 <input
                   type="datetime-local"
                   value={payload.endAt ? formatDateTimeLocal(payload.endAt) : ''}
@@ -753,13 +706,13 @@ export default function GiveawayWizardPage() {
                     onClick={() => updatePayload({ endAt: null })}
                     className="text-xs text-tg-hint mt-1 underline"
                   >
-                    Очистить дату окончания
+                    {t('dates.clearEndDate')}
                   </button>
                 )}
               </div>
 
               <p className="text-xs text-tg-hint text-center">
-                ⏰ Бот работает в Московском времени (GMT+3)
+                ⏰ {t('dates.timezoneHint')}
               </p>
             </div>
           )}
@@ -769,11 +722,11 @@ export default function GiveawayWizardPage() {
             <div className="space-y-4">
               <div className="text-center mb-4">
                 <span className="text-4xl">🏆</span>
-                <h3 className="text-lg font-semibold mt-2">Количество победителей</h3>
+                <h3 className="text-lg font-semibold mt-2">{t('winners.title')}</h3>
               </div>
 
               <div>
-                <label className="block text-sm text-tg-hint mb-1">Победителей:</label>
+                <label className="block text-sm text-tg-hint mb-1">{t('winners.count')}:</label>
                 <input
                   type="number"
                   min={1}
@@ -805,8 +758,8 @@ export default function GiveawayWizardPage() {
               </div>
 
               <div className="bg-tg-bg rounded-lg p-3 text-sm text-tg-hint">
-                <p className="mb-1">🎲 Победители будут выбраны случайным образом</p>
-                <p>📊 Максимум для бесплатного аккаунта: <strong>{MAX_WINNERS_FREE}</strong></p>
+                <p className="mb-1">🎲 {t('winners.randomHint')}</p>
+                <p>📊 {t('winners.maxFree', { max: MAX_WINNERS_FREE })}</p>
               </div>
             </div>
           )}
@@ -819,43 +772,46 @@ export default function GiveawayWizardPage() {
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-2xl">🔒</span>
                   <div>
-                    <h3 className="font-semibold">Защита от ботов</h3>
-                    <p className="text-xs text-tg-hint">Мы по умолчанию проверяем подозрительных пользователей</p>
+                    <h3 className="font-semibold">{t('protection.botProtection')}</h3>
+                    <p className="text-xs text-tg-hint">{t('protection.defaultHint')}</p>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  {CAPTCHA_MODES.map((mode) => (
-                    <button
-                      key={mode.value}
-                      onClick={() => updatePayload({ captchaMode: mode.value })}
-                      className={`w-full text-left p-3 rounded-lg flex items-start gap-3 transition-all ${
-                        payload.captchaMode === mode.value
-                          ? 'bg-[#f2b6b6]/20 border-2 border-[#f2b6b6]'
-                          : 'bg-tg-bg border-2 border-transparent hover:border-tg-secondary'
-                      }`}
-                    >
-                      <span className="text-2xl">{mode.icon}</span>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{mode.label}</span>
-                          {mode.recommended && (
-                            <span className="text-xs bg-green-500/20 text-green-600 px-2 py-0.5 rounded">
-                              Рекомендуется
-                            </span>
-                          )}
+                  {(['OFF', 'SUSPICIOUS_ONLY', 'ALL'] as const).map((modeValue) => {
+                    const isRecommended = modeValue === 'SUSPICIOUS_ONLY';
+                    return (
+                      <button
+                        key={modeValue}
+                        onClick={() => updatePayload({ captchaMode: modeValue })}
+                        className={`w-full text-left p-3 rounded-lg flex items-start gap-3 transition-all ${
+                          payload.captchaMode === modeValue
+                            ? 'bg-[#f2b6b6]/20 border-2 border-[#f2b6b6]'
+                            : 'bg-tg-bg border-2 border-transparent hover:border-tg-secondary'
+                        }`}
+                      >
+                        <span className="text-2xl">{modeValue === 'OFF' ? '🚫' : modeValue === 'SUSPICIOUS_ONLY' ? '⚠️' : '✅'}</span>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{t(`protection.captcha.${modeValue}.label`)}</span>
+                            {isRecommended && (
+                              <span className="text-xs bg-green-500/20 text-green-600 px-2 py-0.5 rounded">
+                                {t('protection.recommended')}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-tg-hint mt-0.5">{t(`protection.captcha.${modeValue}.desc`)}</p>
                         </div>
-                        <p className="text-xs text-tg-hint mt-0.5">{mode.desc}</p>
-                      </div>
-                      <span className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                        payload.captchaMode === mode.value
-                          ? 'bg-[#f2b6b6] text-white'
-                          : 'bg-tg-secondary'
-                      }`}>
-                        {payload.captchaMode === mode.value && '✓'}
-                      </span>
-                    </button>
-                  ))}
+                        <span className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                          payload.captchaMode === modeValue
+                            ? 'bg-[#f2b6b6] text-white'
+                            : 'bg-tg-secondary'
+                        }`}>
+                          {payload.captchaMode === modeValue && '✓'}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -866,20 +822,20 @@ export default function GiveawayWizardPage() {
                     <span className="text-2xl">📸</span>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">Liveness Check</span>
+                        <span className="font-medium">{t('protection.livenessTitle')}</span>
                         <span className="text-xs bg-purple-500/20 text-purple-600 px-2 py-0.5 rounded">
                           PRO
                         </span>
                       </div>
                       <p className="text-xs text-tg-hint mt-0.5">
-                        Проверка участника с помощью камеры — защита близкая к 100%
+                        {t('protection.livenessHint')}
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => {
                       // Показываем уведомление что это PRO фича
-                      alert('🔒 Эта функция доступна в подписке PRO\n\nLiveness Check позволяет проверить что за экраном реальный человек, а не бот.');
+                      alert(t('protection.livenessProAlert'));
                     }}
                     className="w-12 h-6 rounded-full bg-tg-secondary opacity-50 cursor-not-allowed relative"
                   >
@@ -887,7 +843,7 @@ export default function GiveawayWizardPage() {
                   </button>
                 </div>
                 <p className="text-xs text-tg-hint mt-2 text-center">
-                  💎 Доступно в подписке PRO
+                  💎 {t('protection.availableInPro')}
                 </p>
               </div>
             </div>
@@ -898,9 +854,9 @@ export default function GiveawayWizardPage() {
             <div className="space-y-6">
               <div className="text-center mb-4">
                 <span className="text-4xl">🎫</span>
-                <h3 className="text-lg font-semibold mt-2">Дополнительные билеты</h3>
+                <h3 className="text-lg font-semibold mt-2">{t('extras.title')}</h3>
                 <p className="text-xs text-tg-hint mt-1">
-                  Участники смогут увеличить свои шансы на победу
+                  {t('extras.subtitle')}
                 </p>
               </div>
 
@@ -910,7 +866,7 @@ export default function GiveawayWizardPage() {
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">👥</span>
                     <div>
-                      <span className="font-medium">Приглашение друзей</span>
+                      <span className="font-medium">{t('extras.inviteFriends')}</span>
                     </div>
                   </div>
                   <button
@@ -925,13 +881,13 @@ export default function GiveawayWizardPage() {
                   </button>
                 </div>
                 <p className="text-xs text-tg-hint mb-3">
-                  Пользователи смогут приглашать друзей и получать дополнительные билеты. Каждый приглашённый друг = +1 билет.
+                  {t('extras.inviteDescription')}
                 </p>
                 
                 {payload.inviteEnabled && (
                   <div className="mt-3 pt-3 border-t border-tg-secondary">
                     <label className="block text-sm text-tg-hint mb-2">
-                      Макс. количество приглашений на участника:
+                      {t('extras.maxInvites')}:
                     </label>
                     <div className="flex items-center gap-3">
                       <input
@@ -945,7 +901,7 @@ export default function GiveawayWizardPage() {
                         }}
                         className="w-24 bg-tg-secondary rounded-lg px-3 py-2 text-tg-text text-center"
                       />
-                      <span className="text-xs text-tg-hint">макс. {MAX_INVITES_FREE} для бесплатного аккаунта</span>
+                      <span className="text-xs text-tg-hint">{t('extras.maxInvitesFree', { max: MAX_INVITES_FREE })}</span>
                     </div>
                   </div>
                 )}
@@ -957,7 +913,7 @@ export default function GiveawayWizardPage() {
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">⚡</span>
                     <div>
-                      <span className="font-medium">Бусты каналов</span>
+                      <span className="font-medium">{t('extras.channelBoosts')}</span>
                     </div>
                   </div>
                   <button
@@ -972,17 +928,17 @@ export default function GiveawayWizardPage() {
                   </button>
                 </div>
                 <p className="text-xs text-tg-hint mb-3">
-                  Участники смогут получить дополнительные билеты за буст каналов. Каждый буст = +1 билет (максимум 10 билетов).
+                  {t('extras.boostDescription')}
                 </p>
                 
                 {payload.boostEnabled && (
                   <div className="mt-3 pt-3 border-t border-tg-secondary">
                     <label className="block text-sm text-tg-hint mb-2">
-                      Выберите каналы для буста (макс. {MAX_BOOST_CHANNELS}):
+                      {t('extras.selectBoostChannels', { max: MAX_BOOST_CHANNELS })}:
                     </label>
                     {channels.filter(c => c.type === 'CHANNEL').length === 0 ? (
                       <p className="text-xs text-tg-hint text-center py-2">
-                        Нет каналов для буста. Добавьте канал в боте.
+                        {t('extras.noBoostChannels')}
                       </p>
                     ) : (
                       <div className="space-y-2">
@@ -1022,7 +978,7 @@ export default function GiveawayWizardPage() {
                     )}
                     {payload.boostEnabled && (payload.boostChannelIds || []).length === 0 && channels.filter(c => c.type === 'CHANNEL').length > 0 && (
                       <p className="text-xs text-yellow-600 mt-2">
-                        ⚠️ Выберите хотя бы один канал для бустов
+                        ⚠️ {t('extras.selectAtLeastOneBoost')}
                       </p>
                     )}
                   </div>
@@ -1035,7 +991,7 @@ export default function GiveawayWizardPage() {
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">📺</span>
                     <div>
-                      <span className="font-medium">Постинг в сторис</span>
+                      <span className="font-medium">{t('extras.stories')}</span>
                     </div>
                   </div>
                   <button
@@ -1050,18 +1006,18 @@ export default function GiveawayWizardPage() {
                   </button>
                 </div>
                 <p className="text-xs text-tg-hint">
-                  Участники получат дополнительный билет за публикацию розыгрыша в сторис.
+                  {t('extras.storiesDescription')}
                 </p>
                 {payload.storiesEnabled && (
                   <div className="mt-3 p-2 bg-blue-500/10 rounded-lg">
                     <p className="text-xs text-blue-600">
-                      ℹ️ Требуется ручная проверка. Участник отправляет заявку, а вы проверяете его сторис и одобряете/отклоняете.
+                      ℹ️ {t('extras.storiesManualCheck')}
                     </p>
                     <p className="text-xs text-tg-hint mt-1">
-                      Страница модерации: <span className="font-mono">/creator/giveaway/[id]/stories</span>
+                      {t('extras.moderationPage')}: <span className="font-mono">/creator/giveaway/[id]/stories</span>
                     </p>
                     <p className="text-xs text-yellow-600 mt-1">
-                      ⚠️ Постить сторис могут только пользователи с Telegram Premium.
+                      ⚠️ {t('extras.storiesPremiumOnly')}
                     </p>
                   </div>
                 )}
@@ -1072,7 +1028,7 @@ export default function GiveawayWizardPage() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xl">📣</span>
-                    <span className="font-medium">Продвижение в каталоге</span>
+                    <span className="font-medium">{t('extras.catalogPromotion')}</span>
                     <span className="text-xs bg-yellow-500/20 text-yellow-600 px-2 py-0.5 rounded-full">
                       PRO
                     </span>
@@ -1085,11 +1041,11 @@ export default function GiveawayWizardPage() {
                   </button>
                 </div>
                 <p className="text-xs text-tg-hint">
-                  Ваш розыгрыш будет показан в каталоге RandomBeast и доступен всем пользователям.
+                  {t('extras.catalogDescription')}
                 </p>
                 <div className="mt-3 p-2 bg-yellow-500/10 rounded-lg">
                   <p className="text-xs text-yellow-600">
-                    🔒 Платная функция. Скоро станет доступна.
+                    🔒 {t('extras.comingSoon')}
                   </p>
                 </div>
               </div>
@@ -1101,113 +1057,113 @@ export default function GiveawayWizardPage() {
             <div className="space-y-4">
               <div className="text-center mb-4">
                 <span className="text-4xl">🎉</span>
-                <h3 className="text-lg font-semibold mt-2">Проверьте данные</h3>
+                <h3 className="text-lg font-semibold mt-2">{t('review.title')}</h3>
               </div>
 
               <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-tg-hint">Тип:</span>
-                  <span>{GIVEAWAY_TYPES.find(t => t.value === payload.type)?.label || '—'}</span>
+                  <span className="text-tg-hint">{t('review.type')}:</span>
+                  <span>{payload.type ? t(`types.${payload.type}.label`) : '—'}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-tg-hint">Название:</span>
+                  <span className="text-tg-hint">{t('review.name')}:</span>
                   <span className="truncate max-w-[200px]">{payload.title || '—'}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-tg-hint">Язык:</span>
+                  <span className="text-tg-hint">{t('review.language')}:</span>
                   <span>{payload.language?.toUpperCase() || 'RU'}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-tg-hint">Кнопка:</span>
+                  <span className="text-tg-hint">{t('review.button')}:</span>
                   <span className="truncate max-w-[200px]">{payload.buttonText || '—'}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-tg-hint">Шаблон поста:</span>
-                  <span>{payload.postTemplateId ? '✓ Выбран' : '❌ Не выбран'}</span>
+                  <span className="text-tg-hint">{t('review.postTemplate')}:</span>
+                  <span>{payload.postTemplateId ? t('review.selected') : t('review.notSelected')}</span>
                 </div>
               </div>
 
               {/* Даты */}
               <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
-                <div className="text-tg-hint text-xs font-medium mb-1">📆 Даты</div>
+                <div className="text-tg-hint text-xs font-medium mb-1">📆 {t('review.dates')}</div>
                 <div className="flex justify-between">
-                  <span className="text-tg-hint">Начало:</span>
-                  <span>{payload.startAt ? formatDisplayDate(payload.startAt) : 'Сразу после подтверждения'}</span>
+                  <span className="text-tg-hint">{t('review.start')}:</span>
+                  <span>{payload.startAt ? formatDisplayDate(payload.startAt) : t('review.afterConfirmation')}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-tg-hint">Окончание:</span>
-                  <span>{payload.endAt ? formatDisplayDate(payload.endAt) : 'Не указано'}</span>
+                  <span className="text-tg-hint">{t('review.end')}:</span>
+                  <span>{payload.endAt ? formatDisplayDate(payload.endAt) : t('review.notSpecified')}</span>
                 </div>
               </div>
 
               {/* Победители */}
               <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
-                <div className="text-tg-hint text-xs font-medium mb-1">🏆 Победители</div>
+                <div className="text-tg-hint text-xs font-medium mb-1">🏆 {t('review.winners')}</div>
                 <div className="flex justify-between">
-                  <span className="text-tg-hint">Количество:</span>
+                  <span className="text-tg-hint">{t('review.count')}:</span>
                   <span className="font-medium">{payload.winnersCount || 1}</span>
                 </div>
               </div>
 
               {/* Каналы */}
               <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
-                <div className="text-tg-hint text-xs font-medium mb-1">📣 Каналы</div>
+                <div className="text-tg-hint text-xs font-medium mb-1">📣 {t('review.channels')}</div>
                 <div className="flex justify-between">
-                  <span className="text-tg-hint">Подписок:</span>
+                  <span className="text-tg-hint">{t('review.subscriptions')}:</span>
                   <span>{(payload.requiredSubscriptionChannelIds || []).length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-tg-hint">Публикации:</span>
+                  <span className="text-tg-hint">{t('review.publication')}:</span>
                   <span>{(payload.publishChannelIds || []).length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-tg-hint">Итогов:</span>
+                  <span className="text-tg-hint">{t('review.results')}:</span>
                   <span>{(payload.resultsChannelIds || []).length}</span>
                 </div>
               </div>
 
               {/* Защита */}
               <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
-                <div className="text-tg-hint text-xs font-medium mb-1">🔒 Защита</div>
+                <div className="text-tg-hint text-xs font-medium mb-1">🔒 {t('review.protection')}</div>
                 <div className="flex justify-between">
-                  <span className="text-tg-hint">Капча:</span>
-                  <span>{CAPTCHA_MODE_LABELS[payload.captchaMode || 'SUSPICIOUS_ONLY']}</span>
+                  <span className="text-tg-hint">{t('review.captcha')}:</span>
+                  <span>{t(`protection.captcha.${payload.captchaMode || 'SUSPICIOUS_ONLY'}.label`)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-tg-hint">Liveness Check:</span>
-                  <span>{payload.livenessEnabled ? '✅ Включена' : '❌ Выключена'}</span>
+                  <span>{payload.livenessEnabled ? t('review.enabled') : t('review.disabled')}</span>
                 </div>
               </div>
 
               {/* Дополнительные билеты */}
               <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
-                <div className="text-tg-hint text-xs font-medium mb-1">🎫 Дополнительные билеты</div>
+                <div className="text-tg-hint text-xs font-medium mb-1">🎫 {t('review.extraTickets')}</div>
                 <div className="flex justify-between">
-                  <span className="text-tg-hint">Приглашения:</span>
+                  <span className="text-tg-hint">{t('review.invites')}:</span>
                   <span>
                     {payload.inviteEnabled 
-                      ? `✅ До ${payload.inviteMax || 10} друзей` 
-                      : '❌ Выключено'}
+                      ? `✅ ${t('review.upToFriends', { count: payload.inviteMax || 10 })}` 
+                      : t('review.disabled')}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-tg-hint">Бусты:</span>
+                  <span className="text-tg-hint">{t('review.boosts')}:</span>
                   <span>
                     {payload.boostEnabled 
-                      ? `✅ ${(payload.boostChannelIds || []).length} каналов` 
-                      : '❌ Выключено'}
+                      ? `✅ ${t('review.channelsCount', { count: (payload.boostChannelIds || []).length })}` 
+                      : t('review.disabled')}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-tg-hint">Сторис:</span>
+                  <span className="text-tg-hint">{t('review.stories')}:</span>
                   <span>
                     {payload.storiesEnabled 
-                      ? '✅ Включено (ручная модерация)' 
-                      : '❌ Выключено'}
+                      ? `✅ ${t('review.enabledManual')}` 
+                      : t('review.disabled')}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-tg-hint">Каталог:</span>
+                  <span className="text-tg-hint">{t('review.catalog')}:</span>
                   <span className="text-yellow-600">🔒 PRO</span>
                 </div>
               </div>
@@ -1215,13 +1171,13 @@ export default function GiveawayWizardPage() {
               {/* Validation warnings */}
               {(!payload.type || !payload.title || !payload.buttonText || !payload.postTemplateId || (payload.publishChannelIds || []).length === 0) && (
                 <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-sm text-yellow-600">
-                  ⚠️ Заполните обязательные поля:
+                  ⚠️ {t('review.fillRequired')}:
                   <ul className="list-disc list-inside mt-1">
-                    {!payload.type && <li>Тип розыгрыша</li>}
-                    {!payload.title && <li>Название</li>}
-                    {!payload.buttonText && <li>Текст кнопки</li>}
-                    {!payload.postTemplateId && <li>Шаблон поста</li>}
-                    {(payload.publishChannelIds || []).length === 0 && <li>Минимум 1 канал публикации</li>}
+                    {!payload.type && <li>{t('review.required.type')}</li>}
+                    {!payload.title && <li>{t('review.required.title')}</li>}
+                    {!payload.buttonText && <li>{t('review.required.buttonText')}</li>}
+                    {!payload.postTemplateId && <li>{t('review.required.postTemplate')}</li>}
+                    {(payload.publishChannelIds || []).length === 0 && <li>{t('review.required.publishChannel')}</li>}
                   </ul>
                 </div>
               )}
@@ -1237,7 +1193,7 @@ export default function GiveawayWizardPage() {
               disabled={saving}
               className="flex-1 bg-tg-secondary text-tg-text rounded-lg py-3 font-medium"
             >
-              ← Назад
+              ← {t('nav.back')}
             </button>
           )}
           
@@ -1247,7 +1203,7 @@ export default function GiveawayWizardPage() {
               disabled={saving}
               className="flex-1 bg-tg-button text-tg-button-text rounded-lg py-3 font-medium"
             >
-              Далее →
+              {t('nav.next')} →
             </button>
           ) : (
             <button
@@ -1255,7 +1211,7 @@ export default function GiveawayWizardPage() {
               disabled={confirming || !payload.type || !payload.title || !payload.buttonText || !payload.postTemplateId || (payload.publishChannelIds || []).length === 0}
               className="flex-1 bg-green-500 text-white rounded-lg py-3 font-medium disabled:opacity-50"
             >
-              {confirming ? '⏳ Создание...' : '✅ Создать розыгрыш'}
+              {confirming ? `⏳ ${t('nav.creating')}` : `✅ ${t('nav.create')}`}
             </button>
           )}
         </div>

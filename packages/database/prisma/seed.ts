@@ -35,6 +35,36 @@ async function main() {
   console.log(`   - Price: ${catalogProduct.price / 100} ${catalogProduct.currency}`);
   console.log(`   - Period: ${catalogProduct.periodDays} days`);
 
+  // Upsert Product: Randomizer Monthly Access
+  const randomizerProduct = await prisma.product.upsert({
+    where: { code: 'RANDOMIZER_MONTHLY_500' },
+    update: {
+      title: 'Рандомайзер на 30 дней',
+      price: 50000, // 500 RUB in kopecks
+      currency: 'RUB',
+      periodDays: 30,
+      type: ProductType.SUBSCRIPTION,
+      entitlementCode: 'randomizer.access',
+      isActive: true,
+    },
+    create: {
+      code: 'RANDOMIZER_MONTHLY_500',
+      title: 'Рандомайзер на 30 дней',
+      description: 'Красивый рандомайзер для объявления победителей с анимацией и эффектами',
+      price: 50000, // 500 RUB in kopecks
+      currency: 'RUB',
+      periodDays: 30,
+      type: ProductType.SUBSCRIPTION,
+      entitlementCode: 'randomizer.access',
+      isActive: true,
+    },
+  });
+
+  console.log(`✅ Product created/updated: ${randomizerProduct.code}`);
+  console.log(`   - Title: ${randomizerProduct.title}`);
+  console.log(`   - Price: ${randomizerProduct.price / 100} ${randomizerProduct.currency}`);
+  console.log(`   - Period: ${randomizerProduct.periodDays} days`);
+
   console.log('🌱 Seeding completed!');
 }
 

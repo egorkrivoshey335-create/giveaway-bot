@@ -24,6 +24,11 @@ const envSchema = z.object({
   COOKIE_DOMAIN: z.string().optional(),
   INTERNAL_API_TOKEN: z.string().optional(),
   API_URL: z.string().optional(),
+  // YooKassa
+  YOOKASSA_SHOP_ID: z.string().optional(),
+  YOOKASSA_SECRET_KEY: z.string().optional(),
+  YOOKASSA_RETURN_URL: z.string().optional(),
+  WEBAPP_URL: z.string().optional(),
 });
 
 const env = envSchema.parse(process.env);
@@ -69,6 +74,16 @@ export const config = {
   
   // API URL для внутренних вызовов
   apiUrl: env.API_URL || 'http://localhost:4000',
+  
+  // YooKassa
+  yookassa: {
+    shopId: env.YOOKASSA_SHOP_ID,
+    secretKey: env.YOOKASSA_SECRET_KEY,
+    returnUrl: env.YOOKASSA_RETURN_URL || env.WEBAPP_URL + '/payments/return' || 'http://localhost:3000/payments/return',
+  },
+  
+  // Web App URL
+  webappUrl: env.WEBAPP_URL || 'http://localhost:3000',
 } as const;
 
 // Validation helpers

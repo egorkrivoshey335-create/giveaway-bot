@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   getGiveawayFull,
   getGiveawayStats,
@@ -16,14 +17,14 @@ import { InlineToast } from '@/components/Toast';
 type TabType = 'overview' | 'participants' | 'winners' | 'stories';
 
 // Получить метку статуса
-function getStatusLabel(status: string): string {
+function getStatusLabel(status: string, t: ReturnType<typeof useTranslations<'giveawayDetails'>>): string {
   switch (status) {
-    case 'DRAFT': return '📝 Черновик';
-    case 'PENDING_CONFIRM': return '⏳ Ожидает подтверждения';
-    case 'SCHEDULED': return '⏰ Запланирован';
-    case 'ACTIVE': return '🟢 Активен';
-    case 'FINISHED': return '✅ Завершён';
-    case 'CANCELLED': return '❌ Отменён';
+    case 'DRAFT': return `📝 ${t('status.draft')}`;
+    case 'PENDING_CONFIRM': return `⏳ ${t('status.pendingConfirm')}`;
+    case 'SCHEDULED': return `⏰ ${t('status.scheduled')}`;
+    case 'ACTIVE': return `🟢 ${t('status.active')}`;
+    case 'FINISHED': return `✅ ${t('status.finished')}`;
+    case 'CANCELLED': return `❌ ${t('status.cancelled')}`;
     default: return status;
   }
 }
@@ -56,6 +57,9 @@ function StatCard({ icon, label, value, subValue }: { icon: string; label: strin
 export default function GiveawayDetailsPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTranslations('giveawayDetails');
+  const tCommon = useTranslations('common');
+  const tErrors = useTranslations('errors');
   const giveawayId = params.id as string;
 
   const [loading, setLoading] = useState(true);
@@ -77,7 +81,7 @@ export default function GiveawayDetailsPage() {
       ]);
 
       if (!giveawayRes.ok || !giveawayRes.giveaway) {
-        setError(giveawayRes.error || 'Розыгрыш не найден');
+        setError(giveawayRes.error || tErrors('giveawayNotFound'));
         return;
       }
 
@@ -87,7 +91,7 @@ export default function GiveawayDetailsPage() {
       }
     } catch (err) {
       console.error('Failed to load giveaway:', err);
-      setError('Ошибка загрузки');
+      setError(tErrors('loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -125,14 +129,14 @@ export default function GiveawayDetailsPage() {
     try {
       const res = await duplicateGiveaway(giveawayId);
       if (res.ok && res.newGiveawayId) {
-        setMessage('✅ Розыгрыш скопирован');
+        setMessage(t('duplicated'));
         router.push(`/creator/giveaway/new?draft=${res.newGiveawayId}`);
       } else {
-        setMessage(res.error || 'Ошибка');
+        setMessage(res.error || tErrors('connectionError'));
       }
     } catch (err) {
       console.error('Duplicate error:', err);
-      setMessage('Ошибка копирования');
+      setMessage(t('duplicateError'));
     }
     setTimeout(() => setMessage(null), 3000);
   };
@@ -141,7 +145,7 @@ export default function GiveawayDetailsPage() {
   const handleCopyLink = () => {
     const link = `https://t.me/BeastRandomBot/participate?startapp=join_${giveawayId}`;
     navigator.clipboard.writeText(link);
-    setMessage('✅ Ссылка скопирована');
+    setMessage(t('linkCopied'));
     setTimeout(() => setMessage(null), 2000);
   };
 
@@ -150,7 +154,7 @@ export default function GiveawayDetailsPage() {
       <main className="min-h-screen p-4">
         <div className="max-w-4xl mx-auto text-center py-12">
           <div className="text-4xl mb-4">⏳</div>
-          <p className="text-tg-hint">Загрузка...</p>
+          <p className="text-tg-hint">{tCommon('loading')}</p>
         </div>
       </main>
     );
@@ -161,12 +165,12 @@ export default function GiveawayDetailsPage() {
       <main className="min-h-screen p-4">
         <div className="max-w-4xl mx-auto text-center py-12">
           <div className="text-4xl mb-4">❌</div>
-          <p className="text-tg-hint mb-4">{error || 'Розыгрыш не найден'}</p>
+          <p className="text-tg-hint mb-4">{error || tErrors('giveawayNotFound')}</p>
           <button
             onClick={() => router.push('/creator')}
             className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2"
           >
-            К списку розыгрышей
+            {t('backToList')}
           </button>
         </div>
       </main>
@@ -175,10 +179,10 @@ export default function GiveawayDetailsPage() {
 
   // Табы
   const tabs: { key: TabType; label: string; show: boolean }[] = [
-    { key: 'overview', label: '📊 Обзор', show: true },
-    { key: 'participants', label: `👥 Участники (${giveaway.participantsCount})`, show: true },
-    { key: 'winners', label: `🏆 Победители (${giveaway.winners.length})`, show: giveaway.status === 'FINISHED' && giveaway.winners.length > 0 },
-    { key: 'stories', label: '📺 Сторис', show: giveaway.condition?.storiesEnabled || false },
+    { key: 'overview', label: `📊 ${t('tabs.overview')}`, show: true },
+    { key: 'participants', label: `👥 ${t('tabs.participants')} (${giveaway.participantsCount})`, show: true },
+    { key: 'winners', label: `🏆 ${t('tabs.winners')} (${giveaway.winners.length})`, show: giveaway.status === 'FINISHED' && giveaway.winners.length > 0 },
+    { key: 'stories', label: `📺 ${t('tabs.stories')}`, show: giveaway.condition?.storiesEnabled || false },
   ];
 
   return (
@@ -190,12 +194,12 @@ export default function GiveawayDetailsPage() {
             onClick={() => router.push('/creator')}
             className="text-tg-link text-sm mb-2 flex items-center gap-1"
           >
-            ← К списку розыгрышей
+            ← {t('backToList')}
           </button>
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold">{giveaway.title}</h1>
-              <p className="text-tg-hint mt-1">{getStatusLabel(giveaway.status)}</p>
+              <p className="text-tg-hint mt-1">{getStatusLabel(giveaway.status, t)}</p>
             </div>
           </div>
         </div>
@@ -228,43 +232,43 @@ export default function GiveawayDetailsPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <StatCard
                   icon="👥"
-                  label="Участники"
+                  label={t('stats.participants')}
                   value={stats.participantsCount}
-                  subValue={stats.participantsToday > 0 ? `+${stats.participantsToday} сегодня` : undefined}
+                  subValue={stats.participantsToday > 0 ? `+${stats.participantsToday} ${t('stats.today')}` : undefined}
                 />
-                <StatCard icon="🎫" label="Билеты" value={stats.ticketsTotal} />
-                <StatCard icon="👥" label="Приглашения" value={stats.invitesCount} />
-                <StatCard icon="⚡" label="Бусты" value={stats.boostsCount} />
+                <StatCard icon="🎫" label={t('stats.tickets')} value={stats.ticketsTotal} />
+                <StatCard icon="👥" label={t('stats.invites')} value={stats.invitesCount} />
+                <StatCard icon="⚡" label={t('stats.boosts')} value={stats.boostsCount} />
               </div>
             )}
 
             {/* Информация */}
             <div className="bg-tg-secondary rounded-xl p-4 space-y-3">
-              <h3 className="font-medium mb-3">📋 Информация</h3>
+              <h3 className="font-medium mb-3">📋 {t('info.title')}</h3>
               
               <div className="flex justify-between text-sm">
-                <span className="text-tg-hint">Победителей:</span>
+                <span className="text-tg-hint">{t('info.winnersCount')}:</span>
                 <span>{giveaway.winnersCount}</span>
               </div>
               
               <div className="flex justify-between text-sm">
-                <span className="text-tg-hint">Начало:</span>
+                <span className="text-tg-hint">{t('info.start')}:</span>
                 <span>{formatDate(giveaway.startAt)}</span>
               </div>
               
               <div className="flex justify-between text-sm">
-                <span className="text-tg-hint">Окончание:</span>
+                <span className="text-tg-hint">{t('info.end')}:</span>
                 <span>{formatDate(giveaway.endAt)}</span>
               </div>
               
               <div className="flex justify-between text-sm">
-                <span className="text-tg-hint">Создан:</span>
+                <span className="text-tg-hint">{t('info.created')}:</span>
                 <span>{formatDate(giveaway.createdAt)}</span>
               </div>
 
               {giveaway.publishChannels.length > 0 && (
                 <div className="pt-2 border-t border-tg-bg">
-                  <div className="text-sm text-tg-hint mb-1">Каналы публикации:</div>
+                  <div className="text-sm text-tg-hint mb-1">{t('info.publishChannels')}:</div>
                   <div className="flex flex-wrap gap-2">
                     {giveaway.publishChannels.map((ch) => (
                       <span key={ch.id} className="text-xs bg-tg-bg px-2 py-1 rounded">
@@ -279,22 +283,22 @@ export default function GiveawayDetailsPage() {
             {/* Условия */}
             {giveaway.condition && (
               <div className="bg-tg-secondary rounded-xl p-4">
-                <h3 className="font-medium mb-3">⚙️ Условия</h3>
+                <h3 className="font-medium mb-3">⚙️ {t('conditions.title')}</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-tg-hint">Приглашения:</span>
-                    <span>{giveaway.condition.inviteEnabled ? `✅ до ${giveaway.condition.inviteMax}` : '❌'}</span>
+                    <span className="text-tg-hint">{t('conditions.invites')}:</span>
+                    <span>{giveaway.condition.inviteEnabled ? `✅ ${t('conditions.upTo')} ${giveaway.condition.inviteMax}` : '❌'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-tg-hint">Бусты:</span>
+                    <span className="text-tg-hint">{t('conditions.boosts')}:</span>
                     <span>{giveaway.condition.boostEnabled ? '✅' : '❌'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-tg-hint">Сторис:</span>
+                    <span className="text-tg-hint">{t('conditions.stories')}:</span>
                     <span>{giveaway.condition.storiesEnabled ? '✅' : '❌'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-tg-hint">Капча:</span>
+                    <span className="text-tg-hint">{t('conditions.captcha')}:</span>
                     <span>{giveaway.condition.captchaMode}</span>
                   </div>
                 </div>
@@ -304,7 +308,7 @@ export default function GiveawayDetailsPage() {
             {/* Рост участников */}
             {stats && stats.participantsGrowth.length > 0 && (
               <div className="bg-tg-secondary rounded-xl p-4">
-                <h3 className="font-medium mb-3">📈 Рост участников (7 дней)</h3>
+                <h3 className="font-medium mb-3">📈 {t('growth.title')}</h3>
                 <div className="flex items-end gap-1 h-24">
                   {stats.participantsGrowth.map((day, i) => {
                     const maxCount = Math.max(...stats.participantsGrowth.map(d => d.count), 1);
@@ -331,20 +335,20 @@ export default function GiveawayDetailsPage() {
                 onClick={handleCopyLink}
                 className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2 text-sm font-medium"
               >
-                🔗 Скопировать ссылку
+                🔗 {t('actions.copyLink')}
               </button>
               <button
                 onClick={handleDuplicate}
                 className="bg-tg-secondary text-tg-text rounded-lg px-4 py-2 text-sm font-medium"
               >
-                📋 Дублировать
+                📋 {t('actions.duplicate')}
               </button>
               {giveaway.condition?.storiesEnabled && (
                 <button
                   onClick={() => router.push(`/creator/giveaway/${giveawayId}/stories`)}
                   className="bg-tg-secondary text-tg-text rounded-lg px-4 py-2 text-sm font-medium"
                 >
-                  📺 Модерация сторис
+                  📺 {t('actions.storiesModeration')}
                 </button>
               )}
             </div>
@@ -357,7 +361,7 @@ export default function GiveawayDetailsPage() {
             {/* Поиск */}
             <input
               type="text"
-              placeholder="Поиск по имени или username..."
+              placeholder={t('participantsTab.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-tg-secondary text-tg-text rounded-lg px-4 py-3"
@@ -370,10 +374,10 @@ export default function GiveawayDetailsPage() {
                   <table className="w-full text-sm">
                     <thead className="bg-tg-bg">
                       <tr>
-                        <th className="text-left px-4 py-3 font-medium">Пользователь</th>
-                        <th className="text-center px-4 py-3 font-medium">Билеты</th>
-                        <th className="text-center px-4 py-3 font-medium">Приглашения</th>
-                        <th className="text-right px-4 py-3 font-medium">Дата</th>
+                        <th className="text-left px-4 py-3 font-medium">{t('participantsTab.user')}</th>
+                        <th className="text-center px-4 py-3 font-medium">{t('participantsTab.tickets')}</th>
+                        <th className="text-center px-4 py-3 font-medium">{t('participantsTab.invites')}</th>
+                        <th className="text-right px-4 py-3 font-medium">{t('participantsTab.date')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -404,7 +408,7 @@ export default function GiveawayDetailsPage() {
                 </div>
                 {participantsTotal > participants.length && (
                   <div className="text-center py-3 text-tg-hint text-sm">
-                    Показано {participants.length} из {participantsTotal}
+                    {t('participantsTab.showing', { shown: participants.length, total: participantsTotal })}
                   </div>
                 )}
               </div>
@@ -412,7 +416,7 @@ export default function GiveawayDetailsPage() {
               <div className="text-center py-12 bg-tg-secondary rounded-xl">
                 <div className="text-4xl mb-4">👥</div>
                 <p className="text-tg-hint">
-                  {searchQuery ? 'Участники не найдены' : 'Пока нет участников'}
+                  {searchQuery ? t('participantsTab.notFound') : t('participantsTab.empty')}
                 </p>
               </div>
             )}
@@ -446,7 +450,7 @@ export default function GiveawayDetailsPage() {
             ) : (
               <div className="text-center py-12 bg-tg-secondary rounded-xl">
                 <div className="text-4xl mb-4">🏆</div>
-                <p className="text-tg-hint">Победители ещё не определены</p>
+                <p className="text-tg-hint">{t('winnersTab.notDetermined')}</p>
               </div>
             )}
           </div>
@@ -456,12 +460,12 @@ export default function GiveawayDetailsPage() {
         {activeTab === 'stories' && (
           <div className="text-center py-12 bg-tg-secondary rounded-xl">
             <div className="text-4xl mb-4">📺</div>
-            <p className="text-tg-hint mb-4">Модерация заявок на сторис</p>
+            <p className="text-tg-hint mb-4">{t('storiesTab.description')}</p>
             <button
               onClick={() => router.push(`/creator/giveaway/${giveawayId}/stories`)}
               className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2"
             >
-              Открыть модерацию
+              {t('storiesTab.openModeration')}
             </button>
           </div>
         )}

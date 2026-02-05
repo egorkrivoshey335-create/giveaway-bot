@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   getGiveawayWinners,
   getMyResult,
@@ -12,6 +13,11 @@ export default function GiveawayResultsPage() {
   const params = useParams();
   const router = useRouter();
   const giveawayId = params.id as string;
+  
+  // Переводы
+  const t = useTranslations('results');
+  const tCommon = useTranslations('common');
+  const tErrors = useTranslations('errors');
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +43,7 @@ export default function GiveawayResultsPage() {
         const winnersRes = await getGiveawayWinners(giveawayId);
         
         if (!winnersRes.ok) {
-          setError(winnersRes.error || 'Ошибка загрузки');
+          setError(winnersRes.error || tErrors('loadFailed'));
           setLoading(false);
           return;
         }
@@ -65,13 +71,13 @@ export default function GiveawayResultsPage() {
         setLoading(false);
       } catch (err) {
         console.error('Load error:', err);
-        setError('Ошибка загрузки');
+        setError(tErrors('loadFailed'));
         setLoading(false);
       }
     }
 
     loadData();
-  }, [giveawayId]);
+  }, [giveawayId, tErrors]);
 
   // Форматирование имени пользователя
   const formatUserName = (user: WinnerInfo['user']): string => {
@@ -92,7 +98,7 @@ export default function GiveawayResultsPage() {
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-10 h-10 border-3 border-tg-button border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-tg-hint">Загрузка результатов...</p>
+          <p className="text-tg-hint">{t('loading')}</p>
         </div>
       </main>
     );
@@ -104,13 +110,13 @@ export default function GiveawayResultsPage() {
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
           <div className="text-6xl mb-4">❌</div>
-          <h1 className="text-xl font-bold mb-2">Ошибка</h1>
+          <h1 className="text-xl font-bold mb-2">{tCommon('error')}</h1>
           <p className="text-tg-hint mb-6">{error}</p>
           <button
             onClick={() => router.push('/')}
             className="bg-tg-secondary text-tg-text rounded-lg px-6 py-3"
           >
-            На главную
+            {tCommon('goHome')}
           </button>
         </div>
       </main>
@@ -123,15 +129,15 @@ export default function GiveawayResultsPage() {
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
           <div className="text-6xl mb-4">⏳</div>
-          <h1 className="text-xl font-bold mb-2">{title || 'Розыгрыш'}</h1>
+          <h1 className="text-xl font-bold mb-2">{title || t('giveaway')}</h1>
           <p className="text-tg-hint mb-6">
-            Розыгрыш ещё не завершён. Победители будут объявлены после окончания.
+            {t('notFinished')}
           </p>
           <button
             onClick={() => router.push(`/join/${giveawayId}`)}
             className="bg-tg-button text-tg-button-text rounded-lg px-6 py-3"
           >
-            Участвовать
+            {t('participate')}
           </button>
         </div>
       </main>
@@ -145,7 +151,7 @@ export default function GiveawayResultsPage() {
         <div className="text-center mb-6">
           <div className="text-5xl mb-3">🏆</div>
           <h1 className="text-xl font-bold">{title}</h1>
-          <p className="text-tg-hint mt-1">Результаты розыгрыша</p>
+          <p className="text-tg-hint mt-1">{t('subtitle')}</p>
         </div>
 
         {/* Мой результат */}
@@ -158,15 +164,15 @@ export default function GiveawayResultsPage() {
             {myResult.isWinner ? (
               <div className="text-center">
                 <div className="text-4xl mb-2">🎉</div>
-                <h2 className="text-lg font-bold text-yellow-500">Поздравляем!</h2>
+                <h2 className="text-lg font-bold text-yellow-500">{t('myResult.congratulations')}</h2>
                 <p className="text-sm mt-1">
-                  Вы заняли <span className="font-bold">{myResult.place} место</span>!
+                  {t('myResult.place', { place: myResult.place ?? 1 })}
                 </p>
               </div>
             ) : (
               <div className="text-center">
-                <p className="text-tg-hint">Вы участвовали, но не выиграли в этот раз.</p>
-                <p className="text-sm text-tg-hint mt-1">Удачи в следующих розыгрышах! 🍀</p>
+                <p className="text-tg-hint">{t('myResult.notWinner')}</p>
+                <p className="text-sm text-tg-hint mt-1">{t('myResult.goodLuck')} 🍀</p>
               </div>
             )}
           </div>
@@ -176,11 +182,11 @@ export default function GiveawayResultsPage() {
         <div className="grid grid-cols-2 gap-3 mb-6">
           <div className="bg-tg-secondary rounded-lg p-3 text-center">
             <div className="text-2xl font-bold">{totalParticipants}</div>
-            <div className="text-xs text-tg-hint">участников</div>
+            <div className="text-xs text-tg-hint">{t('participants')}</div>
           </div>
           <div className="bg-tg-secondary rounded-lg p-3 text-center">
             <div className="text-2xl font-bold">{winners.length}</div>
-            <div className="text-xs text-tg-hint">победителей</div>
+            <div className="text-xs text-tg-hint">{t('winnersCount')}</div>
           </div>
         </div>
 
@@ -188,11 +194,11 @@ export default function GiveawayResultsPage() {
         <div className="bg-tg-secondary rounded-xl p-4 mb-6">
           <h2 className="font-semibold mb-4 flex items-center gap-2">
             <span>🏆</span>
-            <span>Победители</span>
+            <span>{t('winners')}</span>
           </h2>
           
           {winners.length === 0 ? (
-            <p className="text-tg-hint text-center py-4">Победителей нет</p>
+            <p className="text-tg-hint text-center py-4">{t('noWinners')}</p>
           ) : (
             <div className="space-y-3">
               {winners.map((winner) => (
@@ -247,7 +253,7 @@ export default function GiveawayResultsPage() {
         {/* Дата завершения */}
         {finishedAt && (
           <p className="text-center text-xs text-tg-hint mb-6">
-            Завершён: {new Date(finishedAt).toLocaleString('ru-RU')}
+            {t('finishedAt')}: {new Date(finishedAt).toLocaleString()}
           </p>
         )}
 
@@ -257,7 +263,7 @@ export default function GiveawayResultsPage() {
             onClick={() => router.push('/')}
             className="w-full bg-tg-secondary text-tg-text rounded-lg py-3"
           >
-            На главную
+            {tCommon('goHome')}
           </button>
         </div>
       </div>

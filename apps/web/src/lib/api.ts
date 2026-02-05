@@ -1307,3 +1307,52 @@ export async function toggleGiveawayCatalog(
 
   return response.json();
 }
+
+// =============================================================================
+// Платежи
+// =============================================================================
+
+interface CreatePaymentResponse {
+  ok: boolean;
+  paymentUrl?: string;
+  purchaseId?: string;
+  error?: string;
+}
+
+/**
+ * Создать платёж для продукта
+ */
+export async function createPayment(params: {
+  productCode: string;
+}): Promise<CreatePaymentResponse> {
+  const response = await fetch(`${API_URL}/payments/create`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(params),
+    credentials: 'include',
+  });
+
+  return response.json();
+}
+
+interface PaymentStatusResponse {
+  ok: boolean;
+  status?: 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
+  productTitle?: string;
+  error?: string;
+}
+
+/**
+ * Проверить статус покупки
+ */
+export async function checkPaymentStatus(
+  purchaseId: string
+): Promise<PaymentStatusResponse> {
+  const response = await fetch(`${API_URL}/payments/status/${purchaseId}`, {
+    credentials: 'include',
+  });
+
+  return response.json();
+}

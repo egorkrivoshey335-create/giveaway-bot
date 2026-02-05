@@ -9,17 +9,37 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Розовые оттенки бренда RandomBeast
         brand: {
-          50: '#f0fdf4',
-          100: '#dcfce7',
-          200: '#bbf7d0',
-          300: '#86efac',
-          400: '#4ade80',
-          500: '#22c55e',
-          600: '#16a34a',
-          700: '#15803d',
-          800: '#166534',
-          900: '#14532d',
+          50: '#fdf2f2',
+          100: '#fce8e8',
+          200: '#f8d1d1',
+          300: '#f2b6b6', // Основной цвет бренда
+          400: '#e88e8e',
+          500: '#db6b6b',
+          600: '#c44d4d',
+          700: '#a33d3d',
+          800: '#873535',
+          900: '#702f2f',
+        },
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.5s ease-out',
+        'slide-up': 'slideUp 0.5s ease-out',
+        'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        slideUp: {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        pulseSoft: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.7' },
         },
       },
     },

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   getChannels,
   deleteChannel,
@@ -9,17 +10,7 @@ import {
   Channel,
 } from '@/lib/api';
 import { InlineToast } from '@/components/Toast';
-
-// Объявляем тип для Telegram WebApp
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: {
-        openTelegramLink: (url: string) => void;
-      };
-    };
-  }
-}
+// Типы Telegram WebApp загружаются из @/types/telegram.d.ts
 
 // Форматирование даты
 function formatDate(dateStr: string): string {
@@ -42,22 +33,21 @@ function formatDate(dateStr: string): string {
 }
 
 // Компонент пустого состояния
-function EmptyState({ onAddChannel }: { onAddChannel: () => void }) {
+function EmptyState({ onAddChannel, t }: { onAddChannel: () => void; t: ReturnType<typeof useTranslations<'channels'>> }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
       <div className="text-6xl mb-4">📣</div>
       <h3 className="text-xl font-semibold text-tg-text mb-2">
-        Каналы не добавлены
+        {t('empty.title')}
       </h3>
       <p className="text-tg-hint mb-6 max-w-sm">
-        Добавьте каналы, чтобы публиковать в них розыгрыши 
-        и проверять подписку участников.
+        {t('empty.subtitle')}
       </p>
       <button
         onClick={onAddChannel}
         className="px-6 py-3 bg-tg-button text-tg-button-text rounded-xl font-medium hover:opacity-90 transition-opacity"
       >
-        ➕ Добавить первый канал
+        {t('empty.addFirst')}
       </button>
     </div>
   );
@@ -69,11 +59,13 @@ function ChannelCard({
   onRecheck,
   onDelete,
   isRechecking,
+  t,
 }: {
   channel: Channel;
   onRecheck: (id: string) => void;
   onDelete: (id: string) => void;
   isRechecking: boolean;
+  t: ReturnType<typeof useTranslations<'channels'>>;
 }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -125,11 +117,11 @@ function ChannelCard({
               @{channel.username}
             </button>
           ) : (
-            <span className="text-tg-hint text-sm">Приватный</span>
+            <span className="text-tg-hint text-sm">{t('private')}</span>
           )}
           <div className="text-tg-hint text-xs mt-0.5">
-            {channel.type === 'CHANNEL' ? 'Канал' : 'Группа'}
-            {channel.memberCount && ` · ${channel.memberCount.toLocaleString('ru-RU')} подписчиков`}
+            {channel.type === 'CHANNEL' ? t('channel') : t('group')}
+            {channel.memberCount && ` · ${channel.memberCount.toLocaleString()} ${t('members')}`}
           </div>
         </div>
       </div>
@@ -137,17 +129,17 @@ function ChannelCard({
       {/* Статусы */}
       <div className="flex flex-wrap gap-3 mb-3">
         <div className={`flex items-center gap-1 text-sm ${channel.botIsAdmin ? 'text-green-500' : 'text-red-500'}`}>
-          {channel.botIsAdmin ? '✅' : '❌'} Бот админ
+          {channel.botIsAdmin ? '✅' : '❌'} {t('botAdmin')}
         </div>
         <div className={`flex items-center gap-1 text-sm ${channel.creatorIsAdmin ? 'text-green-500' : 'text-red-500'}`}>
-          {channel.creatorIsAdmin ? '✅' : '❌'} Вы админ
+          {channel.creatorIsAdmin ? '✅' : '❌'} {t('youAdmin')}
         </div>
       </div>
 
       {/* Последняя проверка */}
       {channel.lastCheckedAt && (
         <div className="text-tg-hint text-xs mb-3">
-          Проверено: {formatDate(channel.lastCheckedAt)}
+          {t('lastChecked')}: {formatDate(channel.lastCheckedAt)}
         </div>
       )}
 
@@ -161,9 +153,9 @@ function ChannelCard({
               ? 'bg-tg-bg text-tg-hint cursor-not-allowed' 
               : 'bg-tg-bg text-tg-text hover:bg-tg-bg/70'
           }`}
-          title="Перепроверить статус"
+          title={t('recheck')}
         >
-          {isRechecking ? '⏳' : '🔄'} Проверить
+          {isRechecking ? '⏳' : '🔄'} {t('recheckShort')}
         </button>
         <button
           onClick={handleDelete}
@@ -172,9 +164,9 @@ function ChannelCard({
               ? 'bg-red-500 text-white'
               : 'bg-tg-bg text-red-500 hover:bg-red-50'
           }`}
-          title="Удалить"
+          title={t('delete')}
         >
-          🗑️ {showDeleteConfirm ? 'Точно удалить?' : 'Удалить'}
+          🗑️ {showDeleteConfirm ? t('deleteConfirm') : t('deleteShort')}
         </button>
       </div>
     </div>
@@ -183,6 +175,10 @@ function ChannelCard({
 
 export default function ChannelsPage() {
   const router = useRouter();
+  const t = useTranslations('channels');
+  const tCommon = useTranslations('common');
+  const tErrors = useTranslations('errors');
+  
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -196,14 +192,14 @@ export default function ChannelsPage() {
       if (res.ok && res.channels) {
         setChannels(res.channels);
       } else {
-        setError(res.error || 'Не удалось загрузить каналы');
+        setError(res.error || tErrors('loadFailed'));
       }
     } catch (err) {
-      setError('Ошибка загрузки');
+      setError(tErrors('loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tErrors]);
 
   useEffect(() => {
     loadChannels();
@@ -229,14 +225,14 @@ export default function ChannelsPage() {
         setChannels(prev => prev.map(ch => 
           ch.id === id ? res.channel! : ch
         ));
-        setMessage('✅ Статус обновлён');
+        setMessage(t('statusUpdated'));
         setTimeout(() => setMessage(null), 2000);
       } else {
-        setMessage('❌ ' + (res.error || 'Ошибка проверки'));
+        setMessage('❌ ' + (res.error || tErrors('error')));
         setTimeout(() => setMessage(null), 3000);
       }
     } catch (err) {
-      setMessage('❌ Ошибка соединения');
+      setMessage('❌ ' + tErrors('connectionError'));
       setTimeout(() => setMessage(null), 3000);
     } finally {
       setRecheckingId(null);
@@ -249,14 +245,14 @@ export default function ChannelsPage() {
       const res = await deleteChannel(id);
       if (res.ok) {
         setChannels(prev => prev.filter(ch => ch.id !== id));
-        setMessage('✅ Канал удалён');
+        setMessage(t('deleted'));
         setTimeout(() => setMessage(null), 2000);
       } else {
-        setMessage('❌ ' + (res.error || 'Ошибка удаления'));
+        setMessage('❌ ' + (res.error || tErrors('error')));
         setTimeout(() => setMessage(null), 3000);
       }
     } catch (err) {
-      setMessage('❌ Ошибка соединения');
+      setMessage('❌ ' + tErrors('connectionError'));
       setTimeout(() => setMessage(null), 3000);
     }
   };
@@ -269,7 +265,7 @@ export default function ChannelsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-tg-bg flex items-center justify-center">
-        <div className="text-tg-hint">Загрузка...</div>
+        <div className="text-tg-hint">{tCommon('loading')}</div>
       </div>
     );
   }
@@ -284,10 +280,10 @@ export default function ChannelsPage() {
             onClick={goBack}
             className="text-tg-link text-sm hover:opacity-70"
           >
-            ← Назад
+            ← {tCommon('back')}
           </button>
           <h1 className="text-lg font-semibold text-tg-text flex-1">
-            📣 Мои каналы
+            {t('title')}
           </h1>
         </div>
       </header>
@@ -298,16 +294,15 @@ export default function ChannelsPage() {
 
         {/* Секция добавления */}
         <div className="bg-tg-secondary rounded-xl p-4 mb-6">
-          <h3 className="text-tg-text font-medium mb-2">Добавить канал</h3>
+          <h3 className="text-tg-text font-medium mb-2">{t('addTitle')}</h3>
           <p className="text-tg-hint text-sm mb-4">
-            Чтобы добавить канал, перейдите в бота и следуйте инструкциям.
-            Бот должен быть админом канала с правами на публикацию.
+            {t('addDescription')}
           </p>
           <button
             onClick={openBotAddChannel}
             className="w-full px-4 py-3 bg-tg-button text-tg-button-text rounded-xl font-medium hover:opacity-90 transition-opacity"
           >
-            ➕ Добавить канал
+            {t('add')}
           </button>
         </div>
 
@@ -319,18 +314,18 @@ export default function ChannelsPage() {
               onClick={loadChannels}
               className="block w-full mt-2 text-sm text-red-500 underline"
             >
-              Попробовать снова
+              {tCommon('tryAgain')}
             </button>
           </div>
         )}
 
         {/* Список каналов */}
         {channels.length === 0 ? (
-          <EmptyState onAddChannel={openBotAddChannel} />
+          <EmptyState onAddChannel={openBotAddChannel} t={t} />
         ) : (
           <div>
             <h3 className="text-tg-hint text-sm mb-3">
-              Добавлено каналов: {channels.length}
+              {t('count', { count: channels.length })}
             </h3>
             {channels.map(channel => (
               <ChannelCard
@@ -339,6 +334,7 @@ export default function ChannelsPage() {
                 onRecheck={handleRecheck}
                 onDelete={handleDelete}
                 isRechecking={recheckingId === channel.id}
+                t={t}
               />
             ))}
           </div>

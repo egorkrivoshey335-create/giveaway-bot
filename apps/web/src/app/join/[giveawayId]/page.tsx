@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   getPublicGiveaway,
   checkSubscription,
@@ -63,6 +64,11 @@ export default function JoinGiveawayPage() {
   const params = useParams();
   const router = useRouter();
   const giveawayId = params.giveawayId as string;
+  
+  // Переводы
+  const t = useTranslations('join');
+  const tCommon = useTranslations('common');
+  const tErrors = useTranslations('errors');
 
   // State
   const [screen, setScreen] = useState<ScreenState>('loading');
@@ -147,7 +153,7 @@ export default function JoinGiveawayPage() {
         const res = await getPublicGiveaway(giveawayId);
 
         if (!res.ok || !res.giveaway) {
-          setError(res.error || 'Розыгрыш не найден');
+          setError(res.error || tErrors('giveawayNotFound'));
           setScreen('error');
           return;
         }
@@ -161,7 +167,7 @@ export default function JoinGiveawayPage() {
         }
 
         if (res.giveaway.status !== 'ACTIVE') {
-          setError('Розыгрыш недоступен');
+          setError(tErrors('giveawayNotFound'));
           setScreen('error');
           return;
         }
@@ -179,14 +185,14 @@ export default function JoinGiveawayPage() {
         setScreen('info');
       } catch (err) {
         console.error('Init error:', err);
-        setError('Ошибка загрузки');
+        setError(tErrors('loadFailed'));
         setScreen('error');
       }
     }
 
     init();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [giveawayId]);
+  }, [giveawayId, tErrors]);
 
   // Загрузка реферальных данных
   const loadReferralData = useCallback(async () => {
@@ -232,18 +238,18 @@ export default function JoinGiveawayPage() {
       
       if (res.ok) {
         if (res.newBoosts && res.newBoosts > 0) {
-          setBoostMessage(`✅ Буст засчитан! +${res.ticketsAdded} билет(ов)`);
+          setBoostMessage(t('extras.boostSuccess', { tickets: res.ticketsAdded ?? 0 }));
           // Перезагружаем данные о бустах
           await loadBoostData();
         } else {
-          setBoostMessage('Буст не найден. Попробуйте ещё раз.');
+          setBoostMessage(t('extras.boostNotFound'));
         }
       } else {
-        setBoostMessage(res.error || 'Ошибка проверки');
+        setBoostMessage(res.error || tErrors('error'));
       }
     } catch (err) {
       console.error('Verify boost error:', err);
-      setBoostMessage('Ошибка проверки');
+      setBoostMessage(tErrors('error'));
     } finally {
       setVerifyingBoost(null);
       // Скрыть сообщение через 3 секунды
@@ -306,20 +312,20 @@ export default function JoinGiveawayPage() {
       
       if (res.ok) {
         setStoryRequestStatus('PENDING');
-        setStoriesMessage('✅ Заявка отправлена на проверку');
+        setStoriesMessage(t('extras.storySubmitted'));
         setShowStoriesInstructions(false);
       } else if (res.error === 'ALREADY_PENDING') {
         setStoryRequestStatus('PENDING');
-        setStoriesMessage('Ваша заявка уже на проверке');
+        setStoriesMessage(t('extras.storyAlreadyPending'));
       } else if (res.error === 'ALREADY_APPROVED') {
         setStoryRequestStatus('APPROVED');
-        setStoriesMessage('Вы уже получили билет за сторис');
+        setStoriesMessage(t('extras.storyAlreadyApproved'));
       } else {
-        setStoriesMessage(res.message || 'Ошибка. Попробуйте ещё раз.');
+        setStoriesMessage(res.message || tErrors('error'));
       }
     } catch (err) {
       console.error('Submit story error:', err);
-      setStoriesMessage('Ошибка. Попробуйте ещё раз.');
+      setStoriesMessage(tErrors('error'));
     } finally {
       setSubmittingStory(false);
       setTimeout(() => setStoriesMessage(null), 3000);
@@ -336,7 +342,7 @@ export default function JoinGiveawayPage() {
       const res = await checkSubscription(giveawayId);
 
       if (!res.ok) {
-        setError(res.error || 'Ошибка проверки подписки');
+        setError(res.error || tErrors('subscriptionRequired'));
         return;
       }
 
@@ -353,7 +359,7 @@ export default function JoinGiveawayPage() {
       }
     } catch (err) {
       console.error('Check subscription error:', err);
-      setError('Ошибка проверки подписки');
+      setError(tErrors('subscriptionRequired'));
     } finally {
       setCheckingSubscription(false);
     }
@@ -378,7 +384,7 @@ export default function JoinGiveawayPage() {
   const handleVerifyCaptcha = useCallback(async () => {
     const answer = parseInt(captchaAnswer, 10);
     if (isNaN(answer)) {
-      setCaptchaError('Введите число');
+      setCaptchaError(t('captcha.invalidNumber'));
       return;
     }
 
@@ -388,15 +394,15 @@ export default function JoinGiveawayPage() {
         setCaptchaPassed(true);
         await handleJoin(true);
       } else {
-        setCaptchaError(res.error || 'Неверный ответ');
+        setCaptchaError(res.error || t('captcha.wrong'));
         // Перезагружаем капчу
         await loadCaptcha();
       }
     } catch (err) {
       console.error('Verify captcha error:', err);
-      setCaptchaError('Ошибка проверки');
+      setCaptchaError(tErrors('error'));
     }
-  }, [captchaAnswer, captchaToken, loadCaptcha]);
+  }, [captchaAnswer, captchaToken, loadCaptcha, t, tErrors]);
 
   // Участие в розыгрыше
   const handleJoin = useCallback(async (withCaptcha: boolean) => {
@@ -415,17 +421,17 @@ export default function JoinGiveawayPage() {
         await Promise.all([loadReferralData(), loadBoostData(), loadStoryRequestStatus()]);
         setScreen('success');
       } else if (res.code === 'SUBSCRIPTION_REQUIRED') {
-        setError(res.error || 'Подпишитесь на каналы');
+        setError(res.error || tErrors('subscriptionRequired'));
         setScreen('check_subscription');
       } else if (res.code === 'CAPTCHA_REQUIRED') {
         await loadCaptcha();
         setScreen('captcha');
       } else {
-        setError(res.error || 'Ошибка участия');
+        setError(res.error || tErrors('error'));
       }
     } catch (err) {
       console.error('Join error:', err);
-      setError('Ошибка участия');
+      setError(tErrors('error'));
     } finally {
       setJoining(false);
     }
@@ -488,7 +494,7 @@ export default function JoinGiveawayPage() {
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-10 h-10 border-3 border-tg-button border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-tg-hint">Загрузка...</p>
+          <p className="text-tg-hint">{tCommon('loading')}</p>
         </div>
       </main>
     );
@@ -500,15 +506,15 @@ export default function JoinGiveawayPage() {
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
           <div className="text-6xl mb-4">🔐</div>
-          <h1 className="text-xl font-bold mb-2">Авторизация</h1>
+          <h1 className="text-xl font-bold mb-2">{t('auth.title')}</h1>
           <p className="text-tg-hint mb-6">
-            Для участия в розыгрыше откройте эту страницу в Telegram
+            {t('auth.description')}
           </p>
           <a
             href={`https://t.me/${BOT_USERNAME}/participate?startapp=join_${giveawayId}`}
             className="block bg-tg-button text-tg-button-text rounded-lg py-3 font-medium"
           >
-            Открыть в Telegram
+            {t('auth.openInTelegram')}
           </a>
         </div>
       </main>
@@ -521,13 +527,13 @@ export default function JoinGiveawayPage() {
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
           <div className="text-6xl mb-4">❌</div>
-          <h1 className="text-xl font-bold mb-2">Ошибка</h1>
+          <h1 className="text-xl font-bold mb-2">{t('error.title')}</h1>
           <p className="text-tg-hint mb-6">{error}</p>
           <button
             onClick={() => router.push('/')}
             className="bg-tg-secondary text-tg-text rounded-lg px-6 py-3"
           >
-            На главную
+            {t('error.goHome')}
           </button>
         </div>
       </main>
@@ -540,7 +546,7 @@ export default function JoinGiveawayPage() {
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
           <div className="text-6xl mb-4">🏁</div>
-          <h1 className="text-xl font-bold mb-2">Розыгрыш завершён</h1>
+          <h1 className="text-xl font-bold mb-2">{t('finished.title')}</h1>
           <p className="text-tg-hint mb-6">
             {giveaway?.title}
           </p>
@@ -548,7 +554,7 @@ export default function JoinGiveawayPage() {
             onClick={() => router.push('/')}
             className="bg-tg-secondary text-tg-text rounded-lg px-6 py-3"
           >
-            На главную
+            {t('finished.goHome')}
           </button>
         </div>
       </main>
@@ -569,7 +575,7 @@ export default function JoinGiveawayPage() {
           {/* Сообщение о приглашении */}
           {referrerUserId && (
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-4 text-center">
-              <span className="text-blue-600">👋 Вас пригласил друг! Участвуйте и получите бонусный билет.</span>
+              <span className="text-blue-600">👋 {t('info.invitedByFriend')}</span>
             </div>
           )}
 
@@ -577,22 +583,22 @@ export default function JoinGiveawayPage() {
           <div className="grid grid-cols-3 gap-3 mb-6">
             <div className="bg-tg-secondary rounded-lg p-3 text-center">
               <div className="text-2xl font-bold">{giveaway.participantsCount}</div>
-              <div className="text-xs text-tg-hint">участников</div>
+              <div className="text-xs text-tg-hint">{t('info.participants')}</div>
             </div>
             <div className="bg-tg-secondary rounded-lg p-3 text-center">
               <div className="text-2xl font-bold">{giveaway.winnersCount}</div>
-              <div className="text-xs text-tg-hint">победителей</div>
+              <div className="text-xs text-tg-hint">{t('info.winners')}</div>
             </div>
             <div className="bg-tg-secondary rounded-lg p-3 text-center">
               <div className="text-2xl font-bold">{formatTimeRemaining(giveaway.endAt)}</div>
-              <div className="text-xs text-tg-hint">осталось</div>
+              <div className="text-xs text-tg-hint">{t('info.timeLeft')}</div>
             </div>
           </div>
 
           {/* Условия */}
           {giveaway.conditions.requiredSubscriptions.length > 0 && (
             <div className="bg-tg-secondary rounded-lg p-4 mb-4">
-              <h2 className="font-medium mb-3">📢 Условия участия:</h2>
+              <h2 className="font-medium mb-3">📢 {t('info.conditions')}:</h2>
               <div className="space-y-2">
                 {giveaway.conditions.requiredSubscriptions.map((channel) => (
                   <a
@@ -614,7 +620,7 @@ export default function JoinGiveawayPage() {
           {/* Описание */}
           {giveaway.postTemplate && (
             <div className="bg-tg-secondary rounded-lg p-4 mb-6">
-              <h2 className="font-medium mb-2">📝 О розыгрыше:</h2>
+              <h2 className="font-medium mb-2">📝 {t('info.aboutGiveaway')}:</h2>
               <p className="text-sm text-tg-hint whitespace-pre-wrap line-clamp-5">
                 {giveaway.postTemplate.text}
               </p>
@@ -627,7 +633,7 @@ export default function JoinGiveawayPage() {
             disabled={joining}
             className="w-full bg-tg-button text-tg-button-text rounded-lg py-4 font-medium text-lg disabled:opacity-50"
           >
-            {joining ? 'Загрузка...' : giveaway.buttonText}
+            {joining ? tCommon('loading') : giveaway.buttonText || t('info.buttonText')}
           </button>
         </div>
       </main>
@@ -641,8 +647,8 @@ export default function JoinGiveawayPage() {
         <div className="max-w-md mx-auto">
           <div className="text-center mb-6">
             <div className="text-5xl mb-3">📢</div>
-            <h1 className="text-xl font-bold">Проверка подписки</h1>
-            <p className="text-tg-hint mt-2">Подпишитесь на каналы для участия</p>
+            <h1 className="text-xl font-bold">{t('checkSubscription.title')}</h1>
+            <p className="text-tg-hint mt-2">{t('checkSubscription.description')}</p>
           </div>
 
           {/* Список каналов */}
@@ -668,7 +674,7 @@ export default function JoinGiveawayPage() {
                     rel="noopener noreferrer"
                     className="bg-tg-button text-tg-button-text text-sm px-3 py-1.5 rounded-lg"
                   >
-                    Подписаться
+                    {t('checkSubscription.subscribe')}
                   </a>
                 )}
               </div>
@@ -681,7 +687,7 @@ export default function JoinGiveawayPage() {
             disabled={checkingSubscription}
             className="w-full bg-tg-button text-tg-button-text rounded-lg py-4 font-medium disabled:opacity-50"
           >
-            {checkingSubscription ? '⏳ Проверяем...' : '🔄 Проверить подписку'}
+            {checkingSubscription ? `⏳ ${tCommon('loading')}` : `🔄 ${t('checkSubscription.checkButton')}`}
           </button>
         </div>
       </main>
@@ -695,8 +701,8 @@ export default function JoinGiveawayPage() {
         <div className="max-w-md mx-auto">
           <div className="text-center mb-6">
             <div className="text-5xl mb-3">🤖</div>
-            <h1 className="text-xl font-bold">Проверка</h1>
-            <p className="text-tg-hint mt-2">Решите пример чтобы продолжить</p>
+            <h1 className="text-xl font-bold">{t('captcha.title')}</h1>
+            <p className="text-tg-hint mt-2">{t('captcha.description')}</p>
           </div>
 
           <div className="bg-tg-secondary rounded-lg p-6 mb-6 text-center">
@@ -706,7 +712,7 @@ export default function JoinGiveawayPage() {
               inputMode="numeric"
               value={captchaAnswer}
               onChange={(e) => setCaptchaAnswer(e.target.value)}
-              placeholder="Ваш ответ"
+              placeholder={t('captcha.placeholder')}
               className="w-full bg-tg-bg rounded-lg px-4 py-3 text-center text-2xl"
               autoFocus
             />
@@ -720,7 +726,7 @@ export default function JoinGiveawayPage() {
             disabled={!captchaAnswer || joining}
             className="w-full bg-tg-button text-tg-button-text rounded-lg py-4 font-medium disabled:opacity-50"
           >
-            {joining ? '⏳ Проверяем...' : '✅ Проверить'}
+            {joining ? `⏳ ${tCommon('loading')}` : `✅ ${t('captcha.checkButton')}`}
           </button>
         </div>
       </main>
@@ -734,26 +740,26 @@ export default function JoinGiveawayPage() {
         <div className="max-w-md mx-auto">
           <div className="text-center mb-6">
             <div className="text-6xl mb-3">🎉</div>
-            <h1 className="text-2xl font-bold">Вы участвуете!</h1>
-            <p className="text-tg-hint mt-2">Удачи в розыгрыше!</p>
+            <h1 className="text-2xl font-bold">{t('success.title')}</h1>
+            <p className="text-tg-hint mt-2">{t('success.subtitle')}</p>
           </div>
 
           {/* Сообщение о приглашении */}
           {referrerUserId && (
             <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 mb-4 text-center">
-              <span className="text-green-600">👋 Вас пригласил друг!</span>
+              <span className="text-green-600">👋 {t('info.invitedByFriend')}</span>
             </div>
           )}
 
           {/* Билеты */}
           <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl p-6 mb-6 text-white text-center">
-            <div className="text-sm opacity-80 mb-1">Ваши билеты</div>
+            <div className="text-sm opacity-80 mb-1">{t('success.yourTickets')}</div>
             <div className="text-5xl font-bold">
               {participation.ticketsBase + participation.ticketsExtra}
             </div>
             {invitedCount > 0 && (
               <div className="text-sm opacity-80 mt-2">
-                в т.ч. +{invitedCount} за приглашённых
+                {t('success.ticketsFromInvites', { count: invitedCount })}
               </div>
             )}
           </div>
@@ -761,16 +767,16 @@ export default function JoinGiveawayPage() {
           {/* Увеличить шансы */}
           {giveaway && (giveaway.conditions.inviteEnabled || giveaway.conditions.boostEnabled || giveaway.conditions.storiesEnabled) && (
             <div className="bg-tg-secondary rounded-lg p-4 mb-6">
-              <h2 className="font-medium mb-3">🎫 Увеличить шансы:</h2>
+              <h2 className="font-medium mb-3">🎫 {t('success.increaseChances')}:</h2>
               <div className="space-y-3">
                 {giveaway.conditions.inviteEnabled && (
                   <div className="p-3 bg-tg-bg rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xl">👥</span>
-                      <span className="font-medium">Пригласить друзей</span>
+                      <span className="font-medium">{t('extras.inviteFriends')}</span>
                     </div>
                     <p className="text-xs text-tg-hint mb-3">
-                      +1 билет за каждого друга (приглашено: {invitedCount}/{inviteMax})
+                      {t('extras.inviteDescription', { current: invitedCount, max: inviteMax })}
                     </p>
                     
                     {invitedCount < inviteMax ? (
@@ -801,19 +807,19 @@ export default function JoinGiveawayPage() {
                           className="w-full bg-[#0088cc] text-white text-sm rounded-lg py-2.5 font-medium flex items-center justify-center gap-2"
                         >
                           <span>📤</span>
-                          <span>Поделиться в Telegram</span>
+                          <span>{t('extras.shareInTelegram')}</span>
                         </button>
                       </>
                     ) : (
                       <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 text-center">
-                        <span className="text-green-600 text-sm">✅ Лимит приглашений достигнут!</span>
+                        <span className="text-green-600 text-sm">✅ {t('extras.inviteLimitReached')}</span>
                       </div>
                     )}
                     
                     {/* Список приглашённых */}
                     {invites.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-tg-secondary">
-                        <p className="text-xs text-tg-hint mb-2">Приглашённые:</p>
+                        <p className="text-xs text-tg-hint mb-2">{t('extras.invitedFriends')}:</p>
                         <div className="space-y-1">
                           {invites.slice(0, 5).map((inv) => (
                             <div key={inv.userId} className="text-sm flex items-center gap-2">
@@ -822,7 +828,7 @@ export default function JoinGiveawayPage() {
                             </div>
                           ))}
                           {invites.length > 5 && (
-                            <p className="text-xs text-tg-hint">и ещё {invites.length - 5}...</p>
+                            <p className="text-xs text-tg-hint">{t('extras.moreFriends', { count: invites.length - 5 })}</p>
                           )}
                         </div>
                       </div>
@@ -834,10 +840,10 @@ export default function JoinGiveawayPage() {
                   <div className="p-3 bg-tg-bg rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xl">⚡</span>
-                      <span className="font-medium">Забустить каналы</span>
+                      <span className="font-medium">{t('extras.boostChannels')}</span>
                     </div>
                     <p className="text-xs text-tg-hint mb-3">
-                      +1 билет за каждый буст (макс. 10 на канал)
+                      {t('extras.boostDescription')}
                     </p>
                     
                     {/* Сообщение о результате */}
@@ -870,7 +876,7 @@ export default function JoinGiveawayPage() {
                                 ? 'bg-green-500/10 text-green-600' 
                                 : 'bg-gray-500/10 text-tg-hint'
                             }`}>
-                              {channel.boosted ? `✅ ${channel.boostCount} буст(ов)` : '❌ Нет'}
+                              {channel.boosted ? `✅ ${t('extras.boostCount', { count: channel.boostCount })}` : `❌ ${t('extras.notBoosted')}`}
                             </div>
                           </div>
                           <div className="flex gap-2">
@@ -879,14 +885,14 @@ export default function JoinGiveawayPage() {
                               disabled={!channel.username}
                               className="flex-1 bg-[#9147ff] text-white text-xs rounded-lg py-2 font-medium disabled:opacity-50"
                             >
-                              ⚡ Забустить
+                              ⚡ {t('extras.boostButton')}
                             </button>
                             <button
                               onClick={() => handleVerifyBoost(channel.id)}
                               disabled={verifyingBoost === channel.id}
                               className="flex-1 bg-tg-button text-tg-button-text text-xs rounded-lg py-2 font-medium disabled:opacity-50"
                             >
-                              {verifyingBoost === channel.id ? '⏳...' : '🔍 Проверить'}
+                              {verifyingBoost === channel.id ? '⏳...' : `🔍 ${t('extras.verifyButton')}`}
                             </button>
                           </div>
                         </div>
@@ -895,7 +901,7 @@ export default function JoinGiveawayPage() {
                     
                     {ticketsFromBoosts > 0 && (
                       <p className="text-xs text-green-600 mt-3 text-center">
-                        Всего билетов от бустов: +{ticketsFromBoosts}
+                        {t('extras.totalTicketsFromBoosts', { count: ticketsFromBoosts })}
                       </p>
                     )}
                   </div>
@@ -905,10 +911,10 @@ export default function JoinGiveawayPage() {
                   <div className="p-3 bg-tg-bg rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xl">📺</span>
-                      <span className="font-medium">Опубликовать в сторис</span>
+                      <span className="font-medium">{t('extras.publishStory')}</span>
                     </div>
                     <p className="text-xs text-tg-hint mb-3">
-                      +1 билет (требуется Telegram Premium)
+                      {t('extras.storyDescription')}
                     </p>
                     
                     {/* Сообщение о результате */}
@@ -925,14 +931,14 @@ export default function JoinGiveawayPage() {
                     {/* Статус APPROVED — билет получен */}
                     {storyRequestStatus === 'APPROVED' && (
                       <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 text-center">
-                        <span className="text-green-600 text-sm">✅ Билет получен</span>
+                        <span className="text-green-600 text-sm">✅ {t('extras.ticketReceived')}</span>
                       </div>
                     )}
                     
                     {/* Статус PENDING — на проверке */}
                     {storyRequestStatus === 'PENDING' && (
                       <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-2 text-center">
-                        <span className="text-yellow-600 text-sm">⏳ Заявка на проверке</span>
+                        <span className="text-yellow-600 text-sm">⏳ {t('extras.requestPending')}</span>
                       </div>
                     )}
                     
@@ -940,7 +946,7 @@ export default function JoinGiveawayPage() {
                     {storyRequestStatus === 'REJECTED' && (
                       <div className="mb-3">
                         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2 text-center mb-2">
-                          <span className="text-red-600 text-sm">❌ Заявка отклонена</span>
+                          <span className="text-red-600 text-sm">❌ {t('extras.requestRejected')}</span>
                           {storyRejectReason && (
                             <p className="text-xs text-red-500 mt-1">{storyRejectReason}</p>
                           )}
@@ -949,7 +955,7 @@ export default function JoinGiveawayPage() {
                           onClick={() => setShowStoriesInstructions(true)}
                           className="w-full bg-gradient-to-r from-pink-500 to-orange-400 text-white text-sm rounded-lg py-2.5 font-medium"
                         >
-                          📤 Отправить снова
+                          📤 {t('extras.resubmitStory')}
                         </button>
                       </div>
                     )}
@@ -961,7 +967,7 @@ export default function JoinGiveawayPage() {
                         className="w-full bg-gradient-to-r from-pink-500 to-orange-400 text-white text-sm rounded-lg py-2.5 font-medium flex items-center justify-center gap-2"
                       >
                         <span>📤</span>
-                        <span>Опубликовать в сторис</span>
+                        <span>{t('extras.publishStory')}</span>
                       </button>
                     )}
                     
@@ -969,13 +975,13 @@ export default function JoinGiveawayPage() {
                     {showStoriesInstructions && !storyRequestStatus && (
                       <div className="mt-3 space-y-3">
                         <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                          <h4 className="font-medium text-sm mb-2">📋 Как опубликовать:</h4>
+                          <h4 className="font-medium text-sm mb-2">📋 {t('extras.howToPublish')}:</h4>
                           <ol className="text-xs text-tg-hint space-y-1 list-decimal list-inside">
-                            <li>Скопируйте ссылку ниже</li>
-                            <li>Откройте Telegram</li>
-                            <li>Нажмите + → Создать историю</li>
-                            <li>Добавьте ссылку в сторис</li>
-                            <li>Опубликуйте и нажмите кнопку ниже</li>
+                            <li>{t('extras.copyLinkInstruction')}</li>
+                            <li>{t('extras.openTelegramInstruction')}</li>
+                            <li>{t('extras.createStoryInstruction')}</li>
+                            <li>{t('extras.addLinkInstruction')}</li>
+                            <li>{t('extras.publishAndSubmitInstruction')}</li>
                           </ol>
                         </div>
                         
@@ -1002,11 +1008,11 @@ export default function JoinGiveawayPage() {
                           className="w-full bg-green-500 text-white text-sm rounded-lg py-2.5 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
                         >
                           {submittingStory ? (
-                            <span>⏳ Отправка...</span>
+                            <span>⏳ {tCommon('loading')}</span>
                           ) : (
                             <>
                               <span>✅</span>
-                              <span>Я опубликовал — получить билет</span>
+                              <span>{t('extras.submitStoryButton')}</span>
                             </>
                           )}
                         </button>
@@ -1015,7 +1021,7 @@ export default function JoinGiveawayPage() {
                           onClick={() => setShowStoriesInstructions(false)}
                           className="w-full text-tg-hint text-xs py-2"
                         >
-                          Отмена
+                          {t('extras.cancel')}
                         </button>
                       </div>
                     )}
@@ -1029,7 +1035,7 @@ export default function JoinGiveawayPage() {
             onClick={() => router.push('/')}
             className="w-full bg-tg-secondary text-tg-text rounded-lg py-3"
           >
-            На главную
+            {t('success.goHome')}
           </button>
         </div>
       </main>
@@ -1043,19 +1049,19 @@ export default function JoinGiveawayPage() {
         <div className="max-w-md mx-auto">
           <div className="text-center mb-6">
             <div className="text-6xl mb-3">🎉</div>
-            <h1 className="text-2xl font-bold">Вы уже участвуете!</h1>
+            <h1 className="text-2xl font-bold">{t('alreadyJoined.title')}</h1>
             <p className="text-tg-hint mt-2">{giveaway?.title}</p>
           </div>
 
           {/* Билеты */}
           <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl p-6 mb-6 text-white text-center">
-            <div className="text-sm opacity-80 mb-1">Ваши билеты</div>
+            <div className="text-sm opacity-80 mb-1">{t('alreadyJoined.yourTickets')}</div>
             <div className="text-5xl font-bold">
               {participation.ticketsBase + participation.ticketsExtra}
             </div>
             {invitedCount > 0 && (
               <div className="text-sm opacity-80 mt-2">
-                в т.ч. +{invitedCount} за приглашённых
+                {t('alreadyJoined.ticketsFromInvites', { count: invitedCount })}
               </div>
             )}
           </div>
@@ -1063,16 +1069,16 @@ export default function JoinGiveawayPage() {
           {/* Увеличить шансы */}
           {giveaway && (giveaway.conditions.inviteEnabled || giveaway.conditions.boostEnabled || giveaway.conditions.storiesEnabled) && (
             <div className="bg-tg-secondary rounded-lg p-4 mb-6">
-              <h2 className="font-medium mb-3">🎫 Увеличить шансы:</h2>
+              <h2 className="font-medium mb-3">🎫 {t('extras.title')}:</h2>
               <div className="space-y-3">
                 {giveaway.conditions.inviteEnabled && (
                   <div className="p-3 bg-tg-bg rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xl">👥</span>
-                      <span className="font-medium">Пригласить друзей</span>
+                      <span className="font-medium">{t('extras.inviteFriends')}</span>
                     </div>
                     <p className="text-xs text-tg-hint mb-3">
-                      +1 билет за каждого друга (приглашено: {invitedCount}/{inviteMax})
+                      {t('extras.inviteDescription', { current: invitedCount, max: inviteMax })}
                     </p>
                     
                     {invitedCount < inviteMax ? (
@@ -1103,19 +1109,19 @@ export default function JoinGiveawayPage() {
                           className="w-full bg-[#0088cc] text-white text-sm rounded-lg py-2.5 font-medium flex items-center justify-center gap-2"
                         >
                           <span>📤</span>
-                          <span>Поделиться в Telegram</span>
+                          <span>{t('extras.shareInTelegram')}</span>
                         </button>
                       </>
                     ) : (
                       <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 text-center">
-                        <span className="text-green-600 text-sm">✅ Лимит приглашений достигнут!</span>
+                        <span className="text-green-600 text-sm">✅ {t('extras.inviteLimitReached')}</span>
                       </div>
                     )}
                     
                     {/* Список приглашённых */}
                     {invites.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-tg-secondary">
-                        <p className="text-xs text-tg-hint mb-2">Приглашённые:</p>
+                        <p className="text-xs text-tg-hint mb-2">{t('extras.invitedFriends')}:</p>
                         <div className="space-y-1">
                           {invites.slice(0, 5).map((inv) => (
                             <div key={inv.userId} className="text-sm flex items-center gap-2">
@@ -1124,7 +1130,7 @@ export default function JoinGiveawayPage() {
                             </div>
                           ))}
                           {invites.length > 5 && (
-                            <p className="text-xs text-tg-hint">и ещё {invites.length - 5}...</p>
+                            <p className="text-xs text-tg-hint">{t('extras.moreFriends', { count: invites.length - 5 })}</p>
                           )}
                         </div>
                       </div>
@@ -1136,10 +1142,10 @@ export default function JoinGiveawayPage() {
                   <div className="p-3 bg-tg-bg rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xl">⚡</span>
-                      <span className="font-medium">Забустить каналы</span>
+                      <span className="font-medium">{t('extras.boostChannels')}</span>
                     </div>
                     <p className="text-xs text-tg-hint mb-3">
-                      +1 билет за каждый буст (макс. 10 на канал)
+                      {t('extras.boostDescription')}
                     </p>
                     
                     {/* Сообщение о результате */}
@@ -1172,7 +1178,7 @@ export default function JoinGiveawayPage() {
                                 ? 'bg-green-500/10 text-green-600' 
                                 : 'bg-gray-500/10 text-tg-hint'
                             }`}>
-                              {channel.boosted ? `✅ ${channel.boostCount} буст(ов)` : '❌ Нет'}
+                              {channel.boosted ? `✅ ${t('extras.boostCount', { count: channel.boostCount })}` : `❌ ${t('extras.notBoosted')}`}
                             </div>
                           </div>
                           <div className="flex gap-2">
@@ -1181,14 +1187,14 @@ export default function JoinGiveawayPage() {
                               disabled={!channel.username}
                               className="flex-1 bg-[#9147ff] text-white text-xs rounded-lg py-2 font-medium disabled:opacity-50"
                             >
-                              ⚡ Забустить
+                              ⚡ {t('extras.boostButton')}
                             </button>
                             <button
                               onClick={() => handleVerifyBoost(channel.id)}
                               disabled={verifyingBoost === channel.id}
                               className="flex-1 bg-tg-button text-tg-button-text text-xs rounded-lg py-2 font-medium disabled:opacity-50"
                             >
-                              {verifyingBoost === channel.id ? '⏳...' : '🔍 Проверить'}
+                              {verifyingBoost === channel.id ? '⏳...' : `🔍 ${t('extras.verifyButton')}`}
                             </button>
                           </div>
                         </div>
@@ -1197,7 +1203,7 @@ export default function JoinGiveawayPage() {
                     
                     {ticketsFromBoosts > 0 && (
                       <p className="text-xs text-green-600 mt-3 text-center">
-                        Всего билетов от бустов: +{ticketsFromBoosts}
+                        {t('extras.totalTicketsFromBoosts', { count: ticketsFromBoosts })}
                       </p>
                     )}
                   </div>
@@ -1207,10 +1213,10 @@ export default function JoinGiveawayPage() {
                   <div className="p-3 bg-tg-bg rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xl">📺</span>
-                      <span className="font-medium">Опубликовать в сторис</span>
+                      <span className="font-medium">{t('extras.publishStory')}</span>
                     </div>
                     <p className="text-xs text-tg-hint mb-3">
-                      +1 билет (требуется Telegram Premium)
+                      {t('extras.storyDescription')}
                     </p>
                     
                     {/* Сообщение о результате */}
@@ -1227,14 +1233,14 @@ export default function JoinGiveawayPage() {
                     {/* Статус APPROVED — билет получен */}
                     {storyRequestStatus === 'APPROVED' && (
                       <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 text-center">
-                        <span className="text-green-600 text-sm">✅ Билет получен</span>
+                        <span className="text-green-600 text-sm">✅ {t('extras.ticketReceived')}</span>
                       </div>
                     )}
                     
                     {/* Статус PENDING — на проверке */}
                     {storyRequestStatus === 'PENDING' && (
                       <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-2 text-center">
-                        <span className="text-yellow-600 text-sm">⏳ Заявка на проверке</span>
+                        <span className="text-yellow-600 text-sm">⏳ {t('extras.requestPending')}</span>
                       </div>
                     )}
                     
@@ -1242,7 +1248,7 @@ export default function JoinGiveawayPage() {
                     {storyRequestStatus === 'REJECTED' && (
                       <div className="mb-3">
                         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2 text-center mb-2">
-                          <span className="text-red-600 text-sm">❌ Заявка отклонена</span>
+                          <span className="text-red-600 text-sm">❌ {t('extras.requestRejected')}</span>
                           {storyRejectReason && (
                             <p className="text-xs text-red-500 mt-1">{storyRejectReason}</p>
                           )}
@@ -1251,7 +1257,7 @@ export default function JoinGiveawayPage() {
                           onClick={() => setShowStoriesInstructions(true)}
                           className="w-full bg-gradient-to-r from-pink-500 to-orange-400 text-white text-sm rounded-lg py-2.5 font-medium"
                         >
-                          📤 Отправить снова
+                          📤 {t('extras.resubmitStory')}
                         </button>
                       </div>
                     )}
@@ -1263,7 +1269,7 @@ export default function JoinGiveawayPage() {
                         className="w-full bg-gradient-to-r from-pink-500 to-orange-400 text-white text-sm rounded-lg py-2.5 font-medium flex items-center justify-center gap-2"
                       >
                         <span>📤</span>
-                        <span>Опубликовать в сторис</span>
+                        <span>{t('extras.publishStory')}</span>
                       </button>
                     )}
                     
@@ -1271,13 +1277,13 @@ export default function JoinGiveawayPage() {
                     {showStoriesInstructions && !storyRequestStatus && (
                       <div className="mt-3 space-y-3">
                         <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                          <h4 className="font-medium text-sm mb-2">📋 Как опубликовать:</h4>
+                          <h4 className="font-medium text-sm mb-2">📋 {t('extras.howToPublish')}:</h4>
                           <ol className="text-xs text-tg-hint space-y-1 list-decimal list-inside">
-                            <li>Скопируйте ссылку ниже</li>
-                            <li>Откройте Telegram</li>
-                            <li>Нажмите + → Создать историю</li>
-                            <li>Добавьте ссылку в сторис</li>
-                            <li>Опубликуйте и нажмите кнопку ниже</li>
+                            <li>{t('extras.copyLinkInstruction')}</li>
+                            <li>{t('extras.openTelegramInstruction')}</li>
+                            <li>{t('extras.createStoryInstruction')}</li>
+                            <li>{t('extras.addLinkInstruction')}</li>
+                            <li>{t('extras.publishAndSubmitInstruction')}</li>
                           </ol>
                         </div>
                         
@@ -1304,11 +1310,11 @@ export default function JoinGiveawayPage() {
                           className="w-full bg-green-500 text-white text-sm rounded-lg py-2.5 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
                         >
                           {submittingStory ? (
-                            <span>⏳ Отправка...</span>
+                            <span>⏳ {tCommon('loading')}</span>
                           ) : (
                             <>
                               <span>✅</span>
-                              <span>Я опубликовал — получить билет</span>
+                              <span>{t('extras.submitStoryButton')}</span>
                             </>
                           )}
                         </button>
@@ -1317,7 +1323,7 @@ export default function JoinGiveawayPage() {
                           onClick={() => setShowStoriesInstructions(false)}
                           className="w-full text-tg-hint text-xs py-2"
                         >
-                          Отмена
+                          {t('extras.cancel')}
                         </button>
                       </div>
                     )}
@@ -1331,7 +1337,7 @@ export default function JoinGiveawayPage() {
             onClick={() => router.push('/')}
             className="w-full bg-tg-secondary text-tg-text rounded-lg py-3"
           >
-            На главную
+            {tCommon('goHome')}
           </button>
         </div>
       </main>
@@ -1341,7 +1347,7 @@ export default function JoinGiveawayPage() {
   // Fallback
   return (
     <main className="min-h-screen p-4 flex items-center justify-center">
-      <p className="text-tg-hint">Загрузка...</p>
+      <p className="text-tg-hint">{tCommon('loading')}</p>
     </main>
   );
 }

@@ -1110,4 +1110,58 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(500).send({ ok: false, error: 'Internal server error', boosts: [], count: 0 });
     }
   });
+
+  /**
+   * POST /internal/users/language
+   * Обновить язык пользователя (вызывается ботом при смене языка в настройках)
+   */
+  fastify.post('/users/language', async (request, reply) => {
+    try {
+      const body = z.object({
+        telegramUserId: z.union([z.string(), z.number()]).transform((v) => BigInt(v)),
+        language: z.enum(['RU', 'EN', 'KK']),
+      }).parse(request.body);
+
+      // Найти или создать пользователя
+      const user = await findOrCreateUser(body.telegramUserId);
+
+      // Преобразовать строку в enum LanguageCode
+      const languageCode = body.language === 'RU' 
+        ? LanguageCode.RU 
+        : body.language === 'EN' 
+          ? LanguageCode.EN 
+          : LanguageCode.KK;
+
+      // Обновить язык
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { language: languageCode },
+      });
+
+      fastify.log.info(
+        { telegramUserId: body.telegramUserId.toString(), language: body.language },
+        'User language updated via internal API'
+      );
+
+      return reply.send({
+        ok: true,
+        language: body.language,
+      });
+    } catch (error) {
+      fastify.log.error(error, 'Internal user language update error');
+
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({
+          ok: false,
+          error: 'Invalid request body',
+          details: error.errors,
+        });
+      }
+
+      return reply.status(500).send({
+        ok: false,
+        error: 'Internal server error',
+      });
+    }
+  });
 };
