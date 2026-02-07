@@ -324,7 +324,7 @@ export default function CreatorDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, tErrors]);
 
   useEffect(() => {
     loadGiveaways();

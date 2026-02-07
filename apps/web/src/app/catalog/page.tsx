@@ -340,7 +340,7 @@ export default function CatalogPage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []);
+  }, [tErrors]);
 
   useEffect(() => {
     loadCatalog();

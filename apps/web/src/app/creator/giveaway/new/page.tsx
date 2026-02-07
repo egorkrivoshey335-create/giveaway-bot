@@ -184,7 +184,8 @@ export default function GiveawayWizardPage() {
     }
 
     loadData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tErrors]);
 
   // Save draft with debounce
   const saveDraft = useCallback(async (newPayload: GiveawayDraftPayload, step: WizardStep, immediate = false) => {
@@ -271,7 +272,7 @@ export default function GiveawayWizardPage() {
     } finally {
       setConfirming(false);
     }
-  }, [draft]);
+  }, [draft, tErrors]);
 
   // Cleanup on unmount
   useEffect(() => {

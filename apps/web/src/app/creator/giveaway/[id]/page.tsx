@@ -98,7 +98,7 @@ export default function GiveawayDetailsPage() {
     } finally {
       setLoading(false);
     }
-  }, [giveawayId]);
+  }, [giveawayId, tErrors]);
 
   // Загрузка участников
   const loadParticipants = useCallback(async (search?: string) => {

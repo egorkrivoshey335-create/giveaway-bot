@@ -255,7 +255,7 @@ export default function JoinGiveawayPage() {
       // Скрыть сообщение через 3 секунды
       setTimeout(() => setBoostMessage(null), 3000);
     }
-  }, [giveawayId, loadBoostData]);
+  }, [giveawayId, loadBoostData, t, tErrors]);
 
   // Открыть страницу буста канала
   const openBoostLink = useCallback((channel: BoostChannel) => {
@@ -330,7 +330,7 @@ export default function JoinGiveawayPage() {
       setSubmittingStory(false);
       setTimeout(() => setStoriesMessage(null), 3000);
     }
-  }, [giveawayId]);
+  }, [giveawayId, t, tErrors]);
 
   // Проверка подписок
   const handleCheckSubscription = useCallback(async () => {
@@ -363,7 +363,8 @@ export default function JoinGiveawayPage() {
     } finally {
       setCheckingSubscription(false);
     }
-  }, [giveaway, giveawayId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [giveaway, giveawayId, tErrors]);
 
   // Загрузка капчи
   const loadCaptcha = useCallback(async () => {
@@ -402,6 +403,7 @@ export default function JoinGiveawayPage() {
       console.error('Verify captcha error:', err);
       setCaptchaError(tErrors('error'));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [captchaAnswer, captchaToken, loadCaptcha, t, tErrors]);
 
   // Участие в розыгрыше
@@ -435,7 +437,7 @@ export default function JoinGiveawayPage() {
     } finally {
       setJoining(false);
     }
-  }, [giveawayId, captchaPassed, referrerUserId, loadCaptcha, loadReferralData]);
+  }, [giveawayId, captchaPassed, referrerUserId, loadCaptcha, loadReferralData, loadBoostData, loadStoryRequestStatus, tErrors]);
 
   // Начать участие (кнопка)
   const handleStartParticipation = useCallback(() => {
