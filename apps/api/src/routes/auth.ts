@@ -226,7 +226,9 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     fastify.post<{ Body: { telegramUserId?: string }; Reply: AuthResponse }>(
       '/auth/dev',
       async (request, reply) => {
-        const telegramUserId = BigInt(request.body?.telegramUserId || '8174848429');
+        // Генерируем случайный ID если не передан (для тестирования)
+        const randomId = Math.floor(Math.random() * 900000000) + 100000000;
+        const telegramUserId = BigInt(request.body?.telegramUserId || randomId.toString());
 
         // Upsert test user
         const user = await prisma.user.upsert({

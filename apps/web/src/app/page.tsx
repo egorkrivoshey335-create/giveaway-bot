@@ -236,12 +236,15 @@ export default function HomePage() {
             <p className="text-tg-hint text-sm mb-4">
               {t('auth.telegramOnly')}
             </p>
-            <button
-              onClick={handleDevLogin}
-              className="w-full bg-tg-button/50 text-tg-button-text rounded-lg py-2 px-4 text-sm"
-            >
-              🔧 {t('auth.devLogin')}
-            </button>
+            {/* Dev Login — только для разработки */}
+            {process.env.NODE_ENV === 'development' && (
+              <button
+                onClick={handleDevLogin}
+                className="w-full bg-tg-button/50 text-tg-button-text rounded-lg py-2 px-4 text-sm"
+              >
+                🔧 {t('auth.devLogin')}
+              </button>
+            )}
           </div>
         )}
 
@@ -266,12 +269,15 @@ export default function HomePage() {
           <div className="bg-tg-secondary rounded-xl p-6">
             <h2 className="text-lg font-semibold mb-2 text-red-500">❌ {tCommon('error')}</h2>
             <p className="text-tg-hint text-sm mb-4">{error || t('errors.connectionError')}</p>
-            <button 
-              onClick={hasTelegram ? authenticate : handleDevLogin} 
-              className="w-full bg-tg-button text-tg-button-text rounded-lg py-2 px-4"
-            >
-              {tCommon('tryAgain')}
-            </button>
+            {/* В production показываем кнопку только если есть Telegram */}
+            {(hasTelegram || process.env.NODE_ENV === 'development') && (
+              <button 
+                onClick={hasTelegram ? authenticate : handleDevLogin} 
+                className="w-full bg-tg-button text-tg-button-text rounded-lg py-2 px-4"
+              >
+                {tCommon('tryAgain')}
+              </button>
+            )}
           </div>
         )}
 

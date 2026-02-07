@@ -14,6 +14,9 @@ import {
 } from '@/lib/api';
 import { InlineToast } from '@/components/Toast';
 
+// Берём username бота из env
+const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
+
 type TabType = 'overview' | 'participants' | 'winners' | 'stories';
 
 // Получить метку статуса
@@ -143,7 +146,7 @@ export default function GiveawayDetailsPage() {
 
   // Скопировать ссылку
   const handleCopyLink = () => {
-    const link = `https://t.me/BeastRandomBot/participate?startapp=join_${giveawayId}`;
+    const link = `https://t.me/${BOT_USERNAME}/participate?startapp=join_${giveawayId}`;
     navigator.clipboard.writeText(link);
     setMessage(t('linkCopied'));
     setTimeout(() => setMessage(null), 2000);

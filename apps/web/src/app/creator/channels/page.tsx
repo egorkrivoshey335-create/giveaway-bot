@@ -12,6 +12,9 @@ import {
 import { InlineToast } from '@/components/Toast';
 // Типы Telegram WebApp загружаются из @/types/telegram.d.ts
 
+// Берём username бота из env
+const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
+
 // Форматирование даты
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -207,7 +210,7 @@ export default function ChannelsPage() {
 
   // Открыть бота для добавления канала
   const openBotAddChannel = () => {
-    const botUrl = 'https://t.me/BeastRandomBot?start=add_channel';
+    const botUrl = `https://t.me/${BOT_USERNAME}?start=add_channel`;
     const tg = window.Telegram?.WebApp;
     if (tg) {
       tg.openTelegramLink(botUrl);

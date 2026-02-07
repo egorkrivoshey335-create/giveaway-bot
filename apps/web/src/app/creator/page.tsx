@@ -11,6 +11,9 @@ import {
 } from '@/lib/api';
 import { InlineToast } from '@/components/Toast';
 
+// Берём username бота из env
+const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
+
 // Статусы для фильтрации
 type StatusFilter = 'all' | 'DRAFT' | 'PENDING_CONFIRM' | 'SCHEDULED' | 'ACTIVE' | 'FINISHED' | 'CANCELLED';
 
@@ -373,7 +376,7 @@ export default function CreatorDashboardPage() {
 
   // Скопировать ссылку
   const handleCopyLink = (id: string) => {
-    const link = `https://t.me/BeastRandomBot/participate?startapp=join_${id}`;
+    const link = `https://t.me/${BOT_USERNAME}/participate?startapp=join_${id}`;
     navigator.clipboard.writeText(link);
     setMessage(t('linkCopied'));
     setTimeout(() => setMessage(null), 2000);

@@ -440,8 +440,6 @@ bot.on('message:web_app_data', async (ctx) => {
   const userId = ctx.from?.id;
   const locale = userId ? getUserLocale(userId) : 'ru';
   
-  console.log('Received web_app_data:', ctx.message.web_app_data);
-  
   const receivedText = locale === 'ru' ? 'Данные получены!' : 
                        locale === 'en' ? 'Data received!' : 'Деректер алынды!';
   
