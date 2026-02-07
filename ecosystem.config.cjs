@@ -1,28 +1,27 @@
 // PM2 конфигурация для production
-// Используем node --import tsx вместо прямого вызова tsx
-// чтобы избежать проблем с pnpm симлинками
+// Путь к tsx CLI через pnpm store (избегает проблемы с симлинками)
 
 module.exports = {
   apps: [
     {
       name: 'api',
       cwd: './apps/api',
-      script: 'src/index.ts',
+      // Прямой путь к tsx CLI (найден через: pnpm --filter api exec which tsx)
+      script: '/opt/randombeast/app/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/cli.mjs',
+      args: 'src/server.ts',
       interpreter: 'node',
-      interpreter_args: '--import tsx',
       env: {
         NODE_ENV: 'production',
       },
-      // Перезапуск при падении
       max_restarts: 10,
       restart_delay: 1000,
     },
     {
       name: 'bot',
       cwd: './apps/bot',
-      script: 'src/index.ts',
+      script: '/opt/randombeast/app/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/cli.mjs',
+      args: 'src/server.ts',
       interpreter: 'node',
-      interpreter_args: '--import tsx',
       env: {
         NODE_ENV: 'production',
       },
@@ -32,11 +31,11 @@ module.exports = {
     {
       name: 'web',
       cwd: './apps/web',
-      script: 'node_modules/.bin/next',
-      args: 'start -p 3000',
+      script: 'node_modules/next/dist/bin/next',
+      args: 'start --port 3000',
+      interpreter: 'node',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000,
       },
       max_restarts: 10,
       restart_delay: 1000,
@@ -44,11 +43,11 @@ module.exports = {
     {
       name: 'site',
       cwd: './apps/site',
-      script: 'node_modules/.bin/next',
-      args: 'start -p 3001',
+      script: 'node_modules/next/dist/bin/next',
+      args: 'start --port 3001',
+      interpreter: 'node',
       env: {
         NODE_ENV: 'production',
-        PORT: 3001,
       },
       max_restarts: 10,
       restart_delay: 1000,
