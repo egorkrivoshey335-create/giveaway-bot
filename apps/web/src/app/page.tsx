@@ -290,15 +290,17 @@ export default function HomePage() {
               <CreatorSection />
             )}
 
-            {/* Кнопка выхода (для отладки) */}
-            <div className="mt-8 pt-4 border-t border-tg-secondary">
-              <button
-                onClick={handleLogout}
-                className="w-full bg-red-500/10 text-red-500 rounded-lg py-2 px-4 text-sm"
-              >
-                {t('auth.logout')}
-              </button>
-            </div>
+            {/* Кнопка выхода — только для разработки */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-8 pt-4 border-t border-tg-secondary">
+                <button
+                  onClick={handleLogout}
+                  className="w-full bg-red-500/10 text-red-500 rounded-lg py-2 px-4 text-sm"
+                >
+                  {t('auth.logout')}
+                </button>
+              </div>
+            )}
           </>
         )}
 
