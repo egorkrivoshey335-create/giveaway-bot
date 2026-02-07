@@ -4,6 +4,7 @@ import './globals.css';
 import Script from 'next/script';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
+import { FullscreenInit } from '@/components/FullscreenInit';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
@@ -36,6 +37,7 @@ export default async function RootLayout({
         />
       </head>
       <body className={`${inter.className} bg-tg-bg text-tg-text`}>
+        <FullscreenInit />
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
         </NextIntlClientProvider>

@@ -44,6 +44,23 @@ async function main() {
     // Start bot polling only if token is available
     if (bot && config.botEnabled) {
       console.log('🤖 Starting bot...');
+      
+      // Установить Menu Button для открытия Mini App
+      try {
+        await bot.api.setChatMenuButton({
+          menu_button: {
+            type: 'web_app',
+            text: 'Открыть',
+            web_app: {
+              url: config.webappUrl,
+            },
+          },
+        });
+        console.log('✅ Menu button установлена');
+      } catch (err) {
+        console.error('⚠️ Не удалось установить menu button:', err);
+      }
+      
       await bot.start({
         onStart: (botInfo) => {
           console.log(`✅ Bot @${botInfo.username} is running!`);
