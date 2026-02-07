@@ -33,6 +33,12 @@ const envSchema = z.object({
 
 const env = envSchema.parse(process.env);
 
+// Whitelist пользователей (если пустой — открыто для всех)
+const allowedUsersStr = process.env.ALLOWED_USERS || '';
+const allowedUsers = allowedUsersStr
+  ? allowedUsersStr.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id))
+  : [];
+
 export const config = {
   port: parseInt(env.PORT || '4000', 10),
   host: env.HOST || '0.0.0.0',
@@ -85,7 +91,21 @@ export const config = {
   
   // Web App URL
   webappUrl: env.WEBAPP_URL || 'http://localhost:3000',
+  
+  // Whitelist: если пустой — доступ для всех
+  allowedUsers,
+  maintenanceMode: allowedUsers.length > 0,
 } as const;
+
+/**
+ * Проверяет, разрешён ли доступ пользователю по Telegram ID
+ */
+export function isUserAllowed(telegramUserId: number | bigint): boolean {
+  if (config.allowedUsers.length === 0) {
+    return true;
+  }
+  return config.allowedUsers.includes(Number(telegramUserId));
+}
 
 // Validation helpers
 export function requireTmaBotToken(): string {

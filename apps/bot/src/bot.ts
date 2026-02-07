@@ -1,5 +1,5 @@
 import { Bot, InlineKeyboard } from 'grammy';
-import { config } from './config.js';
+import { config, isUserAllowed } from './config.js';
 import {
   MENU,
   createMainMenuKeyboard,
@@ -45,6 +45,31 @@ if (!config.botToken) {
 
 // Create bot instance
 export const bot = new Bot(config.botToken);
+
+// Middleware: проверка whitelist (режим разработки)
+bot.use(async (ctx, next) => {
+  const userId = ctx.from?.id;
+  
+  // Если нет userId — пропускаем (callback queries и т.д.)
+  if (!userId) {
+    return next();
+  }
+  
+  // Проверяем whitelist
+  if (!isUserAllowed(userId)) {
+    // Отправляем сообщение о режиме разработки
+    const maintenanceMessage = 
+      '🔧 <b>Бот на доработке</b>\n\n' +
+      'Мы работаем над улучшениями.\n' +
+      'Скоро вернёмся!\n\n' +
+      '📧 Вопросы: ' + config.supportBot;
+    
+    await ctx.reply(maintenanceMessage, { parse_mode: 'HTML' });
+    return; // Не продолжаем обработку
+  }
+  
+  return next();
+});
 
 // Track last menu state per user for "Back" button
 const userMenuStack = new Map<number, string[]>();

@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { validate, parse } from '@telegram-apps/init-data-node';
 import { z } from 'zod';
 import { prisma, LanguageCode } from '@randombeast/database';
-import { config, requireTmaBotToken } from '../config.js';
+import { config, requireTmaBotToken, isUserAllowed } from '../config.js';
 import {
   createSessionToken,
   verifySessionToken,
@@ -94,6 +94,14 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         const telegramUser = parsedData.user;
+
+        // Проверка whitelist (режим разработки)
+        if (!isUserAllowed(telegramUser.id)) {
+          return reply.status(403).send({
+            ok: false,
+            error: 'Приложение на доработке. Доступ ограничен.',
+          });
+        }
 
         // Upsert user in database
         const user = await prisma.user.upsert({
