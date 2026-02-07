@@ -48,6 +48,7 @@ export const config = {
     'https://app.randombeast.ru',
     'https://randombeast.ru',
     'https://www.randombeast.ru',
+    'https://api.randombeast.ru',
   ] as string[],
 
   // Database
