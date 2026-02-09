@@ -167,11 +167,27 @@ function GiveawayCard({
     year: 'numeric',
   });
 
+  const isRandomizerMode = giveaway.publishResultsMode === 'RANDOMIZER';
+  const isPublished = giveaway.winnersPublished;
+
   return (
     <div className="border border-gray-200 rounded-xl p-4 hover:border-brand-300 transition-colors">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="font-semibold text-lg">{giveaway.title}</h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-semibold text-lg">{giveaway.title}</h3>
+            {/* Бейдж статуса */}
+            {isPublished && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full bg-green-100 text-green-700">
+                ✅ Победители объявлены
+              </span>
+            )}
+            {isRandomizerMode && !isPublished && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                🎲 Ожидает объявления
+              </span>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-gray-600">
             <span className="flex items-center gap-1">
               <span>👥</span>
@@ -188,19 +204,32 @@ function GiveawayCard({
           </div>
         </div>
 
-        {hasAccess ? (
-          <Link
-            href={`/winner/${giveaway.id}`}
-            className="btn-primary text-sm py-2 px-4 whitespace-nowrap"
-          >
-            🎰 Запустить рандомайзер
-          </Link>
-        ) : (
-          <span className="text-gray-400 text-sm flex items-center gap-1">
-            <span>🔒</span>
-            Требуется подписка
-          </span>
-        )}
+        <div className="flex flex-col sm:flex-row gap-2">
+          {hasAccess ? (
+            <>
+              <Link
+                href={`/winner/${giveaway.id}`}
+                className="btn-primary text-sm py-2 px-4 whitespace-nowrap"
+              >
+                🎰 Запустить рандомайзер
+              </Link>
+              {/* Кнопка результатов — показываем для всех завершённых розыгрышей с победителями */}
+              {giveaway.winnersCount > 0 && (
+                <Link
+                  href={`/results/${giveaway.id}`}
+                  className="btn-secondary text-sm py-2 px-4 whitespace-nowrap"
+                >
+                  📋 Результаты
+                </Link>
+              )}
+            </>
+          ) : (
+            <span className="text-gray-400 text-sm flex items-center gap-1">
+              <span>🔒</span>
+              Требуется подписка
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

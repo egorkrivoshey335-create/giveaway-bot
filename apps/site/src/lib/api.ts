@@ -31,6 +31,8 @@ export interface GiveawayListItem {
   winnersCount: number;
   participantsCount: number;
   finishedAt: string;
+  publishResultsMode?: string;
+  winnersPublished?: boolean;
 }
 
 export interface GiveawaysResponse {
@@ -159,6 +161,15 @@ export async function saveCustomization(
   return fetchApi<ApiResponse>(`/site/giveaways/${giveawayId}/save-customization`, {
     method: 'POST',
     body: JSON.stringify(customization),
+  });
+}
+
+/**
+ * Опубликовать победителей в каналы (для RANDOMIZER режима)
+ */
+export async function publishWinners(giveawayId: string): Promise<ApiResponse> {
+  return fetchApi<ApiResponse>(`/site/giveaways/${giveawayId}/publish-winners`, {
+    method: 'POST',
   });
 }
 

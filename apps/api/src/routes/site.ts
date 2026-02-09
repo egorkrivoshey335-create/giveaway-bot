@@ -7,6 +7,14 @@ import { createSessionToken, verifySessionToken, getSessionCookieOptions } from 
 // Имя cookie для site сессии (отличается от web app)
 const SITE_SESSION_COOKIE = 'rb_site_session';
 
+// Экранирование HTML для Telegram сообщений
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 // ============================================================================
 // Schemas
 // ============================================================================
@@ -202,6 +210,8 @@ export async function siteRoutes(fastify: FastifyInstance) {
           winnersCount: g._count.winners,
           participantsCount: g._count.participations,
           finishedAt: g.updatedAt.toISOString(),
+          publishResultsMode: g.publishResultsMode,
+          winnersPublished: g.winnersPublished,
         })),
       });
     } catch (error) {
@@ -294,6 +304,8 @@ export async function siteRoutes(fastify: FastifyInstance) {
             winnersCount: giveaway.winnersCount,
             participantsCount: giveaway.participations.length,
             finishedAt: giveaway.updatedAt.toISOString(),
+            publishResultsMode: giveaway.publishResultsMode,
+            winnersPublished: giveaway.winnersPublished,
           },
           participants: giveaway.participations.map((p) => ({
             id: p.id,
@@ -490,6 +502,194 @@ export async function siteRoutes(fastify: FastifyInstance) {
             accentColor: '#f2b6b6',
           },
         });
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.status(500).send({ ok: false, error: 'Internal server error' });
+      }
+    }
+  );
+
+  /**
+   * POST /site/giveaways/:id/publish-winners
+   * Публикует победителей в каналы (для RANDOMIZER режима)
+   * Вызывается после того как создатель объявил победителей на сайте
+   */
+  fastify.post<{ Params: { id: string } }>(
+    '/site/giveaways/:id/publish-winners',
+    async (request, reply) => {
+      const userId = getUserIdFromSiteSession(request);
+
+      if (!userId) {
+        return reply.status(401).send({ ok: false, error: 'Unauthorized' });
+      }
+
+      const { id } = request.params;
+
+      try {
+        // Проверяем розыгрыш
+        const giveaway = await prisma.giveaway.findUnique({
+          where: { id },
+          include: {
+            winners: {
+              orderBy: { place: 'asc' },
+              include: {
+                user: { select: { telegramUserId: true, firstName: true } },
+              },
+            },
+            messages: true,
+            resultsChannels: {
+              include: {
+                channel: { select: { id: true, telegramChatId: true, title: true } },
+              },
+            },
+            _count: { select: { participations: { where: { status: 'JOINED' } } } },
+          },
+        });
+
+        if (!giveaway) {
+          return reply.status(404).send({ ok: false, error: 'Giveaway not found' });
+        }
+
+        if (giveaway.ownerUserId !== userId) {
+          return reply.status(403).send({ ok: false, error: 'Access denied' });
+        }
+
+        if (giveaway.status !== 'FINISHED') {
+          return reply.status(400).send({ ok: false, error: 'Giveaway is not finished' });
+        }
+
+        if (giveaway.winnersPublished) {
+          return reply.status(400).send({ ok: false, error: 'Winners already published' });
+        }
+
+        // Формируем текст с победителями
+        const winnersLines = giveaway.winners.map(w => {
+          const medal = w.place <= 3 ? ['🥇', '🥈', '🥉'][w.place - 1] : '🏅';
+          const name = w.user.firstName || `User ${w.user.telegramUserId.toString().slice(-4)}`;
+          const mention = `<a href="tg://user?id=${w.user.telegramUserId}">${escapeHtml(name)}</a>`;
+          return `${medal} ${w.place}. ${mention}`;
+        });
+
+        const resultsText = `🎉 <b>Розыгрыш «${escapeHtml(giveaway.title)}» — победители определены!</b>\n\n🏆 <b>Победители:</b>\n\n${winnersLines.join('\n')}\n\nВсего участников: ${giveaway._count.participations}\n\nПоздравляем победителей! 🎊`;
+
+        const resultsUrl = `https://t.me/${process.env.BOT_USERNAME || 'BeastRandomBot'}/participate?startapp=results_${giveaway.id}`;
+
+        // Определяем каналы для публикации
+        let channels = giveaway.resultsChannels.map(rc => rc.channel);
+
+        if (channels.length === 0) {
+          // Используем каналы из стартовых сообщений
+          const channelIds = [...new Set(giveaway.messages.filter(m => m.kind === 'START').map(m => m.channelId))];
+          if (channelIds.length > 0) {
+            channels = await prisma.channel.findMany({
+              where: { id: { in: channelIds } },
+              select: { id: true, telegramChatId: true, title: true },
+            });
+          }
+        }
+
+        // Находим тизер-сообщения (RESULTS kind) для обновления
+        const teaserMessages = giveaway.messages.filter(m => m.kind === 'RESULTS');
+
+        if (teaserMessages.length > 0) {
+          // Обновляем тизер-сообщения новым текстом с победителями
+          for (const msg of teaserMessages) {
+            const channel = await prisma.channel.findUnique({
+              where: { id: msg.channelId },
+              select: { telegramChatId: true },
+            });
+
+            if (!channel) continue;
+
+            try {
+              await fetch(`${config.apiUrl}/internal/edit-message`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Internal-Token': config.internalApiToken,
+                },
+                body: JSON.stringify({
+                  chatId: channel.telegramChatId.toString(),
+                  messageId: msg.telegramMessageId,
+                  text: resultsText,
+                  parseMode: 'HTML',
+                  replyMarkup: {
+                    inline_keyboard: [[
+                      { text: '🏆 Подробнее', url: resultsUrl }
+                    ]]
+                  },
+                }),
+              });
+            } catch (error) {
+              fastify.log.error(error, `Ошибка обновления тизера в канале`);
+            }
+          }
+        } else if (channels.length > 0) {
+          // Нет тизеров — отправляем новые посты
+          for (const channel of channels) {
+            try {
+              await fetch(`${config.apiUrl}/internal/send-message`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Internal-Token': config.internalApiToken,
+                },
+                body: JSON.stringify({
+                  chatId: channel.telegramChatId.toString(),
+                  text: resultsText,
+                  parseMode: 'HTML',
+                  replyMarkup: {
+                    inline_keyboard: [[
+                      { text: '🏆 Подробнее', url: resultsUrl }
+                    ]]
+                  },
+                }),
+              });
+            } catch (error) {
+              fastify.log.error(error, `Ошибка отправки результатов в канал`);
+            }
+          }
+        }
+
+        // Обновляем кнопки в стартовых постах
+        const startMessages = giveaway.messages.filter(m => m.kind === 'START');
+        for (const msg of startMessages) {
+          const channel = await prisma.channel.findUnique({
+            where: { id: msg.channelId },
+            select: { telegramChatId: true },
+          });
+
+          if (!channel) continue;
+
+          try {
+            await fetch(`${config.apiUrl}/internal/edit-message-button`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Internal-Token': config.internalApiToken,
+              },
+              body: JSON.stringify({
+                chatId: channel.telegramChatId.toString(),
+                messageId: msg.telegramMessageId,
+                replyMarkup: {
+                  inline_keyboard: [[
+                    { text: '🏆 Результаты', url: resultsUrl }
+                  ]]
+                },
+              }),
+            });
+          } catch (error) {
+            fastify.log.error(error, `Ошибка обновления кнопки стартового поста`);
+          }
+        }
+
+        // Отмечаем что победители опубликованы
+        await prisma.giveaway.update({
+          where: { id },
+          data: { winnersPublished: true },
+        });
+
+        return reply.send({ ok: true });
       } catch (error) {
         fastify.log.error(error);
         return reply.status(500).send({ ok: false, error: 'Internal server error' });

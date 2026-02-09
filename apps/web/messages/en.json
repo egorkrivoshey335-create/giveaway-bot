@@ -168,7 +168,9 @@
       "separatePosts": "Separate posts",
       "separatePostsHint": "Results will be published as new messages",
       "editStartPost": "In start post",
-      "editStartPostHint": "Giveaway post will be edited"
+      "editStartPostHint": "Giveaway post will be edited",
+      "randomizer": "Randomizer on website",
+      "randomizerHint": "You will announce winners on website with animation (video / stream)"
     },
     "dates": {
       "startNow": "Start immediately",

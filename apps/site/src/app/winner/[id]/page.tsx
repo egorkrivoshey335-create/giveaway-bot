@@ -11,6 +11,7 @@ import {
   getRandomizerData,
   savePrizes,
   saveCustomization,
+  publishWinners,
   type Participant,
   type Winner,
   type Prize,
@@ -43,6 +44,8 @@ interface GiveawayInfo {
   winnersCount: number;
   participantsCount: number;
   finishedAt: string;
+  publishResultsMode?: string;
+  winnersPublished?: boolean;
 }
 
 // ============================================================================
@@ -87,6 +90,8 @@ export default function WinnerPage() {
   const accentPresets = PRESET_ACCENTS;
   const [savedPrizesOk, setSavedPrizesOk] = useState(false);
   const [savedCustomOk, setSavedCustomOk] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishedOk, setPublishedOk] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Загрузка данных
@@ -271,6 +276,22 @@ export default function WinnerPage() {
       alert('Ссылка скопирована!');
     }
   }, [giveawayId, giveaway]);
+
+  // Опубликовать победителей в каналы (для RANDOMIZER режима)
+  const handlePublishWinners = useCallback(async () => {
+    if (!giveaway || isPublishing) return;
+    setIsPublishing(true);
+    try {
+      await publishWinners(giveawayId);
+      setPublishedOk(true);
+      // Обновляем локальное состояние
+      setGiveaway(prev => prev ? { ...prev, winnersPublished: true } : prev);
+    } catch (err) {
+      alert('Ошибка публикации: ' + (err instanceof Error ? err.message : 'Неизвестная ошибка'));
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [giveawayId, giveaway, isPublishing]);
 
   // Цвета текста в зависимости от фона
   const textColor = isLightBackground(customization.backgroundColor) ? '#1f2937' : '#ffffff';
@@ -787,6 +808,31 @@ export default function WinnerPage() {
                     );
                   })}
               </div>
+
+              {/* Кнопка публикации победителей в канал (для RANDOMIZER режима) */}
+              {giveaway.publishResultsMode === 'RANDOMIZER' && !giveaway.winnersPublished && !publishedOk && (
+                <div className="mb-6 p-4 rounded-xl bg-white/10 border border-white/20">
+                  <p className="text-sm mb-3 opacity-80" style={{ color: textColor }}>
+                    Объявите победителей в Telegram-канале
+                  </p>
+                  <button
+                    onClick={handlePublishWinners}
+                    disabled={isPublishing}
+                    className="w-full px-6 py-3 rounded-xl font-bold text-lg transition-transform hover:scale-105"
+                    style={{
+                      backgroundColor: customization.accentColor,
+                      color: isLightBackground(customization.accentColor) ? '#1f2937' : '#ffffff',
+                    }}
+                  >
+                    {isPublishing ? '📡 Публикация...' : '📢 Опубликовать победителей в канал'}
+                  </button>
+                </div>
+              )}
+              {(publishedOk || giveaway.winnersPublished) && giveaway.publishResultsMode === 'RANDOMIZER' && (
+                <div className="mb-6 p-3 rounded-xl bg-green-500/20 text-center">
+                  <span className="text-green-300 font-medium">✅ Победители опубликованы в канал!</span>
+                </div>
+              )}
 
               {/* Кнопки управления */}
               <div className="flex flex-wrap justify-center gap-4">

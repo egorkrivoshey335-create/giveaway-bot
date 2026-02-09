@@ -369,10 +369,110 @@ async function publishResults(giveawayId: string): Promise<void> {
   
   console.log(`[PublishResults] Режим: ${publishMode}, Победителей: ${giveaway.winners.length}`);
   
-  if (publishMode === PublishResultsMode.EDIT_START_POST) {
+  if (publishMode === PublishResultsMode.RANDOMIZER) {
+    await publishRandomizerTeaser(giveaway as GiveawayWithRelations);
+  } else if (publishMode === PublishResultsMode.EDIT_START_POST) {
     await publishResultsSamePost(giveaway as GiveawayWithRelations);
   } else {
     await publishResultsSeparatePosts(giveaway as GiveawayWithRelations);
+  }
+}
+
+/**
+ * Режим RANDOMIZER — отправить тизер-сообщение (без списка победителей)
+ * Создатель потом объявит победителей на сайте через рандомайзер
+ */
+async function publishRandomizerTeaser(giveaway: GiveawayWithRelations): Promise<void> {
+  const teaserText = `🎉 <b>Розыгрыш «${escapeHtml(giveaway.title)}» завершён!</b>
+
+🎲 Победители будут объявлены создателем в прямом эфире с помощью рандомайзера.
+
+Следите за обновлениями — скоро вы узнаете результаты! 🔥
+
+Всего участников: ${giveaway._count.participations}`;
+
+  // Отправляем тизер в каналы результатов или каналы публикации
+  let channels = giveaway.resultsChannels.map(rc => rc.channel);
+
+  if (channels.length === 0 && giveaway.messages.length > 0) {
+    const channelIds = [...new Set(giveaway.messages.map(m => m.channelId))];
+    const foundChannels = await prisma.channel.findMany({
+      where: { id: { in: channelIds } },
+      select: { id: true, telegramChatId: true, title: true },
+    });
+    channels = foundChannels;
+  }
+
+  if (channels.length === 0) {
+    console.log(`[PublishResults] RANDOMIZER: Нет каналов для тизера`);
+    return;
+  }
+
+  for (const channel of channels) {
+    try {
+      const response = await fetch(`${config.apiUrl}/internal/send-message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Token': config.internalApiToken,
+        },
+        body: JSON.stringify({
+          chatId: channel.telegramChatId.toString(),
+          text: teaserText,
+          parseMode: 'HTML',
+        }),
+      });
+
+      const data = await response.json() as { ok: boolean; messageId?: number };
+
+      if (data.ok && data.messageId) {
+        // Сохраняем тизер-сообщение (kind: RESULTS, чтобы потом обновить)
+        await prisma.giveawayMessage.create({
+          data: {
+            giveawayId: giveaway.id,
+            channelId: channel.id,
+            kind: GiveawayMessageKind.RESULTS,
+            telegramMessageId: data.messageId,
+          },
+        });
+        console.log(`[PublishResults] RANDOMIZER: Тизер отправлен в ${channel.title}`);
+      }
+    } catch (error) {
+      console.error(`[PublishResults] RANDOMIZER: Ошибка отправки тизера:`, error);
+    }
+  }
+
+  // Обновляем кнопку в оригинальных постах — убираем "Участвовать"
+  for (const msg of giveaway.messages) {
+    if (msg.kind !== GiveawayMessageKind.START) continue;
+    
+    const channel = await prisma.channel.findUnique({
+      where: { id: msg.channelId },
+      select: { telegramChatId: true },
+    });
+
+    if (!channel) continue;
+
+    try {
+      await fetch(`${config.apiUrl}/internal/edit-message-button`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Token': config.internalApiToken,
+        },
+        body: JSON.stringify({
+          chatId: channel.telegramChatId.toString(),
+          messageId: msg.telegramMessageId,
+          replyMarkup: {
+            inline_keyboard: [[
+              { text: '🎲 Ожидайте объявления победителей', callback_data: 'noop' }
+            ]]
+          },
+        }),
+      });
+    } catch (error) {
+      console.error(`[PublishResults] RANDOMIZER: Ошибка обновления кнопки:`, error);
+    }
   }
 }
 

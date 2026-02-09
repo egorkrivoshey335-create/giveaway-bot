@@ -64,6 +64,7 @@ enum CaptchaMode {
 enum PublishResultsMode {
   SEPARATE_POSTS
   EDIT_START_POST
+  RANDOMIZER
 }
 
 enum ProductType {
@@ -199,6 +200,7 @@ model Giveaway {
   // Randomizer customization (for site /winner/[id])
   randomizerPrizes   Json?              // [{ place: number, title: string, description?: string }]
   randomizerCustom   Json?              // { backgroundColor: string, accentColor: string, logoUrl?: string }
+  winnersPublished   Boolean            @default(false) // Победители опубликованы в канал (для RANDOMIZER режима)
 
   // Relations
   condition             GiveawayCondition?

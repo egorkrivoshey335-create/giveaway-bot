@@ -25,7 +25,7 @@ const confirmDraftPayloadSchema = z.object({
   requiredSubscriptionChannelIds: z.array(z.string()).default([]),
   publishChannelIds: z.array(z.string().regex(uuidRegex)).min(1, 'Выберите минимум 1 канал для публикации'),
   resultsChannelIds: z.array(z.string()).default([]),
-  publishResultsMode: z.enum(['SEPARATE_POSTS', 'EDIT_START_POST']).default('SEPARATE_POSTS'),
+  publishResultsMode: z.enum(['SEPARATE_POSTS', 'EDIT_START_POST', 'RANDOMIZER']).default('SEPARATE_POSTS'),
   // Защита от ботов
   captchaMode: z.enum(['OFF', 'SUSPICIOUS_ONLY', 'ALL']).default('SUSPICIOUS_ONLY'),
   livenessEnabled: z.boolean().default(false),
@@ -198,6 +198,7 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
       const publishResultsModeMap: Record<string, PublishResultsMode> = {
         SEPARATE_POSTS: PublishResultsMode.SEPARATE_POSTS,
         EDIT_START_POST: PublishResultsMode.EDIT_START_POST,
+        RANDOMIZER: PublishResultsMode.RANDOMIZER,
       };
       const captchaModeMap: Record<string, CaptchaMode> = {
         OFF: CaptchaMode.OFF,

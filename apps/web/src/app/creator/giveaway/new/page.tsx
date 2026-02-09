@@ -643,6 +643,26 @@ export default function GiveawayWizardPage() {
                       <div className="text-xs text-tg-hint">{t('resultsStep.editStartPostHint')}</div>
                     </div>
                   </button>
+                  <button
+                    onClick={() => updatePayload({ publishResultsMode: 'RANDOMIZER' })}
+                    className={`w-full text-left p-3 rounded-lg flex items-center gap-3 ${
+                      payload.publishResultsMode === 'RANDOMIZER'
+                        ? 'bg-tg-button/10 border border-tg-button'
+                        : 'bg-tg-bg'
+                    }`}
+                  >
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
+                      payload.publishResultsMode === 'RANDOMIZER'
+                        ? 'bg-tg-button text-tg-button-text'
+                        : 'bg-tg-secondary'
+                    }`}>
+                      {payload.publishResultsMode === 'RANDOMIZER' ? '●' : ''}
+                    </span>
+                    <div>
+                      <div className="font-medium">{t('resultsStep.randomizer')}</div>
+                      <div className="text-xs text-tg-hint">{t('resultsStep.randomizerHint')}</div>
+                    </div>
+                  </button>
                 </div>
               </div>
             </div>
