@@ -159,9 +159,9 @@ export function DateTimePicker({ value, onChange, min, placeholder = 'Выбер
 
       {/* Выпадающий календарь */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-tg-section rounded-2xl shadow-2xl border border-tg-secondary/30 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute top-full left-0 right-0 mt-2 z-50 rounded-2xl shadow-2xl border border-tg-secondary overflow-hidden" style={{ backgroundColor: 'var(--tg-theme-secondary-bg-color, #f0f0f0)' }}>
           {/* Навигация по месяцам */}
-          <div className="flex items-center justify-between px-4 py-3 bg-tg-bg/50">
+          <div className="flex items-center justify-between px-4 py-3" style={{ backgroundColor: 'var(--tg-theme-bg-color, #ffffff)' }}>
             <button
               type="button"
               onClick={goToPrevMonth}
@@ -231,12 +231,12 @@ export function DateTimePicker({ value, onChange, min, placeholder = 'Выбер
           </div>
 
           {/* Выбор времени */}
-          <div className="border-t border-tg-secondary/30 px-4 py-3">
+          <div className="border-t border-tg-secondary px-4 py-3" style={{ backgroundColor: 'var(--tg-theme-bg-color, #ffffff)' }}>
             <div className="flex items-center justify-center gap-3">
               <span className="text-sm text-tg-hint">⏰</span>
 
               {/* Часы */}
-              <div className="flex items-center bg-tg-bg rounded-lg overflow-hidden">
+              <div className="flex items-center bg-tg-secondary rounded-lg overflow-hidden">
                 <button
                   type="button"
                   onClick={() => setPickedHour(h => h > 0 ? h - 1 : 23)}
@@ -259,7 +259,7 @@ export function DateTimePicker({ value, onChange, min, placeholder = 'Выбер
               <span className="text-xl font-bold text-tg-text">:</span>
 
               {/* Минуты */}
-              <div className="flex items-center bg-tg-bg rounded-lg overflow-hidden">
+              <div className="flex items-center bg-tg-secondary rounded-lg overflow-hidden">
                 <button
                   type="button"
                   onClick={() => setPickedMinute(m => m >= 5 ? m - 5 : 55)}
@@ -282,7 +282,7 @@ export function DateTimePicker({ value, onChange, min, placeholder = 'Выбер
           </div>
 
           {/* Кнопка подтверждения */}
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-4" style={{ backgroundColor: 'var(--tg-theme-bg-color, #ffffff)' }}>
             <button
               type="button"
               onClick={confirmSelection}
