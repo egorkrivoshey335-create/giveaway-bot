@@ -127,6 +127,8 @@ export enum PublishResultsMode {
   SEPARATE_POSTS = 'SEPARATE_POSTS',
   /** Edit the original giveaway post */
   EDIT_START_POST = 'EDIT_START_POST',
+  /** Announce winners via randomizer on site */
+  RANDOMIZER = 'RANDOMIZER',
 }
 
 /**
