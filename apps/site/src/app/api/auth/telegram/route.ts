@@ -119,12 +119,15 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({ ok: true });
 
     // Устанавливаем cookie сессии
+    // domain нужен чтобы cookie отправлялся и на api.randombeast.ru
+    const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
     response.cookies.set(config.sessionCookieName, apiData.sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60, // 30 дней
       path: '/',
+      domain: cookieDomain,
     });
 
     return response;
