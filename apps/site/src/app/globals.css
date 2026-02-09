@@ -117,3 +117,28 @@ body {
   background-size: 200% 200%;
   animation: gradient-shift 5s ease infinite;
 }
+
+/* Стилизация react-colorful палитры */
+.color-picker-wrapper .react-colorful {
+  width: 100% !important;
+  height: 180px !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.color-picker-wrapper .react-colorful__saturation {
+  border-radius: 10px 10px 0 0 !important;
+}
+
+.color-picker-wrapper .react-colorful__hue {
+  height: 16px !important;
+  border-radius: 0 0 10px 10px !important;
+}
+
+.color-picker-wrapper .react-colorful__saturation-pointer,
+.color-picker-wrapper .react-colorful__hue-pointer {
+  width: 20px !important;
+  height: 20px !important;
+  border: 3px solid #fff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}

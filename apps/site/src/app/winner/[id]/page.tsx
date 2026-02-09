@@ -29,6 +29,7 @@ import {
   type RandomizerControl,
   type WinnerResult,
 } from '@/lib/randomizer';
+import { ColorPicker } from '@/components/ColorPicker';
 
 // ============================================================================
 // Типы
@@ -81,8 +82,9 @@ export default function WinnerPage() {
   const [isSavingPrizes, setIsSavingPrizes] = useState(false);
   const [isSavingCustomization, setIsSavingCustomization] = useState(false);
   const [logoSize, setLogoSize] = useState(80); // высота логотипа в px
-  const bgColorRef = useRef<HTMLInputElement>(null);
-  const accentColorRef = useRef<HTMLInputElement>(null);
+  // Пресеты для кастомного color picker
+  const bgPresets = PRESET_BACKGROUNDS.map(b => b.value);
+  const accentPresets = PRESET_ACCENTS;
   const [savedPrizesOk, setSavedPrizesOk] = useState(false);
   const [savedCustomOk, setSavedCustomOk] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -398,24 +400,13 @@ export default function WinnerPage() {
                         title={bg.label}
                       />
                     ))}
-                    {/* Скрытый нативный color picker + красивая кнопка */}
-                    <div className="relative">
-                      <button
-                        onClick={() => bgColorRef.current?.click()}
-                        className="w-8 h-8 rounded-full border-2 border-dashed border-white/40 hover:border-white transition-all hover:scale-110 flex items-center justify-center overflow-hidden"
-                        style={{ backgroundColor: customization.backgroundColor }}
-                        title="Выбрать свой цвет"
-                      >
-                        <span className="text-xs drop-shadow-lg">🎨</span>
-                      </button>
-                      <input
-                        ref={bgColorRef}
-                        type="color"
-                        value={customization.backgroundColor}
-                        onChange={(e) => setCustomization(prev => ({ ...prev, backgroundColor: e.target.value }))}
-                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                      />
-                    </div>
+                    {/* Кастомный Color Picker */}
+                    <ColorPicker
+                      color={customization.backgroundColor}
+                      onChange={(c) => setCustomization(prev => ({ ...prev, backgroundColor: c }))}
+                      presets={bgPresets}
+                      label="Цвет фона"
+                    />
                   </div>
                 </div>
 
@@ -433,24 +424,13 @@ export default function WinnerPage() {
                         onClick={() => setCustomization(prev => ({ ...prev, accentColor: color }))}
                       />
                     ))}
-                    {/* Скрытый нативный color picker + красивая кнопка */}
-                    <div className="relative">
-                      <button
-                        onClick={() => accentColorRef.current?.click()}
-                        className="w-8 h-8 rounded-full border-2 border-dashed border-white/40 hover:border-white transition-all hover:scale-110 flex items-center justify-center overflow-hidden"
-                        style={{ backgroundColor: customization.accentColor }}
-                        title="Выбрать свой цвет"
-                      >
-                        <span className="text-xs drop-shadow-lg">🎨</span>
-                      </button>
-                      <input
-                        ref={accentColorRef}
-                        type="color"
-                        value={customization.accentColor}
-                        onChange={(e) => setCustomization(prev => ({ ...prev, accentColor: e.target.value }))}
-                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                      />
-                    </div>
+                    {/* Кастомный Color Picker */}
+                    <ColorPicker
+                      color={customization.accentColor}
+                      onChange={(c) => setCustomization(prev => ({ ...prev, accentColor: c }))}
+                      presets={accentPresets}
+                      label="Цвет акцента"
+                    />
                   </div>
                 </div>
 
@@ -608,6 +588,24 @@ export default function WinnerPage() {
           {/* RUNNING / PAUSED состояние */}
           {(state === 'RUNNING' || state === 'PAUSED') && (
             <div className="text-center w-full max-w-3xl mx-auto">
+              {/* Логотип */}
+              {customization.logoUrl && (
+                <Image
+                  src={customization.logoUrl}
+                  alt="Logo"
+                  width={300}
+                  height={Math.round(logoSize * 0.6)}
+                  className="w-auto object-contain mx-auto mb-4"
+                  style={{ height: Math.round(logoSize * 0.6) }}
+                  unoptimized
+                />
+              )}
+
+              {/* Название розыгрыша */}
+              <h1 className="text-lg md:text-xl font-bold mb-6 opacity-60" style={{ color: customization.accentColor }}>
+                {giveaway.title}
+              </h1>
+
               {/* Текущее место */}
               <motion.div
                 key={currentPlace}
@@ -725,10 +723,26 @@ export default function WinnerPage() {
               animate={{ opacity: 1, scale: 1 }}
               className="text-center w-full max-w-3xl mx-auto"
             >
-              <div className="text-6xl mb-6">🎉</div>
-              <h2 className="text-4xl font-bold mb-8" style={{ color: customization.accentColor }}>
-                Розыгрыш завершён!
+              {/* Логотип */}
+              {customization.logoUrl && (
+                <Image
+                  src={customization.logoUrl}
+                  alt="Logo"
+                  width={300}
+                  height={Math.round(logoSize * 0.7)}
+                  className="w-auto object-contain mx-auto mb-4"
+                  style={{ height: Math.round(logoSize * 0.7) }}
+                  unoptimized
+                />
+              )}
+
+              <div className="text-6xl mb-4">🎉</div>
+              <h2 className="text-2xl font-bold mb-2" style={{ color: customization.accentColor }}>
+                {giveaway.title}
               </h2>
+              <h3 className="text-4xl font-bold mb-8" style={{ color: customization.accentColor }}>
+                Розыгрыш завершён!
+              </h3>
 
               {/* Таблица победителей */}
               <div className="space-y-3 mb-8 max-h-96 overflow-y-auto">
