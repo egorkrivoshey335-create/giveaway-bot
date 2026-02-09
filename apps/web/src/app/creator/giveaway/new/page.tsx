@@ -680,8 +680,15 @@ export default function GiveawayWizardPage() {
                         updatePayload({ startAt: new Date(e.target.value).toISOString() });
                       }
                     }}
+                    onClick={(e) => {
+                      // Открыть picker при клике на любую часть input (для десктопа)
+                      const input = e.target as HTMLInputElement;
+                      if (input.showPicker) {
+                        try { input.showPicker(); } catch { /* игнорируем ошибки */ }
+                      }
+                    }}
                     min={getMinStartDateTime()}
-                    className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text"
+                    className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text cursor-pointer"
                   />
                 </div>
               )}
@@ -699,8 +706,15 @@ export default function GiveawayWizardPage() {
                       updatePayload({ endAt: null });
                     }
                   }}
+                  onClick={(e) => {
+                    // Открыть picker при клике на любую часть input (для десктопа)
+                    const input = e.target as HTMLInputElement;
+                    if (input.showPicker) {
+                      try { input.showPicker(); } catch { /* игнорируем ошибки */ }
+                    }
+                  }}
                   min={getMinEndDateTime(payload.startAt)}
-                  className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text"
+                  className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text cursor-pointer"
                 />
                 {payload.endAt && (
                   <button
