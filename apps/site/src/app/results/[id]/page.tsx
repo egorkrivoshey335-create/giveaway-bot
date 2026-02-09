@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { config } from '@/lib/config';
@@ -112,10 +113,13 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
           {/* Логотип */}
           {logoUrl && (
             <div className="text-center mb-6">
-              <img
+              <Image
                 src={logoUrl}
                 alt="Logo"
-                className="h-16 object-contain mx-auto"
+                width={160}
+                height={64}
+                className="h-16 w-auto object-contain mx-auto"
+                unoptimized
               />
             </div>
           )}

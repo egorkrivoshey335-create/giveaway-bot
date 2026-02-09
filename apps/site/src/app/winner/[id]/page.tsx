@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Header } from '@/components/Header';
 import { Confetti } from '@/components/Confetti';
@@ -441,10 +442,13 @@ export default function WinnerPage() {
             >
               {/* Логотип */}
               {customization.logoUrl && (
-                <img
+                <Image
                   src={customization.logoUrl}
                   alt="Logo"
-                  className="h-20 object-contain mx-auto mb-6"
+                  width={200}
+                  height={80}
+                  className="h-20 w-auto object-contain mx-auto mb-6"
+                  unoptimized
                 />
               )}
 
