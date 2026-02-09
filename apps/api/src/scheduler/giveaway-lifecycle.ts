@@ -454,6 +454,7 @@ async function publishRandomizerTeaser(giveaway: GiveawayWithRelations): Promise
     if (!channel) continue;
 
     try {
+      const waitUrl = `https://t.me/${BOT_USERNAME}/participate?startapp=results_${giveaway.id}`;
       await fetch(`${config.apiUrl}/internal/edit-message-button`, {
         method: 'POST',
         headers: {
@@ -465,7 +466,7 @@ async function publishRandomizerTeaser(giveaway: GiveawayWithRelations): Promise
           messageId: msg.telegramMessageId,
           replyMarkup: {
             inline_keyboard: [[
-              { text: '🎲 Ожидайте объявления победителей', callback_data: 'noop' }
+              { text: '🎲 Ожидайте объявления победителей', url: waitUrl }
             ]]
           },
         }),

@@ -170,6 +170,7 @@ export async function saveCustomization(
 export async function publishWinners(giveawayId: string): Promise<ApiResponse> {
   return fetchApi<ApiResponse>(`/site/giveaways/${giveawayId}/publish-winners`, {
     method: 'POST',
+    body: JSON.stringify({}),
   });
 }
 
