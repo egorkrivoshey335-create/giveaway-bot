@@ -32,7 +32,7 @@ export interface GiveawayDraftPayload {
   requiredSubscriptionChannelIds?: string[];
   publishChannelIds?: string[];
   resultsChannelIds?: string[];
-  publishResultsMode?: 'SEPARATE_POSTS' | 'EDIT_START_POST';
+  publishResultsMode?: 'SEPARATE_POSTS' | 'EDIT_START_POST' | 'RANDOMIZER';
   /** Режим капчи: OFF, SUSPICIOUS_ONLY, ALL */
   captchaMode?: 'OFF' | 'SUSPICIOUS_ONLY' | 'ALL';
   /** Включена ли проверка Liveness (камера) — платная фича */
