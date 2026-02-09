@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHmac } from 'crypto';
+import { createHash, createHmac } from 'crypto';
 import { config } from '@/lib/config';
 
 // Секретный ключ для подписи (из env)
@@ -32,8 +32,9 @@ function verifyTelegramAuth(data: TelegramAuthData): boolean {
     .map(([key, value]) => `${key}=${value}`)
     .join('\n');
 
-  // Создаём секретный ключ
-  const secretKey = createHmac('sha256', 'WebAppData')
+  // Создаём секретный ключ (SHA256 от BOT_TOKEN для Telegram Login Widget)
+  // https://core.telegram.org/widgets/login#checking-authorization
+  const secretKey = createHash('sha256')
     .update(BOT_TOKEN)
     .digest();
 
