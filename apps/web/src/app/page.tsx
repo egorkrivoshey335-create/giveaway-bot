@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { DebugPanel } from '@/components/DebugPanel';
 import { ParticipantSection } from '@/components/ParticipantSection';
 import { CreatorSection } from '@/components/CreatorSection';
-import { useTelegramLocale } from '@/hooks/useLocale';
+import { useTelegramLocale, syncLocaleFromDb } from '@/hooks/useLocale';
 import {
   authenticateWithTelegram,
   getCurrentUser,
@@ -63,6 +63,10 @@ export default function HomePage() {
       if (result.ok && result.user) {
         setUser(result.user);
         setAuthStatus('authenticated');
+        // Синхронизируем язык Mini App с языком из БД (выбранным в настройках бота)
+        if (result.user.language) {
+          syncLocaleFromDb(result.user.language);
+        }
       } else {
         setUser(null);
         setAuthStatus('unauthenticated');

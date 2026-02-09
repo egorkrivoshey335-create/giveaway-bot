@@ -73,6 +73,7 @@ export const messages = {
     },
     buttons: {
       openApp: '🚀 Открыть приложение',
+      menuButton: 'Открыть',
       back: '◀️ Назад',
       cancel: '❌ Отмена',
       confirm: '✅ Подтвердить',
@@ -156,6 +157,7 @@ export const messages = {
     },
     buttons: {
       openApp: '🚀 Open App',
+      menuButton: 'Open',
       back: '◀️ Back',
       cancel: '❌ Cancel',
       confirm: '✅ Confirm',
@@ -239,6 +241,7 @@ export const messages = {
     },
     buttons: {
       openApp: '🚀 Қолданбаны ашу',
+      menuButton: 'Ашу',
       back: '◀️ Артқа',
       cancel: '❌ Бас тарту',
       confirm: '✅ Растау',

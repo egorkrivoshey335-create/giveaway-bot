@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { syncLocaleFromDb } from '@/hooks/useLocale';
 import {
   getPublicGiveaway,
   checkSubscription,
@@ -134,10 +135,18 @@ export default function JoinGiveawayPage() {
               setScreen('auth_required');
               return;
             }
+            // Повторно получаем данные пользователя для синхронизации языка
+            const freshUser = await getCurrentUser();
+            if (freshUser.ok && freshUser.user?.language) {
+              syncLocaleFromDb(freshUser.user.language);
+            }
           } else {
             setScreen('auth_required');
             return;
           }
+        } else if (userRes.user.language) {
+          // Синхронизируем язык из БД
+          syncLocaleFromDb(userRes.user.language);
         }
         
         setIsAuthenticated(true);

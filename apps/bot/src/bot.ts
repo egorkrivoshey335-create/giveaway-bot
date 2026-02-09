@@ -169,6 +169,20 @@ bot.command('start', async (ctx) => {
     clearAllUserStates(ctx.from.id);
   }
 
+  // Устанавливаем Menu Button на языке пользователя
+  try {
+    await ctx.api.setChatMenuButton({
+      chat_id: userId,
+      menu_button: {
+        type: 'web_app',
+        text: t(locale, 'buttons.menuButton'),
+        web_app: { url: config.webappUrl },
+      },
+    });
+  } catch {
+    // Не критично
+  }
+
   await ctx.reply(getWelcomeMessage(firstName, locale), {
     reply_markup: keyboard,
     parse_mode: 'HTML',
@@ -379,6 +393,20 @@ bot.callbackQuery(/^lang_/, async (ctx) => {
       });
     } catch {
       // Игнорируем ошибку если сообщение не изменилось
+    }
+
+    // Обновляем Menu Button (синяя кнопка «Открыть» / «Open» / «Ашу»)
+    try {
+      await ctx.api.setChatMenuButton({
+        chat_id: userId,
+        menu_button: {
+          type: 'web_app',
+          text: t(lang, 'buttons.menuButton'),
+          web_app: { url: config.webappUrl },
+        },
+      });
+    } catch {
+      // Игнорируем — не критично
     }
 
     // Отправляем новое сообщение с обновлённой клавиатурой главного меню
