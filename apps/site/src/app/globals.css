@@ -36,3 +36,84 @@ body {
     @apply inline-flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-900 font-semibold py-3 px-6 rounded-xl transition-colors border border-gray-200;
   }
 }
+
+/* Анимация падения конфетти */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  25% {
+    transform: translateY(25vh) rotate(180deg) scale(1.1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(50vh) rotate(360deg) scale(1);
+    opacity: 0.8;
+  }
+  75% {
+    transform: translateY(75vh) rotate(540deg) scale(0.9);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg) scale(0.8);
+    opacity: 0;
+  }
+}
+
+.animate-confetti-fall {
+  animation: confetti-fall linear forwards;
+}
+
+/* Анимация пульсации для обратного отсчёта */
+@keyframes countdown-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+.animate-countdown-pulse {
+  animation: countdown-pulse 1s ease-in-out infinite;
+}
+
+/* Анимация появления победителя */
+@keyframes winner-reveal {
+  0% {
+    transform: scale(0.5) rotate(-10deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1) rotate(3deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-winner-reveal {
+  animation: winner-reveal 0.5s ease-out forwards;
+}
+
+/* Градиентная анимация для фона */
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 5s ease infinite;
+}

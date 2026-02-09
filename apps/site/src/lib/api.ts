@@ -39,6 +39,37 @@ export interface GiveawaysResponse {
   error?: string;
 }
 
+export interface Participant {
+  id: string;
+  telegramUserId: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  username?: string | null;
+  ticketsTotal: number;
+}
+
+export interface Winner {
+  place: number;
+  odataUserId: string;
+  telegramUserId: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  username?: string | null;
+  ticketsUsed: number;
+}
+
+export interface Prize {
+  place: number;
+  title: string;
+  description?: string;
+}
+
+export interface Customization {
+  backgroundColor: string;
+  accentColor: string;
+  logoUrl?: string | null;
+}
+
 export interface RandomizerData {
   giveaway: {
     id: string;
@@ -47,21 +78,19 @@ export interface RandomizerData {
     participantsCount: number;
     finishedAt: string;
   };
-  winners: Array<{
-    id: string;
-    place: number;
-    user: {
-      id: string;
-      username?: string;
-      firstName?: string;
-      lastName?: string;
-    };
-  }>;
+  participants: Participant[];
+  winners: Winner[];
+  prizes: Prize[];
+  customization: Customization;
 }
 
 export interface RandomizerResponse {
   ok: boolean;
-  data?: RandomizerData;
+  giveaway?: RandomizerData['giveaway'];
+  participants?: Participant[];
+  winners?: Winner[];
+  prizes?: Prize[];
+  customization?: Customization;
   error?: string;
 }
 
@@ -108,6 +137,29 @@ export async function getGiveaways(): Promise<GiveawaysResponse> {
  */
 export async function getRandomizerData(giveawayId: string): Promise<RandomizerResponse> {
   return fetchApi<RandomizerResponse>(`/site/giveaways/${giveawayId}/randomizer`);
+}
+
+/**
+ * Сохранить призы для рандомайзера
+ */
+export async function savePrizes(giveawayId: string, prizes: Prize[]): Promise<ApiResponse> {
+  return fetchApi<ApiResponse>(`/site/giveaways/${giveawayId}/save-prizes`, {
+    method: 'POST',
+    body: JSON.stringify({ prizes }),
+  });
+}
+
+/**
+ * Сохранить кастомизацию рандомайзера
+ */
+export async function saveCustomization(
+  giveawayId: string,
+  customization: Partial<Customization>
+): Promise<ApiResponse> {
+  return fetchApi<ApiResponse>(`/site/giveaways/${giveawayId}/save-customization`, {
+    method: 'POST',
+    body: JSON.stringify(customization),
+  });
 }
 
 /**

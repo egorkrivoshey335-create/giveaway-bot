@@ -196,6 +196,10 @@ model Giveaway {
   draftPayload       Json?              // Temporary wizard data
   draftVersion       Int                @default(1)
 
+  // Randomizer customization (for site /winner/[id])
+  randomizerPrizes   Json?              // [{ place: number, title: string, description?: string }]
+  randomizerCustom   Json?              // { backgroundColor: string, accentColor: string, logoUrl?: string }
+
   // Relations
   condition             GiveawayCondition?
   requiredSubscriptions GiveawayRequiredSubscription[]

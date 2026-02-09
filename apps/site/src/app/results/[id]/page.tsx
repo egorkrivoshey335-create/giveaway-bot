@@ -3,12 +3,33 @@ import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { config } from '@/lib/config';
+import { getMedal, getPlaceColor, isLightBackground } from '@/lib/helpers';
 
 // Публичная страница результатов розыгрыша
 // Данные загружаются с API без авторизации
+// Применяется кастомизация (цвета, логотип) если она была сохранена
 
 interface ResultsPageProps {
   params: Promise<{ id: string }>;
+}
+
+interface Winner {
+  place: number;
+  firstName?: string | null;
+  lastName?: string | null;
+  username?: string | null;
+}
+
+interface Prize {
+  place: number;
+  title: string;
+  description?: string;
+}
+
+interface Customization {
+  backgroundColor: string;
+  accentColor: string;
+  logoUrl?: string | null;
 }
 
 interface GiveawayResult {
@@ -17,17 +38,18 @@ interface GiveawayResult {
   winnersCount: number;
   participantsCount: number;
   finishedAt: string;
-  winners: Array<{
-    place: number;
-    user: {
-      username?: string;
-      firstName?: string;
-      lastName?: string;
-    };
-  }>;
 }
 
-async function getResults(id: string): Promise<GiveawayResult | null> {
+interface ApiResponse {
+  ok: boolean;
+  giveaway?: GiveawayResult;
+  winners?: Winner[];
+  prizes?: Prize[];
+  customization?: Customization;
+  error?: string;
+}
+
+async function getResults(id: string): Promise<ApiResponse | null> {
   try {
     const response = await fetch(`${config.apiUrl}/site/giveaways/${id}/results`, {
       cache: 'no-store',
@@ -37,8 +59,7 @@ async function getResults(id: string): Promise<GiveawayResult | null> {
       return null;
     }
 
-    const data = await response.json();
-    return data.ok ? data.data : null;
+    return response.json();
   } catch {
     return null;
   }
@@ -46,13 +67,25 @@ async function getResults(id: string): Promise<GiveawayResult | null> {
 
 export default async function ResultsPage({ params }: ResultsPageProps) {
   const { id } = await params;
-  const results = await getResults(id);
+  const data = await getResults(id);
 
-  if (!results) {
+  if (!data || !data.ok || !data.giveaway) {
     notFound();
   }
 
-  const formattedDate = new Date(results.finishedAt).toLocaleDateString('ru-RU', {
+  const { giveaway, winners = [], prizes = [], customization } = data;
+
+  // Дефолтные цвета если кастомизация не задана
+  const backgroundColor = customization?.backgroundColor || '#0f0f23';
+  const accentColor = customization?.accentColor || '#f2b6b6';
+  const logoUrl = customization?.logoUrl;
+
+  // Цвета текста в зависимости от фона
+  const isLight = isLightBackground(backgroundColor);
+  const textColor = isLight ? '#1f2937' : '#ffffff';
+  const textSecondary = isLight ? '#6b7280' : '#9ca3af';
+
+  const formattedDate = new Date(giveaway.finishedAt).toLocaleDateString('ru-RU', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -60,31 +93,68 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
     minute: '2-digit',
   });
 
+  // Функция для форматирования имени
+  const formatName = (winner: Winner): string => {
+    const fullName = `${winner.firstName || ''} ${winner.lastName || ''}`.trim();
+    return fullName || (winner.username ? `@${winner.username}` : 'Аноним');
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-brand-50 to-white flex flex-col">
+    <div
+      className="min-h-screen flex flex-col transition-colors"
+      style={{ backgroundColor }}
+    >
+      {/* Хедер */}
       <Header />
 
       <main className="flex-1 pt-24 pb-12 px-4">
         <div className="container mx-auto max-w-2xl">
+          {/* Логотип */}
+          {logoUrl && (
+            <div className="text-center mb-6">
+              <img
+                src={logoUrl}
+                alt="Logo"
+                className="h-16 object-contain mx-auto"
+              />
+            </div>
+          )}
+
           {/* Карточка результатов */}
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div
+            className="rounded-2xl overflow-hidden shadow-2xl"
+            style={{ backgroundColor: isLight ? '#ffffff' : 'rgba(255,255,255,0.1)' }}
+          >
             {/* Шапка */}
-            <div className="bg-gradient-to-r from-brand-500 to-brand-600 text-white p-6 text-center">
+            <div
+              className="p-6 text-center"
+              style={{ backgroundColor: accentColor }}
+            >
               <div className="text-4xl mb-2">🏆</div>
-              <h1 className="text-2xl font-bold">Результаты розыгрыша</h1>
+              <h1
+                className="text-2xl font-bold"
+                style={{ color: isLightBackground(accentColor) ? '#1f2937' : '#ffffff' }}
+              >
+                Результаты розыгрыша
+              </h1>
             </div>
 
             {/* Информация о розыгрыше */}
-            <div className="p-6 border-b border-gray-100">
-              <h2 className="text-xl font-semibold mb-2">{results.title}</h2>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+            <div
+              className="p-6 border-b"
+              style={{ borderColor: isLight ? '#e5e7eb' : 'rgba(255,255,255,0.1)' }}
+            >
+              <h2 className="text-xl font-semibold mb-2" style={{ color: textColor }}>
+                {giveaway.title}
+              </h2>
+              <div className="flex flex-wrap items-center gap-4 text-sm" style={{ color: textSecondary }}>
                 <span className="flex items-center gap-1">
                   <span>👥</span>
-                  {results.participantsCount} участников
+                  {giveaway.participantsCount} участников
                 </span>
                 <span className="flex items-center gap-1">
                   <span>🏆</span>
-                  {results.winnersCount} победителей
+                  {giveaway.winnersCount} победителей
                 </span>
                 <span className="flex items-center gap-1">
                   <span>📅</span>
@@ -95,40 +165,71 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
 
             {/* Список победителей */}
             <div className="p-6">
-              <h3 className="font-semibold mb-4">Победители</h3>
+              <h3 className="font-semibold mb-4" style={{ color: textColor }}>
+                Победители
+              </h3>
               <div className="space-y-3">
-                {results.winners.map((winner) => (
-                  <div
-                    key={winner.place}
-                    className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl"
-                  >
-                    <div className="w-10 h-10 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center font-bold">
-                      {winner.place}
-                    </div>
-                    <div>
-                      <p className="font-medium">
-                        {winner.user.firstName || 'Аноним'}
-                        {winner.user.lastName ? ` ${winner.user.lastName}` : ''}
-                      </p>
-                      {winner.user.username && (
-                        <p className="text-gray-500 text-sm">@{winner.user.username}</p>
+                {winners.map((winner) => {
+                  const prize = prizes.find(p => p.place === winner.place);
+                  return (
+                    <div
+                      key={winner.place}
+                      className="flex items-center gap-4 p-4 rounded-xl"
+                      style={{
+                        backgroundColor: isLight ? '#f9fafb' : 'rgba(255,255,255,0.05)',
+                        borderLeft: `4px solid ${getPlaceColor(winner.place)}`,
+                      }}
+                    >
+                      <div
+                        className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl text-white shrink-0"
+                        style={{ backgroundColor: getPlaceColor(winner.place) }}
+                      >
+                        {getMedal(winner.place)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate" style={{ color: textColor }}>
+                          {formatName(winner)}
+                        </p>
+                        {winner.username && (
+                          <p className="text-sm truncate" style={{ color: textSecondary }}>
+                            @{winner.username}
+                          </p>
+                        )}
+                      </div>
+                      {prize?.title && (
+                        <span
+                          className="px-3 py-1 rounded-full text-sm shrink-0"
+                          style={{
+                            backgroundColor: isLight ? '#f3f4f6' : 'rgba(255,255,255,0.1)',
+                            color: textColor,
+                          }}
+                        >
+                          🎁 {prize.title}
+                        </span>
                       )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
             {/* Ссылка на бота */}
-            <div className="p-6 bg-gray-50 text-center">
-              <p className="text-gray-600 text-sm mb-3">
+            <div
+              className="p-6 text-center"
+              style={{ backgroundColor: isLight ? '#f9fafb' : 'rgba(255,255,255,0.05)' }}
+            >
+              <p className="text-sm mb-3" style={{ color: textSecondary }}>
                 Хотите провести свой розыгрыш?
               </p>
               <a
                 href={`https://t.me/${config.botUsername}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-primary text-sm"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold transition-transform hover:scale-105"
+                style={{
+                  backgroundColor: accentColor,
+                  color: isLightBackground(accentColor) ? '#1f2937' : '#ffffff',
+                }}
               >
                 🤖 Открыть бота
               </a>
@@ -139,7 +240,8 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
           <div className="text-center mt-6">
             <Link
               href="/"
-              className="text-gray-600 hover:text-gray-900 text-sm"
+              className="text-sm transition-colors hover:underline"
+              style={{ color: textSecondary }}
             >
               ← На главную
             </Link>

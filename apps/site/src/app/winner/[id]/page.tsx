@@ -1,42 +1,115 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Header } from '@/components/Header';
-import { getRandomizerData, type RandomizerData } from '@/lib/api';
+import { Confetti } from '@/components/Confetti';
+import {
+  getRandomizerData,
+  savePrizes,
+  saveCustomization,
+  type Participant,
+  type Winner,
+  type Prize,
+  type Customization,
+} from '@/lib/api';
+import {
+  getMedal,
+  getPlaceColor,
+  formatParticipantName,
+  PRESET_BACKGROUNDS,
+  PRESET_ACCENTS,
+  isLightBackground,
+} from '@/lib/helpers';
+import {
+  createRandomizer,
+  type RandomizerControl,
+  type WinnerResult,
+} from '@/lib/randomizer';
 
-// Placeholder страница рандомайзера
-// Полная анимация будет добавлена позже
+// ============================================================================
+// Типы
+// ============================================================================
+
+type RandomizerState = 'SETUP' | 'RUNNING' | 'PAUSED' | 'FINISHED' | 'SAVED';
+
+interface GiveawayInfo {
+  id: string;
+  title: string;
+  winnersCount: number;
+  participantsCount: number;
+  finishedAt: string;
+}
+
+// ============================================================================
+// Компонент страницы
+// ============================================================================
 
 export default function WinnerPage() {
   const router = useRouter();
   const params = useParams();
   const giveawayId = params.id as string;
 
+  // Данные
   const [isLoading, setIsLoading] = useState(true);
-  const [data, setData] = useState<RandomizerData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [showWinners, setShowWinners] = useState(false);
+  const [giveaway, setGiveaway] = useState<GiveawayInfo | null>(null);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [existingWinners, setExistingWinners] = useState<Winner[]>([]);
+  const [prizes, setPrizes] = useState<Prize[]>([]);
+  const [customization, setCustomization] = useState<Customization>({
+    backgroundColor: '#0f0f23',
+    accentColor: '#f2b6b6',
+  });
 
+  // Состояние рандомайзера
+  const [state, setState] = useState<RandomizerState>('SETUP');
+  const [currentPlace, setCurrentPlace] = useState<number>(0);
+  const [currentDisplayName, setCurrentDisplayName] = useState<string>('');
+  const [countdownValue, setCountdownValue] = useState<number>(0);
+  const [revealedWinners, setRevealedWinners] = useState<WinnerResult[]>([]);
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  // Контроллер рандомайзера
+  const controlRef = useRef<RandomizerControl | null>(null);
+
+  // Панель настроек (для мобильных)
+  const [showSettings, setShowSettings] = useState(false);
+  const [isSavingPrizes, setIsSavingPrizes] = useState(false);
+  const [isSavingCustomization, setIsSavingCustomization] = useState(false);
+
+  // Загрузка данных
   useEffect(() => {
     async function loadData() {
       try {
         const response = await getRandomizerData(giveawayId);
 
-        if (!response.ok || !response.data) {
+        if (!response.ok) {
           throw new Error(response.error || 'Ошибка загрузки');
         }
 
-        setData(response.data);
+        if (response.giveaway) {
+          setGiveaway(response.giveaway);
+        }
+        if (response.participants) {
+          setParticipants(response.participants);
+        }
+        if (response.winners) {
+          setExistingWinners(response.winners);
+        }
+        if (response.prizes && response.prizes.length > 0) {
+          setPrizes(response.prizes);
+        }
+        if (response.customization) {
+          setCustomization(response.customization);
+        }
       } catch (err) {
-        // Ошибка авторизации — редирект на логин
         if (err instanceof Error && err.message.includes('401')) {
           router.push('/login');
           return;
         }
-        // Нет доступа — редирект на dashboard
         if (err instanceof Error && err.message.includes('403')) {
           router.push('/dashboard');
           return;
@@ -50,15 +123,131 @@ export default function WinnerPage() {
     loadData();
   }, [giveawayId, router]);
 
-  // Запуск анимации
-  const startRandomizer = () => {
-    setIsAnimating(true);
-    // Имитация анимации (полная анимация будет добавлена позже)
-    setTimeout(() => {
-      setIsAnimating(false);
-      setShowWinners(true);
-    }, 3000);
-  };
+  // Обновление приза
+  const updatePrize = useCallback((place: number, title: string) => {
+    setPrizes(prev => {
+      const existing = prev.find(p => p.place === place);
+      if (existing) {
+        return prev.map(p => p.place === place ? { ...p, title } : p);
+      } else {
+        return [...prev, { place, title }];
+      }
+    });
+  }, []);
+
+  // Сохранение призов
+  const handleSavePrizes = useCallback(async () => {
+    if (!giveawayId || isSavingPrizes) return;
+    setIsSavingPrizes(true);
+    try {
+      await savePrizes(giveawayId, prizes);
+    } catch (err) {
+      console.error('Ошибка сохранения призов:', err);
+    } finally {
+      setIsSavingPrizes(false);
+    }
+  }, [giveawayId, prizes, isSavingPrizes]);
+
+  // Сохранение кастомизации
+  const handleSaveCustomization = useCallback(async () => {
+    if (!giveawayId || isSavingCustomization) return;
+    setIsSavingCustomization(true);
+    try {
+      await saveCustomization(giveawayId, customization);
+    } catch (err) {
+      console.error('Ошибка сохранения кастомизации:', err);
+    } finally {
+      setIsSavingCustomization(false);
+    }
+  }, [giveawayId, customization, isSavingCustomization]);
+
+  // Запуск рандомайзера
+  const startRandomizer = useCallback(() => {
+    if (!giveaway || participants.length === 0) return;
+
+    setState('RUNNING');
+    setRevealedWinners([]);
+    setCurrentPlace(giveaway.winnersCount);
+
+    const { start, control } = createRandomizer(
+      participants,
+      giveaway.winnersCount,
+      {
+        onSlotChange: (name) => {
+          setCurrentDisplayName(name);
+        },
+        onCountdown: (seconds) => {
+          setCountdownValue(seconds);
+        },
+        onRevealWinner: (place, winner) => {
+          setRevealedWinners(prev => [...prev, { place, participant: winner }]);
+          // Конфетти для топ-3
+          if (place <= 3) {
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 5000);
+          }
+        },
+        onFinish: () => {
+          setState('FINISHED');
+        },
+        onPlaceChange: (place) => {
+          setCurrentPlace(place);
+          setCountdownValue(0);
+        },
+      }
+    );
+
+    controlRef.current = control;
+    start();
+  }, [giveaway, participants]);
+
+  // Пауза
+  const pauseRandomizer = useCallback(() => {
+    controlRef.current?.pause();
+    setState('PAUSED');
+  }, []);
+
+  // Продолжить
+  const resumeRandomizer = useCallback(() => {
+    controlRef.current?.resume();
+    setState('RUNNING');
+  }, []);
+
+  // Пропустить
+  const skipToNext = useCallback(() => {
+    controlRef.current?.skip();
+  }, []);
+
+  // Сброс
+  const resetRandomizer = useCallback(() => {
+    setState('SETUP');
+    setRevealedWinners([]);
+    setCurrentPlace(0);
+    setCurrentDisplayName('');
+    setCountdownValue(0);
+  }, []);
+
+  // Поделиться
+  const shareResults = useCallback(() => {
+    const url = `${window.location.origin}/results/${giveawayId}`;
+    if (navigator.share) {
+      navigator.share({
+        title: giveaway?.title || 'Результаты розыгрыша',
+        url,
+      });
+    } else {
+      navigator.clipboard.writeText(url);
+      alert('Ссылка скопирована!');
+    }
+  }, [giveawayId, giveaway]);
+
+  // Цвета текста в зависимости от фона
+  const textColor = isLightBackground(customization.backgroundColor) ? '#1f2937' : '#ffffff';
+  const textSecondary = isLightBackground(customization.backgroundColor) ? '#6b7280' : '#9ca3af';
+
+  // ============================================================================
+  // Рендеринг
+  // ============================================================================
 
   // Загрузка
   if (isLoading) {
@@ -73,7 +262,7 @@ export default function WinnerPage() {
   }
 
   // Ошибка
-  if (error || !data) {
+  if (error || !giveaway) {
     return (
       <div className="min-h-screen bg-gray-900 flex flex-col">
         <Header isAuthenticated />
@@ -92,89 +281,420 @@ export default function WinnerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      {/* Хедер скрыт во время анимации */}
-      {!isAnimating && <Header isAuthenticated />}
+    <div
+      className="min-h-screen transition-colors duration-500"
+      style={{ backgroundColor: customization.backgroundColor }}
+    >
+      {/* Конфетти */}
+      <Confetti active={showConfetti} duration={5000} />
 
-      <main className="min-h-screen flex flex-col items-center justify-center px-4">
-        {/* Заголовок розыгрыша */}
-        {!isAnimating && !showWinners && (
-          <div className="text-center max-w-2xl mx-auto animate-fade-in">
-            <div className="text-6xl mb-6">🎰</div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">
-              {data.giveaway.title}
-            </h1>
-            <p className="text-gray-400 mb-8">
-              {data.giveaway.participantsCount} участников • {data.giveaway.winnersCount} победителей
-            </p>
-            <button
-              onClick={startRandomizer}
-              className="btn-primary text-lg px-12 py-4 animate-pulse-soft"
-            >
-              🎲 Запустить рандомайзер
-            </button>
-          </div>
-        )}
+      {/* Хедер только в SETUP */}
+      {state === 'SETUP' && <Header isAuthenticated />}
 
-        {/* Анимация выбора победителя */}
-        {isAnimating && (
-          <div className="text-center animate-pulse">
-            <div className="text-8xl mb-8">🎰</div>
-            <h2 className="text-3xl font-bold mb-4">Выбираем победителей...</h2>
-            <div className="flex justify-center gap-2">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="w-4 h-4 bg-brand-500 rounded-full animate-bounce"
-                  style={{ animationDelay: `${i * 0.15}s` }}
-                />
-              ))}
+      <main className="min-h-screen flex flex-col lg:flex-row">
+        {/* ================================================================== */}
+        {/* Панель настроек (левая) */}
+        {/* ================================================================== */}
+        {state === 'SETUP' && (
+          <aside className="lg:w-80 xl:w-96 lg:min-h-screen p-4 lg:p-6 pt-20 lg:pt-24 bg-black/20 backdrop-blur-sm">
+            {/* Мобильный заголовок */}
+            <div className="lg:hidden flex items-center justify-between mb-4">
+              <h2 className="font-bold" style={{ color: textColor }}>Настройки</h2>
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className="p-2 rounded-lg bg-white/10"
+                style={{ color: textColor }}
+              >
+                {showSettings ? '✕' : '⚙️'}
+              </button>
             </div>
-          </div>
-        )}
 
-        {/* Результаты */}
-        {showWinners && (
-          <div className="text-center max-w-2xl mx-auto animate-fade-in">
-            <div className="text-6xl mb-6">🎉</div>
-            <h2 className="text-3xl font-bold mb-8">Победители!</h2>
-            
-            <div className="space-y-4 mb-8">
-              {data.winners.map((winner, index) => (
-                <div
-                  key={winner.id}
-                  className="bg-white/10 backdrop-blur-sm rounded-xl p-4 flex items-center gap-4"
-                  style={{ animationDelay: `${index * 0.2}s` }}
+            <div className={`space-y-6 ${showSettings ? 'block' : 'hidden lg:block'}`}>
+              {/* Блок "Призы" */}
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                <h3 className="font-semibold mb-4 flex items-center gap-2" style={{ color: textColor }}>
+                  🏆 Призы
+                </h3>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {Array.from({ length: giveaway.winnersCount }, (_, i) => {
+                    const place = i + 1;
+                    const prize = prizes.find(p => p.place === place);
+                    return (
+                      <div key={place} className="flex items-center gap-2">
+                        <span
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+                          style={{ backgroundColor: getPlaceColor(place) }}
+                        >
+                          {getMedal(place)}
+                        </span>
+                        <input
+                          type="text"
+                          placeholder={`Приз за ${place} место`}
+                          value={prize?.title || ''}
+                          onChange={(e) => updatePrize(place, e.target.value)}
+                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm placeholder-gray-400"
+                          style={{ color: textColor }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={handleSavePrizes}
+                  disabled={isSavingPrizes}
+                  className="w-full mt-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors text-sm font-medium"
+                  style={{ color: textColor }}
                 >
-                  <div className="w-12 h-12 bg-brand-500 rounded-full flex items-center justify-center font-bold text-xl">
-                    {winner.place}
-                  </div>
-                  <div className="text-left">
-                    <p className="font-semibold">
-                      {winner.user.firstName || winner.user.username || 'Аноним'}
-                      {winner.user.lastName ? ` ${winner.user.lastName}` : ''}
-                    </p>
-                    {winner.user.username && (
-                      <p className="text-gray-400 text-sm">@{winner.user.username}</p>
-                    )}
+                  {isSavingPrizes ? '💾 Сохранение...' : '💾 Сохранить призы'}
+                </button>
+              </div>
+
+              {/* Блок "Кастомизация" */}
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                <h3 className="font-semibold mb-4 flex items-center gap-2" style={{ color: textColor }}>
+                  🎨 Оформление
+                </h3>
+
+                {/* Цвет фона */}
+                <div className="mb-4">
+                  <label className="block text-sm mb-2" style={{ color: textSecondary }}>Фон</label>
+                  <div className="flex flex-wrap gap-2">
+                    {PRESET_BACKGROUNDS.map(bg => (
+                      <button
+                        key={bg.value}
+                        className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${
+                          customization.backgroundColor === bg.value ? 'border-white scale-110' : 'border-transparent'
+                        }`}
+                        style={{ backgroundColor: bg.value }}
+                        onClick={() => setCustomization(prev => ({ ...prev, backgroundColor: bg.value }))}
+                        title={bg.label}
+                      />
+                    ))}
+                    <input
+                      type="color"
+                      value={customization.backgroundColor}
+                      onChange={(e) => setCustomization(prev => ({ ...prev, backgroundColor: e.target.value }))}
+                      className="w-8 h-8 rounded-full cursor-pointer"
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button
-                onClick={() => setShowWinners(false)}
-                className="btn-secondary"
-              >
-                🔄 Повторить
-              </button>
-              <Link href="/dashboard" className="btn-primary">
-                ← Вернуться
-              </Link>
+                {/* Цвет акцента */}
+                <div className="mb-4">
+                  <label className="block text-sm mb-2" style={{ color: textSecondary }}>Акцент</label>
+                  <div className="flex flex-wrap gap-2">
+                    {PRESET_ACCENTS.map(color => (
+                      <button
+                        key={color}
+                        className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${
+                          customization.accentColor === color ? 'border-white scale-110' : 'border-transparent'
+                        }`}
+                        style={{ backgroundColor: color }}
+                        onClick={() => setCustomization(prev => ({ ...prev, accentColor: color }))}
+                      />
+                    ))}
+                    <input
+                      type="color"
+                      value={customization.accentColor}
+                      onChange={(e) => setCustomization(prev => ({ ...prev, accentColor: e.target.value }))}
+                      className="w-8 h-8 rounded-full cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                {/* Логотип */}
+                <div className="mb-4">
+                  <label className="block text-sm mb-2" style={{ color: textSecondary }}>Логотип (URL)</label>
+                  <input
+                    type="url"
+                    placeholder="https://example.com/logo.png"
+                    value={customization.logoUrl || ''}
+                    onChange={(e) => setCustomization(prev => ({ ...prev, logoUrl: e.target.value || null }))}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm placeholder-gray-400"
+                    style={{ color: textColor }}
+                  />
+                </div>
+
+                <button
+                  onClick={handleSaveCustomization}
+                  disabled={isSavingCustomization}
+                  className="w-full py-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors text-sm font-medium"
+                  style={{ color: textColor }}
+                >
+                  {isSavingCustomization ? '💾 Сохранение...' : '💾 Сохранить'}
+                </button>
+              </div>
             </div>
-          </div>
+          </aside>
         )}
+
+        {/* ================================================================== */}
+        {/* Область рандомайзера (центр) */}
+        {/* ================================================================== */}
+        <div className="flex-1 flex flex-col items-center justify-center p-4 lg:p-8">
+          {/* SETUP состояние */}
+          {state === 'SETUP' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center max-w-2xl mx-auto"
+            >
+              {/* Логотип */}
+              {customization.logoUrl && (
+                <img
+                  src={customization.logoUrl}
+                  alt="Logo"
+                  className="h-20 object-contain mx-auto mb-6"
+                />
+              )}
+
+              {/* Заголовок */}
+              <h1
+                className="text-3xl md:text-4xl font-bold mb-4"
+                style={{ color: customization.accentColor }}
+              >
+                {giveaway.title}
+              </h1>
+              <p className="text-lg mb-8" style={{ color: textSecondary }}>
+                {giveaway.participantsCount} участников • {giveaway.winnersCount} победителей
+              </p>
+
+              {/* Кнопка старт */}
+              <button
+                onClick={startRandomizer}
+                className="text-xl px-12 py-5 rounded-2xl font-bold shadow-2xl transform hover:scale-105 transition-all"
+                style={{
+                  backgroundColor: customization.accentColor,
+                  color: isLightBackground(customization.accentColor) ? '#1f2937' : '#ffffff',
+                }}
+              >
+                🎲 Начать розыгрыш
+              </button>
+
+              {/* Если уже есть победители */}
+              {existingWinners.length > 0 && (
+                <div className="mt-8 p-4 bg-white/10 rounded-xl">
+                  <p className="text-sm mb-2" style={{ color: textSecondary }}>
+                    ⚠️ Победители уже определены. Запуск рандомайзера выберет новых случайных победителей.
+                  </p>
+                  <Link
+                    href={`/results/${giveawayId}`}
+                    className="text-sm underline"
+                    style={{ color: customization.accentColor }}
+                  >
+                    Посмотреть текущие результаты →
+                  </Link>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* RUNNING / PAUSED состояние */}
+          {(state === 'RUNNING' || state === 'PAUSED') && (
+            <div className="text-center w-full max-w-3xl mx-auto">
+              {/* Текущее место */}
+              <motion.div
+                key={currentPlace}
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="mb-8"
+              >
+                <span
+                  className="text-6xl md:text-8xl font-black"
+                  style={{ color: getPlaceColor(currentPlace) }}
+                >
+                  {getMedal(currentPlace)} {currentPlace}
+                </span>
+                <p className="text-xl mt-2" style={{ color: textSecondary }}>место</p>
+                
+                {/* Приз если указан */}
+                {prizes.find(p => p.place === currentPlace)?.title && (
+                  <p className="text-2xl font-semibold mt-4" style={{ color: customization.accentColor }}>
+                    🎁 {prizes.find(p => p.place === currentPlace)?.title}
+                  </p>
+                )}
+              </motion.div>
+
+              {/* Слот-машина — мелькающие имена */}
+              <div className="h-32 flex items-center justify-center mb-8 overflow-hidden">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentDisplayName}
+                    initial={{ y: 50, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -50, opacity: 0 }}
+                    transition={{ duration: 0.1 }}
+                    className="text-4xl md:text-6xl font-bold"
+                    style={{ color: textColor }}
+                  >
+                    {currentDisplayName || '...'}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              {/* Обратный отсчёт для топ-3 */}
+              {currentPlace <= 3 && countdownValue > 0 && (
+                <motion.div
+                  key={countdownValue}
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="text-9xl font-black animate-countdown-pulse"
+                  style={{ color: customization.accentColor }}
+                >
+                  {countdownValue}
+                </motion.div>
+              )}
+
+              {/* Кнопки управления */}
+              <div className="flex flex-wrap justify-center gap-4 mt-8">
+                {state === 'RUNNING' && (
+                  <>
+                    <button
+                      onClick={pauseRandomizer}
+                      className="px-6 py-3 rounded-xl bg-white/20 font-medium transition-colors hover:bg-white/30"
+                      style={{ color: textColor }}
+                    >
+                      ⏸️ Пауза
+                    </button>
+                    <button
+                      onClick={skipToNext}
+                      className="px-6 py-3 rounded-xl bg-white/20 font-medium transition-colors hover:bg-white/30"
+                      style={{ color: textColor }}
+                    >
+                      ⏭️ Пропустить
+                    </button>
+                  </>
+                )}
+                {state === 'PAUSED' && (
+                  <button
+                    onClick={resumeRandomizer}
+                    className="px-8 py-4 rounded-xl font-bold text-lg transition-transform hover:scale-105"
+                    style={{
+                      backgroundColor: customization.accentColor,
+                      color: isLightBackground(customization.accentColor) ? '#1f2937' : '#ffffff',
+                    }}
+                  >
+                    ▶️ Продолжить
+                  </button>
+                )}
+              </div>
+
+              {/* Показанные победители */}
+              {revealedWinners.length > 0 && (
+                <div className="mt-12 flex flex-wrap justify-center gap-3">
+                  {revealedWinners
+                    .sort((a, b) => a.place - b.place)
+                    .map(w => (
+                      <motion.div
+                        key={w.place}
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border-2"
+                        style={{ borderColor: getPlaceColor(w.place) }}
+                      >
+                        <span style={{ color: textColor }}>
+                          {getMedal(w.place)} {formatParticipantName(w.participant)}
+                        </span>
+                      </motion.div>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* FINISHED состояние */}
+          {state === 'FINISHED' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center w-full max-w-3xl mx-auto"
+            >
+              <div className="text-6xl mb-6">🎉</div>
+              <h2 className="text-4xl font-bold mb-8" style={{ color: customization.accentColor }}>
+                Розыгрыш завершён!
+              </h2>
+
+              {/* Таблица победителей */}
+              <div className="space-y-3 mb-8 max-h-96 overflow-y-auto">
+                {revealedWinners
+                  .sort((a, b) => a.place - b.place)
+                  .map(w => {
+                    const prize = prizes.find(p => p.place === w.place);
+                    return (
+                      <motion.div
+                        key={w.place}
+                        initial={{ x: -50, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: w.place * 0.1 }}
+                        className="flex items-center gap-4 p-4 rounded-xl bg-white/10 backdrop-blur-sm"
+                        style={{ borderLeft: `4px solid ${getPlaceColor(w.place)}` }}
+                      >
+                        <span
+                          className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl shrink-0"
+                          style={{ backgroundColor: getPlaceColor(w.place) }}
+                        >
+                          {getMedal(w.place)}
+                        </span>
+                        <div className="flex-1 text-left">
+                          <p className="font-semibold" style={{ color: textColor }}>
+                            {formatParticipantName(w.participant)}
+                          </p>
+                          {w.participant.username && (
+                            <p className="text-sm" style={{ color: textSecondary }}>
+                              @{w.participant.username}
+                            </p>
+                          )}
+                        </div>
+                        {prize?.title && (
+                          <span
+                            className="px-3 py-1 rounded-full text-sm bg-white/20"
+                            style={{ color: textColor }}
+                          >
+                            🎁 {prize.title}
+                          </span>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+              </div>
+
+              {/* Кнопки управления */}
+              <div className="flex flex-wrap justify-center gap-4">
+                <button
+                  onClick={shareResults}
+                  className="px-6 py-3 rounded-xl font-medium transition-transform hover:scale-105"
+                  style={{
+                    backgroundColor: customization.accentColor,
+                    color: isLightBackground(customization.accentColor) ? '#1f2937' : '#ffffff',
+                  }}
+                >
+                  📤 Поделиться
+                </button>
+                <button
+                  onClick={resetRandomizer}
+                  className="px-6 py-3 rounded-xl bg-white/20 font-medium transition-colors hover:bg-white/30"
+                  style={{ color: textColor }}
+                >
+                  🔄 Заново
+                </button>
+                <Link
+                  href={`/results/${giveawayId}`}
+                  className="px-6 py-3 rounded-xl bg-white/20 font-medium transition-colors hover:bg-white/30"
+                  style={{ color: textColor }}
+                >
+                  📋 Страница результатов
+                </Link>
+                <Link
+                  href="/dashboard"
+                  className="px-6 py-3 rounded-xl bg-white/20 font-medium transition-colors hover:bg-white/30"
+                  style={{ color: textColor }}
+                >
+                  ← Назад
+                </Link>
+              </div>
+            </motion.div>
+          )}
+        </div>
       </main>
     </div>
   );

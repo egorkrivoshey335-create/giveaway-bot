@@ -213,6 +213,7 @@ export async function siteRoutes(fastify: FastifyInstance) {
   /**
    * GET /site/giveaways/:id/randomizer
    * Возвращает данные для рандомайзера (защищённый эндпоинт)
+   * Включает участников для "живого" розыгрыша
    */
   fastify.get<{ Params: { id: string } }>(
     '/site/giveaways/:id/randomizer',
@@ -232,14 +233,21 @@ export async function siteRoutes(fastify: FastifyInstance) {
           return reply.status(403).send({ ok: false, error: 'Randomizer access required' });
         }
 
-        // Получаем розыгрыш
+        // Получаем розыгрыш с участниками и победителями
         const giveaway = await prisma.giveaway.findUnique({
           where: { id },
           include: {
-            _count: {
-              select: {
-                participations: {
-                  where: { status: 'JOINED' },
+            participations: {
+              where: { status: 'JOINED' },
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    telegramUserId: true,
+                    username: true,
+                    firstName: true,
+                    lastName: true,
+                  },
                 },
               },
             },
@@ -249,6 +257,7 @@ export async function siteRoutes(fastify: FastifyInstance) {
                 user: {
                   select: {
                     id: true,
+                    telegramUserId: true,
                     username: true,
                     firstName: true,
                     lastName: true,
@@ -273,28 +282,138 @@ export async function siteRoutes(fastify: FastifyInstance) {
           return reply.status(400).send({ ok: false, error: 'Giveaway is not finished' });
         }
 
+        // Парсим JSON поля
+        const randomizerPrizes = giveaway.randomizerPrizes as { place: number; title: string; description?: string }[] | null;
+        const randomizerCustom = giveaway.randomizerCustom as { backgroundColor?: string; accentColor?: string; logoUrl?: string } | null;
+
         return reply.send({
           ok: true,
-          data: {
-            giveaway: {
-              id: giveaway.id,
-              title: giveaway.title,
-              winnersCount: giveaway.winners.length,
-              participantsCount: giveaway._count.participations,
-              finishedAt: giveaway.updatedAt.toISOString(),
-            },
-            winners: giveaway.winners.map((w) => ({
-              id: w.id,
-              place: w.place,
-              user: {
-                id: w.user.id,
-                username: w.user.username,
-                firstName: w.user.firstName,
-                lastName: w.user.lastName,
-              },
-            })),
+          giveaway: {
+            id: giveaway.id,
+            title: giveaway.title,
+            winnersCount: giveaway.winnersCount,
+            participantsCount: giveaway.participations.length,
+            finishedAt: giveaway.updatedAt.toISOString(),
+          },
+          participants: giveaway.participations.map((p) => ({
+            id: p.id,
+            telegramUserId: p.user.telegramUserId.toString(),
+            firstName: p.user.firstName,
+            lastName: p.user.lastName,
+            username: p.user.username,
+            ticketsTotal: p.ticketsBase + p.ticketsExtra,
+          })),
+          winners: giveaway.winners.map((w) => ({
+            place: w.place,
+            odataUserId: w.user.id,
+            telegramUserId: w.user.telegramUserId.toString(),
+            firstName: w.user.firstName,
+            lastName: w.user.lastName,
+            username: w.user.username,
+            ticketsUsed: w.ticketsUsed,
+          })),
+          prizes: randomizerPrizes || [],
+          customization: randomizerCustom || {
+            backgroundColor: '#0f0f23',
+            accentColor: '#f2b6b6',
           },
         });
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.status(500).send({ ok: false, error: 'Internal server error' });
+      }
+    }
+  );
+
+  /**
+   * POST /site/giveaways/:id/save-prizes
+   * Сохраняет призы для рандомайзера
+   */
+  fastify.post<{ Params: { id: string }; Body: { prizes: { place: number; title: string; description?: string }[] } }>(
+    '/site/giveaways/:id/save-prizes',
+    async (request, reply) => {
+      const userId = getUserIdFromSiteSession(request);
+
+      if (!userId) {
+        return reply.status(401).send({ ok: false, error: 'Unauthorized' });
+      }
+
+      const { id } = request.params;
+      const { prizes } = request.body;
+
+      try {
+        // Проверяем что розыгрыш принадлежит пользователю
+        const giveaway = await prisma.giveaway.findUnique({
+          where: { id },
+          select: { ownerUserId: true },
+        });
+
+        if (!giveaway) {
+          return reply.status(404).send({ ok: false, error: 'Giveaway not found' });
+        }
+
+        if (giveaway.ownerUserId !== userId) {
+          return reply.status(403).send({ ok: false, error: 'Access denied' });
+        }
+
+        // Сохраняем призы
+        await prisma.giveaway.update({
+          where: { id },
+          data: { randomizerPrizes: prizes },
+        });
+
+        return reply.send({ ok: true });
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.status(500).send({ ok: false, error: 'Internal server error' });
+      }
+    }
+  );
+
+  /**
+   * POST /site/giveaways/:id/save-customization
+   * Сохраняет кастомизацию рандомайзера (цвета, логотип)
+   */
+  fastify.post<{ Params: { id: string }; Body: { backgroundColor?: string; accentColor?: string; logoUrl?: string } }>(
+    '/site/giveaways/:id/save-customization',
+    async (request, reply) => {
+      const userId = getUserIdFromSiteSession(request);
+
+      if (!userId) {
+        return reply.status(401).send({ ok: false, error: 'Unauthorized' });
+      }
+
+      const { id } = request.params;
+      const { backgroundColor, accentColor, logoUrl } = request.body;
+
+      try {
+        // Проверяем что розыгрыш принадлежит пользователю
+        const giveaway = await prisma.giveaway.findUnique({
+          where: { id },
+          select: { ownerUserId: true },
+        });
+
+        if (!giveaway) {
+          return reply.status(404).send({ ok: false, error: 'Giveaway not found' });
+        }
+
+        if (giveaway.ownerUserId !== userId) {
+          return reply.status(403).send({ ok: false, error: 'Access denied' });
+        }
+
+        // Сохраняем кастомизацию
+        await prisma.giveaway.update({
+          where: { id },
+          data: {
+            randomizerCustom: {
+              backgroundColor: backgroundColor || '#0f0f23',
+              accentColor: accentColor || '#f2b6b6',
+              logoUrl: logoUrl || null,
+            },
+          },
+        });
+
+        return reply.send({ ok: true });
       } catch (error) {
         fastify.log.error(error);
         return reply.status(500).send({ ok: false, error: 'Internal server error' });
@@ -346,22 +465,29 @@ export async function siteRoutes(fastify: FastifyInstance) {
           return reply.status(400).send({ ok: false, error: 'Giveaway is not finished' });
         }
 
+        // Парсим JSON поля
+        const randomizerPrizes = giveaway.randomizerPrizes as { place: number; title: string; description?: string }[] | null;
+        const randomizerCustom = giveaway.randomizerCustom as { backgroundColor?: string; accentColor?: string; logoUrl?: string } | null;
+
         return reply.send({
           ok: true,
-          data: {
+          giveaway: {
             id: giveaway.id,
             title: giveaway.title,
             winnersCount: giveaway.winners.length,
             participantsCount: giveaway._count.participations,
             finishedAt: giveaway.updatedAt.toISOString(),
-            winners: giveaway.winners.map((w) => ({
-              place: w.place,
-              user: {
-                username: w.user.username,
-                firstName: w.user.firstName,
-                lastName: w.user.lastName,
-              },
-            })),
+          },
+          winners: giveaway.winners.map((w) => ({
+            place: w.place,
+            firstName: w.user.firstName,
+            lastName: w.user.lastName,
+            username: w.user.username,
+          })),
+          prizes: randomizerPrizes || [],
+          customization: randomizerCustom || {
+            backgroundColor: '#0f0f23',
+            accentColor: '#f2b6b6',
           },
         });
       } catch (error) {
