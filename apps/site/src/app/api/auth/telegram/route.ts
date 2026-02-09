@@ -119,16 +119,34 @@ export async function POST(request: NextRequest) {
     // Создаём ответ с cookie
     const response = NextResponse.json({ ok: true });
 
-    // Устанавливаем cookie сессии
-    // domain нужен чтобы cookie отправлялся и на api.randombeast.ru
     const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // Устанавливаем cookie сессии (httpOnly — для API)
     response.cookies.set(config.sessionCookieName, apiData.sessionToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isProduction,
       sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60, // 30 дней
       path: '/',
       domain: cookieDomain,
+    });
+
+    // Устанавливаем cookie с данными пользователя (НЕ httpOnly — для клиента)
+    // Используется для отображения аватарки и имени в хедере
+    const userData = JSON.stringify({
+      firstName: data.first_name,
+      lastName: data.last_name || '',
+      username: data.username || '',
+      photoUrl: data.photo_url || '',
+      telegramUserId: data.id.toString(),
+    });
+    response.cookies.set('rb_site_user', userData, {
+      httpOnly: false,
+      secure: isProduction,
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60,
+      path: '/',
     });
 
     return response;
