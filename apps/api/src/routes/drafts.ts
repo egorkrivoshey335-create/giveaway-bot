@@ -21,7 +21,7 @@ const draftPayloadSchema = z.object({
   requiredSubscriptionChannelIds: z.array(z.string()).optional(),
   publishChannelIds: z.array(z.string()).optional(),
   resultsChannelIds: z.array(z.string()).optional(),
-  publishResultsMode: z.enum(['SEPARATE_POSTS', 'EDIT_START_POST']).optional(),
+  publishResultsMode: z.enum(['SEPARATE_POSTS', 'EDIT_START_POST', 'RANDOMIZER']).optional(),
 }).passthrough();
 
 /**
