@@ -678,7 +678,17 @@ export default function GiveawayWizardPage() {
                   <div className="text-xs text-tg-hint">{t('dates.startNowHint')}</div>
                 </div>
                 <button
-                  onClick={() => updatePayload({ startAt: payload.startAt ? null : new Date().toISOString() })}
+                  onClick={() => {
+                    if (payload.startAt) {
+                      // Включаем "Начать сразу" — убираем дату
+                      updatePayload({ startAt: null });
+                    } else {
+                      // Выключаем "Начать сразу" — ставим дату через 10 минут от текущего момента
+                      const d = new Date();
+                      d.setMinutes(d.getMinutes() + 10);
+                      updatePayload({ startAt: d.toISOString() });
+                    }
+                  }}
                   className={`w-12 h-6 rounded-full transition-colors relative ${
                     !payload.startAt ? 'bg-tg-button' : 'bg-tg-secondary'
                   }`}

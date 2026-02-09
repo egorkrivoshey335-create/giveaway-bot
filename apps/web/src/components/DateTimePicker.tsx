@@ -72,10 +72,10 @@ export function DateTimePicker({ value, onChange, min, placeholder = 'Выбер
   const [viewYear, setViewYear] = useState(selectedDate?.getFullYear() || now.getFullYear());
   const [viewMonth, setViewMonth] = useState(selectedDate?.getMonth() || now.getMonth());
 
-  // Состояние выбора
-  const [pickedDay, setPickedDay] = useState<number | null>(selectedDate?.getDate() || null);
-  const [pickedHour, setPickedHour] = useState(selectedDate?.getHours() || now.getHours());
-  const [pickedMinute, setPickedMinute] = useState(selectedDate?.getMinutes() || 0);
+  // Состояние выбора — если нет значения, ставим текущие день/час/минуту
+  const [pickedDay, setPickedDay] = useState<number | null>(selectedDate?.getDate() || now.getDate());
+  const [pickedHour, setPickedHour] = useState(selectedDate?.getHours() ?? now.getHours());
+  const [pickedMinute, setPickedMinute] = useState(selectedDate?.getMinutes() ?? now.getMinutes());
 
   // Синхронизация при изменении value извне
   useEffect(() => {
@@ -148,7 +148,18 @@ export function DateTimePicker({ value, onChange, min, placeholder = 'Выбер
       {/* Кнопка-триггер */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (!isOpen && !value) {
+            // При открытии без значения — подтягиваем текущую дату/время
+            const current = new Date();
+            setViewYear(current.getFullYear());
+            setViewMonth(current.getMonth());
+            setPickedDay(current.getDate());
+            setPickedHour(current.getHours());
+            setPickedMinute(current.getMinutes());
+          }
+          setIsOpen(!isOpen);
+        }}
         className="w-full bg-tg-bg rounded-lg px-4 py-3 text-left flex items-center justify-between cursor-pointer transition-colors hover:bg-tg-bg/80"
       >
         <span className={selectedDate ? 'text-tg-text' : 'text-tg-hint'}>
@@ -262,7 +273,7 @@ export function DateTimePicker({ value, onChange, min, placeholder = 'Выбер
               <div className="flex items-center bg-tg-secondary rounded-lg overflow-hidden">
                 <button
                   type="button"
-                  onClick={() => setPickedMinute(m => m >= 5 ? m - 5 : 55)}
+                  onClick={() => setPickedMinute(m => m > 0 ? m - 1 : 59)}
                   className="w-8 h-10 flex items-center justify-center text-tg-hint hover:bg-tg-secondary/50 transition-colors"
                 >
                   −
@@ -272,7 +283,7 @@ export function DateTimePicker({ value, onChange, min, placeholder = 'Выбер
                 </span>
                 <button
                   type="button"
-                  onClick={() => setPickedMinute(m => m <= 54 ? m + 5 : 0)}
+                  onClick={() => setPickedMinute(m => m < 59 ? m + 1 : 0)}
                   className="w-8 h-10 flex items-center justify-center text-tg-hint hover:bg-tg-secondary/50 transition-colors"
                 >
                   +
