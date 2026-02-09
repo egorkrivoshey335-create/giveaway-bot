@@ -15,6 +15,7 @@ import {
   PostTemplate,
   GiveawayDraftPayload,
 } from '@/lib/api';
+import { DateTimePicker } from '@/components/DateTimePicker';
 
 // Bot deep link for confirmation
 const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
@@ -672,23 +673,13 @@ export default function GiveawayWizardPage() {
               {payload.startAt && (
                 <div>
                   <label className="block text-sm text-tg-hint mb-1">{t('dates.startDateTime')}</label>
-                  <input
-                    type="datetime-local"
-                    value={payload.startAt ? formatDateTimeLocal(payload.startAt) : ''}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        updatePayload({ startAt: new Date(e.target.value).toISOString() });
-                      }
+                  <DateTimePicker
+                    value={payload.startAt}
+                    onChange={(iso) => {
+                      if (iso) updatePayload({ startAt: iso });
                     }}
-                    onClick={(e) => {
-                      // Открыть picker при клике на любую часть input (для десктопа)
-                      const input = e.target as HTMLInputElement;
-                      if (input.showPicker) {
-                        try { input.showPicker(); } catch { /* игнорируем ошибки */ }
-                      }
-                    }}
-                    min={getMinStartDateTime()}
-                    className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text cursor-pointer"
+                    min={(() => { const d = new Date(); d.setMinutes(d.getMinutes() + 5); return d; })()}
+                    placeholder={t('dates.startDateTime')}
                   />
                 </div>
               )}
@@ -696,25 +687,11 @@ export default function GiveawayWizardPage() {
               {/* Выбор даты окончания */}
               <div>
                 <label className="block text-sm text-tg-hint mb-1">{t('dates.endDateTime')}</label>
-                <input
-                  type="datetime-local"
-                  value={payload.endAt ? formatDateTimeLocal(payload.endAt) : ''}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      updatePayload({ endAt: new Date(e.target.value).toISOString() });
-                    } else {
-                      updatePayload({ endAt: null });
-                    }
-                  }}
-                  onClick={(e) => {
-                    // Открыть picker при клике на любую часть input (для десктопа)
-                    const input = e.target as HTMLInputElement;
-                    if (input.showPicker) {
-                      try { input.showPicker(); } catch { /* игнорируем ошибки */ }
-                    }
-                  }}
-                  min={getMinEndDateTime(payload.startAt)}
-                  className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text cursor-pointer"
+                <DateTimePicker
+                  value={payload.endAt || null}
+                  onChange={(iso) => updatePayload({ endAt: iso })}
+                  min={(() => { const d = payload.startAt ? new Date(payload.startAt) : new Date(); d.setHours(d.getHours() + 1); return d; })()}
+                  placeholder={t('dates.endDateTime')}
                 />
                 {payload.endAt && (
                   <button
