@@ -131,7 +131,11 @@ export default function HomePage() {
     // Проверяем start_param из Telegram Mini App
     const startParam = tg?.initDataUnsafe?.start_param;
     
-    if (startParam) {
+    // Проверяем, обрабатывали ли мы уже этот deep link (чтобы кнопка "На главную" работала)
+    const deepLinkKey = `deep_link_handled_${startParam}`;
+    if (startParam && sessionStorage.getItem(deepLinkKey)) {
+      // Уже обработали этот deep link, не перенаправляем
+    } else if (startParam) {
       // join_<giveawayId> или join_<giveawayId>_ref_<referrerId>
       if (startParam.startsWith('join_')) {
         const parts = startParam.replace('join_', '').split('_ref_');
@@ -139,6 +143,7 @@ export default function HomePage() {
         const referrer = parts[1] || '';
         
         if (giveawayId) {
+          sessionStorage.setItem(deepLinkKey, '1');
           setRedirecting(true);
           const url = referrer 
             ? `/join/${giveawayId}?ref=${referrer}`
@@ -152,6 +157,7 @@ export default function HomePage() {
       if (startParam.startsWith('results_')) {
         const giveawayId = startParam.replace('results_', '');
         if (giveawayId) {
+          sessionStorage.setItem(deepLinkKey, '1');
           setRedirecting(true);
           router.push(`/giveaway/${giveawayId}/results`);
           return;
