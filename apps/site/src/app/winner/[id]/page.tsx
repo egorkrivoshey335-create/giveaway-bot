@@ -81,10 +81,8 @@ export default function WinnerPage() {
   const [isSavingPrizes, setIsSavingPrizes] = useState(false);
   const [isSavingCustomization, setIsSavingCustomization] = useState(false);
   const [logoSize, setLogoSize] = useState(80); // высота логотипа в px
-  const [showBgPicker, setShowBgPicker] = useState(false);
-  const [showAccentPicker, setShowAccentPicker] = useState(false);
-  const [customBgColor, setCustomBgColor] = useState('');
-  const [customAccentColor, setCustomAccentColor] = useState('');
+  const bgColorRef = useRef<HTMLInputElement>(null);
+  const accentColorRef = useRef<HTMLInputElement>(null);
   const [savedPrizesOk, setSavedPrizesOk] = useState(false);
   const [savedCustomOk, setSavedCustomOk] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -327,14 +325,13 @@ export default function WinnerPage() {
         {/* Панель настроек (левая) */}
         {/* ================================================================== */}
         {state === 'SETUP' && (
-          <aside className="lg:w-80 xl:w-96 lg:min-h-screen p-4 lg:p-6 pt-20 lg:pt-24 bg-black/20 backdrop-blur-sm">
+          <aside className="lg:w-80 xl:w-96 lg:min-h-screen p-4 lg:p-6 pt-20 lg:pt-24 bg-gray-900/80 backdrop-blur-xl">
             {/* Мобильный заголовок */}
             <div className="lg:hidden flex items-center justify-between mb-4">
-              <h2 className="font-bold" style={{ color: textColor }}>Настройки</h2>
+              <h2 className="font-bold text-white">Настройки</h2>
               <button
                 onClick={() => setShowSettings(!showSettings)}
-                className="p-2 rounded-lg bg-white/10"
-                style={{ color: textColor }}
+                className="p-2 rounded-lg bg-white/10 text-white"
               >
                 {showSettings ? '✕' : '⚙️'}
               </button>
@@ -342,8 +339,8 @@ export default function WinnerPage() {
 
             <div className={`space-y-6 ${showSettings ? 'block' : 'hidden lg:block'}`}>
               {/* Блок "Призы" */}
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                <h3 className="font-semibold mb-4 flex items-center gap-2" style={{ color: textColor }}>
+              <div className="bg-white/10 rounded-xl p-4">
+                <h3 className="font-semibold mb-4 flex items-center gap-2 text-white">
                   🏆 Призы
                 </h3>
                 <div className="space-y-3 max-h-64 overflow-y-auto">
@@ -363,8 +360,7 @@ export default function WinnerPage() {
                           placeholder={`Приз за ${place} место`}
                           value={prize?.title || ''}
                           onChange={(e) => updatePrize(place, e.target.value)}
-                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm placeholder-gray-400"
-                          style={{ color: textColor }}
+                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-400"
                         />
                       </div>
                     );
@@ -374,24 +370,23 @@ export default function WinnerPage() {
                   onClick={handleSavePrizes}
                   disabled={isSavingPrizes}
                   className={`w-full mt-4 py-2 rounded-lg transition-colors text-sm font-medium ${
-                    savedPrizesOk ? 'bg-green-500/30 text-green-300' : 'bg-white/20 hover:bg-white/30'
+                    savedPrizesOk ? 'bg-green-500/30 text-green-300' : 'bg-white/20 hover:bg-white/30 text-white'
                   }`}
-                  style={savedPrizesOk ? {} : { color: textColor }}
                 >
                   {isSavingPrizes ? '💾 Сохранение...' : savedPrizesOk ? '✅ Сохранено!' : '💾 Сохранить призы'}
                 </button>
               </div>
 
               {/* Блок "Кастомизация" */}
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                <h3 className="font-semibold mb-4 flex items-center gap-2" style={{ color: textColor }}>
+              <div className="bg-white/10 rounded-xl p-4">
+                <h3 className="font-semibold mb-4 flex items-center gap-2 text-white">
                   🎨 Оформление
                 </h3>
 
                 {/* Цвет фона */}
                 <div className="mb-4">
-                  <label className="block text-sm mb-2" style={{ color: textSecondary }}>Фон</label>
-                  <div className="flex flex-wrap gap-2">
+                  <label className="block text-sm mb-2 text-gray-300">Фон</label>
+                  <div className="flex flex-wrap gap-2 items-center">
                     {PRESET_BACKGROUNDS.map(bg => (
                       <button
                         key={bg.value}
@@ -403,51 +398,31 @@ export default function WinnerPage() {
                         title={bg.label}
                       />
                     ))}
-                    {/* Кнопка выбора произвольного цвета */}
-                    <button
-                      onClick={() => setShowBgPicker(!showBgPicker)}
-                      className={`w-8 h-8 rounded-full border-2 border-dashed transition-transform hover:scale-110 flex items-center justify-center text-xs ${
-                        showBgPicker ? 'border-white' : 'border-white/40'
-                      }`}
-                      title="Свой цвет"
-                    >
-                      <span>🎨</span>
-                    </button>
-                  </div>
-                  {/* Произвольный цвет фона */}
-                  {showBgPicker && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <input
-                        type="text"
-                        placeholder="#1a1a2e"
-                        value={customBgColor}
-                        onChange={(e) => setCustomBgColor(e.target.value)}
-                        className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm placeholder-gray-400 font-mono"
-                        style={{ color: textColor }}
-                      />
+                    {/* Скрытый нативный color picker + красивая кнопка */}
+                    <div className="relative">
                       <button
-                        onClick={() => {
-                          if (customBgColor.match(/^#[0-9a-fA-F]{6}$/)) {
-                            setCustomization(prev => ({ ...prev, backgroundColor: customBgColor }));
-                          }
-                        }}
-                        className="px-3 py-2 rounded-lg bg-white/20 text-sm"
-                        style={{ color: textColor }}
+                        onClick={() => bgColorRef.current?.click()}
+                        className="w-8 h-8 rounded-full border-2 border-dashed border-white/40 hover:border-white transition-all hover:scale-110 flex items-center justify-center overflow-hidden"
+                        style={{ backgroundColor: customization.backgroundColor }}
+                        title="Выбрать свой цвет"
                       >
-                        ✓
+                        <span className="text-xs drop-shadow-lg">🎨</span>
                       </button>
-                      <div
-                        className="w-8 h-8 rounded-lg border border-white/20 shrink-0"
-                        style={{ backgroundColor: customBgColor.match(/^#[0-9a-fA-F]{6}$/) ? customBgColor : 'transparent' }}
+                      <input
+                        ref={bgColorRef}
+                        type="color"
+                        value={customization.backgroundColor}
+                        onChange={(e) => setCustomization(prev => ({ ...prev, backgroundColor: e.target.value }))}
+                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
                       />
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 {/* Цвет акцента */}
                 <div className="mb-4">
-                  <label className="block text-sm mb-2" style={{ color: textSecondary }}>Акцент</label>
-                  <div className="flex flex-wrap gap-2">
+                  <label className="block text-sm mb-2 text-gray-300">Акцент</label>
+                  <div className="flex flex-wrap gap-2 items-center">
                     {PRESET_ACCENTS.map(color => (
                       <button
                         key={color}
@@ -458,50 +433,30 @@ export default function WinnerPage() {
                         onClick={() => setCustomization(prev => ({ ...prev, accentColor: color }))}
                       />
                     ))}
-                    {/* Кнопка выбора произвольного цвета */}
-                    <button
-                      onClick={() => setShowAccentPicker(!showAccentPicker)}
-                      className={`w-8 h-8 rounded-full border-2 border-dashed transition-transform hover:scale-110 flex items-center justify-center text-xs ${
-                        showAccentPicker ? 'border-white' : 'border-white/40'
-                      }`}
-                      title="Свой цвет"
-                    >
-                      <span>🎨</span>
-                    </button>
-                  </div>
-                  {/* Произвольный цвет акцента */}
-                  {showAccentPicker && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <input
-                        type="text"
-                        placeholder="#e94560"
-                        value={customAccentColor}
-                        onChange={(e) => setCustomAccentColor(e.target.value)}
-                        className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm placeholder-gray-400 font-mono"
-                        style={{ color: textColor }}
-                      />
+                    {/* Скрытый нативный color picker + красивая кнопка */}
+                    <div className="relative">
                       <button
-                        onClick={() => {
-                          if (customAccentColor.match(/^#[0-9a-fA-F]{6}$/)) {
-                            setCustomization(prev => ({ ...prev, accentColor: customAccentColor }));
-                          }
-                        }}
-                        className="px-3 py-2 rounded-lg bg-white/20 text-sm"
-                        style={{ color: textColor }}
+                        onClick={() => accentColorRef.current?.click()}
+                        className="w-8 h-8 rounded-full border-2 border-dashed border-white/40 hover:border-white transition-all hover:scale-110 flex items-center justify-center overflow-hidden"
+                        style={{ backgroundColor: customization.accentColor }}
+                        title="Выбрать свой цвет"
                       >
-                        ✓
+                        <span className="text-xs drop-shadow-lg">🎨</span>
                       </button>
-                      <div
-                        className="w-8 h-8 rounded-lg border border-white/20 shrink-0"
-                        style={{ backgroundColor: customAccentColor.match(/^#[0-9a-fA-F]{6}$/) ? customAccentColor : 'transparent' }}
+                      <input
+                        ref={accentColorRef}
+                        type="color"
+                        value={customization.accentColor}
+                        onChange={(e) => setCustomization(prev => ({ ...prev, accentColor: e.target.value }))}
+                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
                       />
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 {/* Логотип */}
                 <div className="mb-4">
-                  <label className="block text-sm mb-2" style={{ color: textSecondary }}>Логотип</label>
+                  <label className="block text-sm mb-2 text-gray-300">Логотип</label>
                   
                   {/* Превью загруженного лого */}
                   {customization.logoUrl && (
@@ -530,8 +485,7 @@ export default function WinnerPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => logoInputRef.current?.click()}
-                      className="flex-1 py-2 rounded-lg bg-white/10 border border-white/20 border-dashed text-sm hover:bg-white/20 transition-colors"
-                      style={{ color: textSecondary }}
+                      className="flex-1 py-2 rounded-lg bg-white/10 border border-white/20 border-dashed text-sm text-gray-300 hover:bg-white/20 transition-colors"
                     >
                       📁 Загрузить файл
                     </button>
@@ -550,14 +504,13 @@ export default function WinnerPage() {
                     placeholder="или вставьте URL картинки"
                     value={customization.logoUrl?.startsWith('data:') ? '' : (customization.logoUrl || '')}
                     onChange={(e) => setCustomization(prev => ({ ...prev, logoUrl: e.target.value || null }))}
-                    className="w-full mt-2 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm placeholder-gray-400"
-                    style={{ color: textColor }}
+                    className="w-full mt-2 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-400"
                   />
 
                   {/* Размер логотипа */}
                   {customization.logoUrl && (
                     <div className="mt-3">
-                      <div className="flex items-center justify-between text-xs mb-1" style={{ color: textSecondary }}>
+                      <div className="flex items-center justify-between text-xs mb-1 text-gray-400">
                         <span>Размер</span>
                         <span>{logoSize}px</span>
                       </div>
@@ -577,9 +530,8 @@ export default function WinnerPage() {
                   onClick={handleSaveCustomization}
                   disabled={isSavingCustomization}
                   className={`w-full py-2 rounded-lg transition-colors text-sm font-medium ${
-                    savedCustomOk ? 'bg-green-500/30 text-green-300' : 'bg-white/20 hover:bg-white/30'
+                    savedCustomOk ? 'bg-green-500/30 text-green-300' : 'bg-white/20 hover:bg-white/30 text-white'
                   }`}
-                  style={savedCustomOk ? {} : { color: textColor }}
                 >
                   {isSavingCustomization ? '💾 Сохранение...' : savedCustomOk ? '✅ Сохранено!' : '💾 Сохранить'}
                 </button>
