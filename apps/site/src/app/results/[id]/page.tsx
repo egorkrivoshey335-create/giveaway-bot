@@ -106,7 +106,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
       style={{ backgroundColor }}
     >
       {/* Хедер */}
-      <Header />
+      <Header darkMode={!isLight} />
 
       <main className="flex-1 pt-24 pb-12 px-4">
         <div className="container mx-auto max-w-2xl">

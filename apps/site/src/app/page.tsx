@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { FeatureCard } from '@/components/FeatureCard';
+import { SmartLink } from '@/components/SmartLink';
 import { config } from '@/lib/config';
 
 // Данные для секций
@@ -93,10 +94,10 @@ export default function HomePage() {
               <span className="text-xl">🤖</span>
               Открыть бота
             </a>
-            <Link href="/login" className="btn-secondary">
+            <SmartLink className="btn-secondary">
               <span className="text-xl">🎰</span>
               Рандомайзер
-            </Link>
+            </SmartLink>
           </div>
         </div>
       </section>
@@ -163,13 +164,12 @@ export default function HomePage() {
               Эффектно объявляйте победителей с анимацией, конфетти
               и звуковыми эффектами. Идеально для трансляций!
             </p>
-            <Link
-              href="/login"
+            <SmartLink
               className="inline-flex items-center gap-2 bg-white text-brand-600 font-semibold py-3 px-8 rounded-xl hover:bg-brand-50 transition-colors"
             >
               <span className="text-xl">✨</span>
               Попробовать
-            </Link>
+            </SmartLink>
           </div>
         </div>
       </section>

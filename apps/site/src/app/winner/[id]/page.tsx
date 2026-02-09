@@ -317,7 +317,7 @@ export default function WinnerPage() {
   if (error || !giveaway) {
     return (
       <div className="min-h-screen bg-gray-900 flex flex-col">
-        <Header isAuthenticated />
+        <Header isAuthenticated darkMode />
         <main className="flex-1 flex items-center justify-center px-4 pt-16">
           <div className="text-center text-white">
             <div className="text-5xl mb-4">😕</div>
@@ -341,7 +341,7 @@ export default function WinnerPage() {
       <Confetti active={showConfetti} duration={5000} />
 
       {/* Хедер только в SETUP */}
-      {state === 'SETUP' && <Header isAuthenticated />}
+      {state === 'SETUP' && <Header isAuthenticated darkMode={!isLightBackground(customization.backgroundColor)} />}
 
       <main className="min-h-screen flex flex-col lg:flex-row">
         {/* ================================================================== */}

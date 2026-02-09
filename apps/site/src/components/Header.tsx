@@ -18,6 +18,8 @@ interface UserData {
 interface HeaderProps {
   // Если передан — не делаем запрос getMe (уже знаем статус)
   isAuthenticated?: boolean;
+  // Тёмная тема (светлый текст) — для страниц с тёмным фоном
+  darkMode?: boolean;
 }
 
 /**
@@ -47,7 +49,7 @@ function getInitials(user: UserData): string {
   return (first + last).toUpperCase() || '?';
 }
 
-export function Header({ isAuthenticated: initialAuth }: HeaderProps) {
+export function Header({ isAuthenticated: initialAuth, darkMode = false }: HeaderProps) {
   const [isAuth, setIsAuth] = useState(initialAuth ?? false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -107,6 +109,17 @@ export function Header({ isAuthenticated: initialAuth }: HeaderProps) {
     window.location.href = '/';
   };
 
+  // Цветовые классы в зависимости от режима
+  const navTextClass = darkMode
+    ? 'text-gray-300 hover:text-white transition-colors'
+    : 'text-gray-600 hover:text-gray-900 transition-colors';
+  const nameTextClass = darkMode
+    ? 'text-gray-200'
+    : 'text-gray-700';
+  const chevronClass = darkMode
+    ? 'text-gray-400'
+    : 'text-gray-500';
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass">
       <div className="container mx-auto px-4">
@@ -114,7 +127,7 @@ export function Header({ isAuthenticated: initialAuth }: HeaderProps) {
           {/* Логотип */}
           <Link href="/" className="flex items-center gap-2">
             <span className="text-2xl">🎁</span>
-            <span className="text-xl font-bold">
+            <span className={`text-xl font-bold ${darkMode ? 'text-white' : ''}`}>
               Random<span className="text-brand-400">Beast</span>
             </span>
           </Link>
@@ -125,13 +138,13 @@ export function Header({ isAuthenticated: initialAuth }: HeaderProps) {
               href={`https://t.me/${config.botUsername}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-600 hover:text-gray-900 transition-colors"
+              className={navTextClass}
             >
               Бот
             </a>
             <Link
               href="/dashboard"
-              className="text-gray-600 hover:text-gray-900 transition-colors"
+              className={navTextClass}
             >
               Рандомайзер
             </Link>
@@ -160,10 +173,10 @@ export function Header({ isAuthenticated: initialAuth }: HeaderProps) {
                       {userData ? getInitials(userData) : '?'}
                     </div>
                   )}
-                  <span className="hidden sm:block text-sm font-medium text-gray-700 max-w-[120px] truncate">
+                  <span className={`hidden sm:block text-sm font-medium ${nameTextClass} max-w-[120px] truncate`}>
                     {userData?.firstName || 'Профиль'}
                   </span>
-                  <svg className={`w-4 h-4 text-gray-500 transition-transform ${showDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className={`w-4 h-4 ${chevronClass} transition-transform ${showDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
