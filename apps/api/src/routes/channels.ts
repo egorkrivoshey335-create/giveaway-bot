@@ -1,8 +1,9 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { prisma } from '@randombeast/database';
+import { prisma, GiveawayStatus } from '@randombeast/database';
 import { ErrorCode } from '@randombeast/shared';
 import { requireUser } from '../plugins/auth.js';
 import { config } from '../config.js';
+import { createAuditLog, AuditAction, AuditEntityType } from '../lib/audit.js';
 
 function serializeChannel(channel: {
   id: string;
@@ -116,11 +117,79 @@ export const channelsRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.notFound('Channel not found');
     }
 
+    // 🔒 ЗАДАЧА 7.9: Проверяем активные розыгрыши с этим каналом
+    const activeGiveaways = await prisma.giveaway.findMany({
+      where: {
+        ownerUserId: user.id,
+        status: {
+          in: [GiveawayStatus.ACTIVE, GiveawayStatus.SCHEDULED],
+        },
+        OR: [
+          // Проверяем в draftPayload.publishToChannelIds
+          {
+            draftPayload: {
+              path: ['publishToChannelIds'],
+              array_contains: id,
+            },
+          },
+          // Проверяем в draftPayload.requiredSubscriptionChannelIds
+          {
+            draftPayload: {
+              path: ['requiredSubscriptionChannelIds'],
+              array_contains: id,
+            },
+          },
+          // Проверяем в draftPayload.resultsToChannelIds
+          {
+            draftPayload: {
+              path: ['resultsToChannelIds'],
+              array_contains: id,
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+      },
+    });
+
+    if (activeGiveaways.length > 0) {
+      return reply.status(409).send({
+        success: false,
+        error: {
+          code: ErrorCode.CHANNEL_IN_USE,
+          message: '⚠️ Канал используется в активных розыгрышах. Удаление невозможно.',
+          details: {
+            giveaways: activeGiveaways.map(g => ({
+              id: g.id,
+              title: g.title,
+              status: g.status,
+            })),
+          },
+        },
+      });
+    }
+
     await prisma.channel.delete({
       where: { id },
     });
 
     fastify.log.info({ userId: user.id, channelId: id }, 'Channel deleted');
+
+    // 🔒 ЗАДАЧА 7.10: Audit log - удаление канала
+    await createAuditLog({
+      userId: user.id,
+      action: AuditAction.CHANNEL_DELETED,
+      entityType: AuditEntityType.CHANNEL,
+      entityId: id,
+      metadata: {
+        channelTitle: channel.title,
+        telegramChatId: channel.telegramChatId.toString(),
+      },
+      request,
+    });
 
     return reply.success({ message: 'Channel deleted successfully' });
   });

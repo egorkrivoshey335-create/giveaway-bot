@@ -4,6 +4,8 @@ import { prisma, GiveawayStatus, ParticipationStatus } from '@randombeast/databa
 import { ErrorCode } from '@randombeast/shared';
 import { getUser, requireUser } from '../plugins/auth.js';
 import { config } from '../config.js';
+import { calculateFraudScore, requiresCaptcha } from '../lib/antifraud.js';
+import { createAuditLog, AuditAction, AuditEntityType } from '../lib/audit.js';
 import crypto from 'crypto';
 
 // Схема для проверки подписки
@@ -24,11 +26,16 @@ interface CaptchaData {
   question: string;
   answer: number;
   expiresAt: number;
+  attempts: number; // 🔒 ЗАДАЧА 7.1: Счетчик попыток
 }
 
 // In-memory хранилище токенов капчи (для MVP)
 // В production использовать Redis
 const captchaTokens = new Map<string, CaptchaData>();
+
+// 🔒 ЗАДАЧА 7.1: Брутфорс защита - лимит генераций на userId
+// Структура: userId => timestamp[]
+const captchaGenerations = new Map<string, number[]>();
 
 // Очистка просроченных токенов каждые 5 минут
 setInterval(() => {
@@ -36,6 +43,16 @@ setInterval(() => {
   for (const [token, data] of captchaTokens.entries()) {
     if (data.expiresAt < now) {
       captchaTokens.delete(token);
+    }
+  }
+  
+  // Очистка старых генераций (>10 минут)
+  for (const [userId, timestamps] of captchaGenerations.entries()) {
+    const filtered = timestamps.filter(ts => now - ts < 10 * 60 * 1000);
+    if (filtered.length === 0) {
+      captchaGenerations.delete(userId);
+    } else {
+      captchaGenerations.set(userId, filtered);
     }
   }
 }, 5 * 60 * 1000);
@@ -50,6 +67,30 @@ function generateCaptchaToken(data: CaptchaData): string {
 }
 
 /**
+ * 🔒 ЗАДАЧА 7.1: Проверка лимита генераций капчи (10 за 10 минут)
+ */
+function checkCaptchaGenerationLimit(userId: string): { allowed: boolean; retryAfter?: number } {
+  const now = Date.now();
+  const timestamps = captchaGenerations.get(userId) || [];
+  
+  // Фильтруем только последние 10 минут
+  const recentTimestamps = timestamps.filter(ts => now - ts < 10 * 60 * 1000);
+  
+  if (recentTimestamps.length >= 10) {
+    // Превышен лимит - вычисляем через сколько можно повторить
+    const oldestTimestamp = Math.min(...recentTimestamps);
+    const retryAfter = Math.ceil((oldestTimestamp + 10 * 60 * 1000 - now) / 1000);
+    return { allowed: false, retryAfter };
+  }
+  
+  // Разрешаем и добавляем timestamp
+  recentTimestamps.push(now);
+  captchaGenerations.set(userId, recentTimestamps);
+  
+  return { allowed: true };
+}
+
+/**
  * Проверка токена капчи
  */
 function verifyCaptchaToken(token: string, userAnswer: number): boolean {
@@ -59,10 +100,21 @@ function verifyCaptchaToken(token: string, userAnswer: number): boolean {
     captchaTokens.delete(token);
     return false;
   }
+  
+  // 🔒 ЗАДАЧА 7.1: Проверка лимита попыток (5 на 1 captchaId)
+  if (data.attempts >= 5) {
+    captchaTokens.delete(token);
+    return false;
+  }
+  
+  // Увеличиваем счетчик попыток
+  data.attempts++;
+  
   const isValid = data.answer === userAnswer;
   if (isValid) {
     captchaTokens.delete(token);
   }
+  
   return isValid;
 }
 
@@ -344,6 +396,15 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
+    // 🔒 ЗАДАЧА 7.7: Проверяем что розыгрыш не истёк (endAt)
+    if (giveaway.endAt && new Date() > giveaway.endAt) {
+      return reply.status(409).send({
+        ok: false,
+        error: 'Розыгрыш уже завершён',
+        code: 'GIVEAWAY_EXPIRED',
+      });
+    }
+
     // Проверяем что пользователь ещё не участвует
     const existingParticipation = await prisma.participation.findUnique({
       where: {
@@ -411,16 +472,58 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
-    // Проверяем капчу (если требуется)
+    // 🔒 ЗАДАЧА 7.3: Вычисляем fraud score для антифрод системы
+    // Получаем полные данные пользователя для antifraud
+    const fullUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        id: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        createdAt: true,
+        telegramUserId: true,
+      },
+    });
+
+    if (!fullUser) {
+      return reply.status(500).send({
+        ok: false,
+        error: 'Ошибка получения данных пользователя',
+      });
+    }
+
+    // Считаем сколько участий за последние 24 часа
+    const recentParticipations = await prisma.participation.count({
+      where: {
+        userId: user.id,
+        joinedAt: {
+          gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // 24 часа назад
+        },
+      },
+    });
+
+    // Вычисляем fraud score
+    const fraudScore = calculateFraudScore({
+      user: fullUser,
+      giveaway,
+      timeSinceOpen: undefined, // TODO: трекать время открытия розыгрыша в будущем
+      previousParticipationsCount: recentParticipations,
+    });
+
+    // Проверяем требуется ли капча на основе fraud score
     const captchaMode = giveaway.condition?.captchaMode || 'SUSPICIOUS_ONLY';
-    if (captchaMode === 'ALL' || (captchaMode === 'SUSPICIOUS_ONLY' && !user.isPremium)) {
-      if (!body.captchaPassed) {
-        return reply.status(400).send({
-          ok: false,
-          error: 'Пройдите проверку капчи',
-          code: 'CAPTCHA_REQUIRED',
-        });
-      }
+    const captchaRequired = requiresCaptcha(fraudScore, captchaMode);
+    
+    if (captchaRequired && !body.captchaPassed) {
+      return reply.status(400).send({
+        ok: false,
+        error: fraudScore >= 61 
+          ? 'Требуется проверка безопасности. Пройдите капчу.'
+          : 'Пройдите проверку капчи',
+        code: 'CAPTCHA_REQUIRED',
+        fraudScore: fraudScore >= 61 ? 'HIGH' : 'MEDIUM', // Не раскрываем точный score
+      });
     }
 
     // Обработка реферера
@@ -464,7 +567,7 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
-    // Создаём участие
+    // 🔒 ЗАДАЧА 7.11: Создаём участие с displayName и fraudScore
     const participation = await prisma.participation.create({
       data: {
         giveawayId: id,
@@ -474,6 +577,8 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
         ticketsExtra: 0,
         sourceTag: body.sourceTag || null,
         referrerUserId: validReferrerUserId,
+        fraudScore, // Сохраняем fraud score
+        displayName: fullUser.firstName || fullUser.username || `User${fullUser.telegramUserId}`, // Имя на момент участия
         conditionsSnapshot: {
           subscriptionsChecked: requiredSubIds.length,
           captchaPassed: body.captchaPassed,
@@ -486,6 +591,7 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
         ticketsBase: true,
         ticketsExtra: true,
         joinedAt: true,
+        fraudScore: true,
       },
     });
 
@@ -521,6 +627,21 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       'User joined giveaway'
     );
 
+    // 🔒 ЗАДАЧА 7.10: Audit log - участие в розыгрыше
+    await createAuditLog({
+      userId: user.id,
+      action: AuditAction.PARTICIPANT_JOINED,
+      entityType: AuditEntityType.PARTICIPATION,
+      entityId: participation.id,
+      metadata: {
+        giveawayId: id,
+        fraudScore: participation.fraudScore,
+        referrerUserId: validReferrerUserId,
+        sourceTag: body.sourceTag,
+      },
+      request,
+    });
+
     return reply.send({
       ok: true,
       participation: {
@@ -528,6 +649,7 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
         ticketsBase: participation.ticketsBase,
         ticketsExtra: participation.ticketsExtra,
         joinedAt: participation.joinedAt.toISOString(),
+        fraudScore: participation.fraudScore, // Возвращаем для отладки (можно убрать в prod)
       },
     });
   });
@@ -535,8 +657,26 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * GET /captcha/generate
    * Генерирует математическую капчу
+   * 🔒 ЗАДАЧА 7.1: С проверкой брутфорс лимита (10 генераций за 10 минут)
    */
   fastify.get('/captcha/generate', async (request, reply) => {
+    const user = await getUser(request);
+    
+    // 🔒 Проверка лимита генераций (если пользователь авторизован)
+    if (user) {
+      const limitCheck = checkCaptchaGenerationLimit(user.id);
+      if (!limitCheck.allowed) {
+        return reply.status(429).send({
+          success: false,
+          error: {
+            code: 'TOO_MANY_CAPTCHA_REQUESTS',
+            message: 'Слишком много попыток. Попробуйте позже.',
+            details: { retryAfter: limitCheck.retryAfter },
+          },
+        });
+      }
+    }
+    
     // Генерируем простой пример
     const a = Math.floor(Math.random() * 10) + 1;
     const b = Math.floor(Math.random() * 10) + 1;
@@ -561,15 +701,19 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       question,
       answer,
       expiresAt: Date.now() + 5 * 60 * 1000, // 5 минут
+      attempts: 0, // Начальное значение счетчика попыток
     });
 
-    return reply.success({ question,
-      token });
+    return reply.success({ 
+      question,
+      token,
+    });
   });
 
   /**
    * POST /captcha/verify
    * Проверяет ответ на капчу
+   * 🔒 ЗАДАЧА 7.1: С проверкой лимита попыток (5 на 1 captchaId)
    */
   fastify.post('/captcha/verify', async (request, reply) => {
     const body = z.object({
@@ -577,11 +721,31 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       answer: z.number(),
     }).parse(request.body);
 
+    const captchaData = captchaTokens.get(body.token);
+    
+    // Проверка лимита попыток перед валидацией
+    if (captchaData && captchaData.attempts >= 5) {
+      captchaTokens.delete(body.token);
+      return reply.send({
+        ok: false,
+        error: 'Превышен лимит попыток. Запросите новую капчу.',
+        code: 'TOO_MANY_ATTEMPTS',
+      });
+    }
+
     const isValid = verifyCaptchaToken(body.token, body.answer);
+
+    if (!isValid && captchaData) {
+      return reply.send({
+        ok: false,
+        error: 'Неверный ответ',
+        attemptsLeft: Math.max(0, 5 - captchaData.attempts),
+      });
+    }
 
     return reply.send({
       ok: isValid,
-      error: isValid ? undefined : 'Неверный ответ',
+      error: isValid ? undefined : 'Неверный ответ или истекший токен',
     });
   });
 

@@ -4,6 +4,7 @@ import { prisma, GiveawayStatus, GiveawayType, LanguageCode, PublishResultsMode,
 import type { GiveawayDraftPayload } from '@randombeast/shared';
 import { ErrorCode } from '@randombeast/shared';
 import { requireUser } from '../plugins/auth.js';
+import { createAuditLog, AuditAction, AuditEntityType } from '../lib/audit.js';
 
 // UUID validation regex
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -824,6 +825,19 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
       { userId: user.id, giveawayId: id },
       'Giveaway deleted'
     );
+
+    // 🔒 ЗАДАЧА 7.10: Audit log - удаление розыгрыша
+    await createAuditLog({
+      userId: user.id,
+      action: AuditAction.GIVEAWAY_DELETED,
+      entityType: AuditEntityType.GIVEAWAY,
+      entityId: id,
+      metadata: {
+        giveawayTitle: giveaway.title,
+        status: giveaway.status,
+      },
+      request,
+    });
 
     return reply.success({ message: 'Giveaway deleted successfully' });
   });

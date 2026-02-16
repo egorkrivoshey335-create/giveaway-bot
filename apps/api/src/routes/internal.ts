@@ -4,6 +4,7 @@ import { prisma, GiveawayStatus, LanguageCode, ChannelType, MediaType, Prisma, G
 import { POST_LIMITS, POST_TEMPLATE_UNDO_WINDOW_MS } from '@randombeast/shared';
 import { ErrorCode } from '@randombeast/shared';
 import { config } from '../config.js';
+import { getCache, setCache } from '../lib/redis.js';
 
 // Schema for giveaway accept
 const internalGiveawayAcceptSchema = z.object({
@@ -723,6 +724,19 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
 
+      // 🔒 ЗАДАЧА 7.4: Redis cache для subscription checks (30 секунд TTL)
+      const cacheKey = `subscription:${body.telegramUserId}:${body.telegramChatId}`;
+      const cached = await getCache<{ isMember: boolean; status: string }>(cacheKey);
+
+      if (cached) {
+        fastify.log.debug({ cacheKey }, 'Subscription check cache hit');
+        return reply.success({ 
+          isMember: cached.isMember,
+          status: cached.status,
+          cached: true,
+        });
+      }
+
       // Вызываем getChatMember через Telegram Bot API
       const telegramUrl = `https://api.telegram.org/bot${botToken}/getChatMember`;
       
@@ -753,6 +767,9 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
 
       const memberStatus = data.result.status;
       const isMember = ['member', 'administrator', 'creator'].includes(memberStatus);
+
+      // Сохраняем в cache на 30 секунд
+      await setCache(cacheKey, { isMember, status: memberStatus }, 30);
 
       return reply.success({ isMember,
         status: memberStatus });
