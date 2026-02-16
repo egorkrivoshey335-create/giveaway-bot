@@ -1,0 +1,63 @@
+/**
+ * RandomBeast Bot — Sentry Error Tracking
+ *
+ * 🔒 ЗАДАЧА 1.14: Настройка Sentry для отслеживания ошибок
+ */
+
+import * as Sentry from '@sentry/node';
+import { config } from '../config.js';
+
+/**
+ * Инициализация Sentry
+ */
+export function initSentry() {
+  if (!config.sentry.enabled) {
+    console.log('[Sentry] Disabled (no SENTRY_DSN_BOT)');
+    return;
+  }
+
+  Sentry.init({
+    dsn: config.sentry.dsn,
+    environment: config.sentry.environment,
+    tracesSampleRate: config.nodeEnv === 'production' ? 0.1 : 1.0,
+    
+    // Игнорируем некоторые известные ошибки
+    ignoreErrors: [
+      'bot was stopped', // Graceful shutdown
+      'Conflict: terminated by other getUpdates', // Multiple instances
+      '429: Too Many Requests', // Rate limiting (expected)
+      'ETELEGRAM: 403', // User blocked bot
+      'ETELEGRAM: 400', // Bad request (user input)
+    ],
+    
+    beforeSend(event, hint) {
+      // Логируем ошибку в консоль для debug
+      if (hint.originalException) {
+        console.error('[Sentry] Captured error:', hint.originalException);
+      }
+      return event;
+    },
+  });
+
+  console.log(`[Sentry] Initialized (environment: ${config.sentry.environment})`);
+}
+
+/**
+ * Обработчик необработанных ошибок
+ */
+export function setupErrorHandlers() {
+  process.on('uncaughtException', (error) => {
+    console.error('[UncaughtException]', error);
+    Sentry.captureException(error);
+    
+    // Даем Sentry время отправить ошибку
+    setTimeout(() => {
+      process.exit(1);
+    }, 1000);
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('[UnhandledRejection]', reason);
+    Sentry.captureException(reason);
+  });
+}

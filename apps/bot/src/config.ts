@@ -37,6 +37,26 @@ export const config = {
   // Whitelist: если пустой массив — доступ для всех
   allowedUsers,
   maintenanceMode: allowedUsers.length > 0,
+  
+  // 🔒 ЗАДАЧА 1.11: Redis для BullMQ
+  redis: {
+    url: process.env.REDIS_URL || 'redis://localhost:6379',
+  },
+  
+  // 🔒 ЗАДАЧА 1.14: Sentry для error tracking
+  sentry: {
+    dsn: process.env.SENTRY_DSN_BOT || '',
+    enabled: !!process.env.SENTRY_DSN_BOT,
+    environment: process.env.NODE_ENV || 'development',
+  },
+  
+  // 🔒 ЗАДАЧА 1.1: Webhook mode
+  webhook: {
+    enabled: process.env.WEBHOOK_ENABLED === 'true',
+    domain: process.env.WEBHOOK_DOMAIN || '',
+    path: process.env.WEBHOOK_PATH || '/webhook/bot',
+    port: parseInt(process.env.WEBHOOK_PORT || '8443', 10),
+  },
 } as const;
 
 /**
