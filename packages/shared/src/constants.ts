@@ -375,3 +375,78 @@ export const DEFAULTS = {
     maxLimit: 100,
   },
 } as const;
+
+// ============================================================================
+// Tier-based Limits (Task 0.2)
+// ============================================================================
+
+/**
+ * Лимиты по тарифным планам.
+ * Используются для проверки доступа при создании розыгрышей,
+ * каналов, постов и прочих сущностей.
+ */
+export const TIER_LIMITS = {
+  /** Максимум одновременно активных розыгрышей */
+  maxActiveGiveaways: {
+    FREE: 3,
+    PLUS: 10,
+    PRO: 30,
+    BUSINESS: Infinity,
+  },
+  /** Максимум каналов у создателя */
+  maxChannels: {
+    FREE: 5,
+    PLUS: 20,
+    PRO: 50,
+    BUSINESS: Infinity,
+  },
+  /** Максимум шаблонов постов */
+  maxPostTemplates: {
+    FREE: 10,
+    PLUS: 50,
+    PRO: 200,
+    BUSINESS: Infinity,
+  },
+  /** Максимум кастомных заданий в одном розыгрыше */
+  maxCustomTasks: {
+    FREE: 1,
+    PLUS: 3,
+    PRO: 5,
+    BUSINESS: 10,
+  },
+  /** Максимальная длина текста поста (с медиа) */
+  postCharLimit: {
+    FREE: 1024,
+    PLUS: 2048,
+    PRO: 4096,
+    BUSINESS: 4096,
+  },
+  /** Максимум победителей */
+  maxWinners: {
+    FREE: 10,
+    PLUS: 50,
+    PRO: 100,
+    BUSINESS: 200,
+  },
+  /** Максимум приглашений на участника */
+  maxInvites: {
+    FREE: 10,
+    PLUS: 100,
+    PRO: 500,
+    BUSINESS: 10000,
+  },
+  /** Максимум трекинг-ссылок */
+  maxTrackingLinks: {
+    FREE: 3,
+    PLUS: 10,
+    PRO: 50,
+    BUSINESS: Infinity,
+  },
+  /** Максимум каналов на один розыгрыш */
+  maxChannelsPerGiveaway: {
+    FREE: 3,
+    PLUS: 10,
+    PRO: 30,
+    BUSINESS: Infinity,
+  },
+} as const;

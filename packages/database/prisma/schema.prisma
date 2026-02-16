@@ -89,9 +89,9 @@ enum GiveawayMessageKind {
 }
 
 enum StoryRequestStatus {
-  PENDING   // Ожидает проверки
-  APPROVED  // Одобрено
-  REJECTED  // Отклонено
+  PENDING // Ожидает проверки
+  APPROVED // Одобрено
+  REJECTED // Отклонено
 }
 
 // =============================================================================
@@ -109,16 +109,33 @@ model User {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  // Task 0.5: notification & creator settings
+  notificationsEnabled    Boolean @default(true)
+  notificationsBlocked    Boolean @default(false)
+  creatorNotificationMode String  @default("MILESTONE") // MILESTONE | DAILY | OFF
+
   // Relations
   channels       Channel[]
   postTemplates  PostTemplate[]
   giveaways      Giveaway[]
   participations Participation[]
-  referrals      Participation[]  @relation("Referrer")
+  referrals      Participation[] @relation("Referrer")
   purchases      Purchase[]
   entitlements   Entitlement[]
   wins           Winner[]
-  storyReviews   StoryRequest[]   @relation("StoryReviewer") // Проверенные заявки на сторис
+  storyReviews   StoryRequest[]  @relation("StoryReviewer")
+
+  // Task 0.5: new relations
+  badges            UserBadge[]
+  referralLinks     ReferralLink[]
+  creatorBans       CreatorBanList[]   @relation("BanCreator")
+  bannedIn          CreatorBanList[]   @relation("BanBanned")
+  giveawayReminders GiveawayReminder[]
+  auditLogs         AuditLog[]
+  systemBan         SystemBan?
+  giveawayViews     GiveawayView[]
+  prizeForms        PrizeForm[]
+  reports           Report[]
 
   @@index([telegramUserId])
 }
@@ -138,6 +155,9 @@ model Channel {
   lastCheckedAt       DateTime?
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
+
+  // Task 0.5: avatar
+  avatarFileId String? // Telegram file_id аватарки канала
 
   // Relations
   requiredSubscriptions GiveawayRequiredSubscription[]
@@ -159,6 +179,7 @@ model PostTemplate {
   telegramFileId       String?
   telegramFileUniqueId String?
   mediaNeedsReupload   Boolean   @default(false)
+  entities             Json? // Telegram message entities для кастомных эмодзи
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
   deletedAt            DateTime?
@@ -170,37 +191,53 @@ model PostTemplate {
 }
 
 model Giveaway {
-  id                 String             @id @default(uuid())
-  ownerUserId        String
-  owner              User               @relation(fields: [ownerUserId], references: [id])
-  title              String             @default("")
-  description        String?
-  language           LanguageCode       @default(RU)
-  type               GiveawayType       @default(STANDARD)
-  status             GiveawayStatus     @default(DRAFT)
-  postTemplateId     String?
-  postTemplate       PostTemplate?      @relation(fields: [postTemplateId], references: [id])
-  startAt            DateTime?
-  endAt              DateTime?
-  timezone           String             @default("Europe/Moscow")
-  winnersCount       Int                @default(1)
-  reserveWinnersCount Int               @default(0)
-  buttonText         String?
-  publishResultsMode PublishResultsMode @default(SEPARATE_POSTS)
-  isPublicInCatalog  Boolean            @default(false)
-  totalParticipants  Int                @default(0)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  id                  String             @id @default(uuid())
+  ownerUserId         String
+  owner               User               @relation(fields: [ownerUserId], references: [id])
+  title               String             @default("")
+  description         String?
+  language            LanguageCode       @default(RU)
+  type                GiveawayType       @default(STANDARD)
+  status              GiveawayStatus     @default(DRAFT)
+  postTemplateId      String?
+  postTemplate        PostTemplate?      @relation(fields: [postTemplateId], references: [id])
+  startAt             DateTime?
+  endAt               DateTime?
+  timezone            String             @default("Europe/Moscow")
+  winnersCount        Int                @default(1)
+  reserveWinnersCount Int                @default(0)
+  buttonText          String?
+  publishResultsMode  PublishResultsMode @default(SEPARATE_POSTS)
+  isPublicInCatalog   Boolean            @default(false)
+  totalParticipants   Int                @default(0)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 
   // Draft wizard fields (only used when status = DRAFT)
-  wizardStep         String?            // Current step in wizard: "basics", "conditions", "channels", "preview"
-  draftPayload       Json?              // Temporary wizard data
-  draftVersion       Int                @default(1)
+  wizardStep   String? // Current step in wizard: "basics", "conditions", "channels", "preview"
+  draftPayload Json? // Temporary wizard data
+  draftVersion Int     @default(1)
 
   // Randomizer customization (for site /winner/[id])
-  randomizerPrizes   Json?              // [{ place: number, title: string, description?: string }]
-  randomizerCustom   Json?              // { backgroundColor: string, accentColor: string, logoUrl?: string }
-  winnersPublished   Boolean            @default(false) // Победители опубликованы в канал (для RANDOMIZER режима)
+  randomizerPrizes Json? // [{ place: number, title: string, description?: string }]
+  randomizerCustom Json? // { backgroundColor: string, accentColor: string, logoUrl?: string }
+  winnersPublished Boolean @default(false) // Победители опубликованы в канал (для RANDOMIZER режима)
+
+  // Task 0.5: additional fields
+  mascotId              String? // FK → Mascot (nullable)
+  mascot                Mascot?   @relation(fields: [mascotId], references: [id])
+  promotionEnabled      Boolean   @default(false)
+  shortCode             String?   @unique // nanoid 8 chars для отображения вместо UUID
+  catalogApproved       Boolean   @default(false)
+  catalogApprovedAt     DateTime?
+  catalogRejectedReason String?
+  prizeDescription      String?
+  prizeDeliveryMethod   String    @default("CONTACT_CREATOR") // CONTACT_CREATOR | BOT_INSTRUCTION | FORM
+  prizeInstruction      String?
+  minParticipants       Int       @default(0)
+  cancelIfNotEnough     Boolean   @default(false)
+  autoExtendDays        Int       @default(0)
+  isSandbox             Boolean   @default(false)
 
   // Relations
   condition             GiveawayCondition?
@@ -212,11 +249,22 @@ model Giveaway {
   customTasks           GiveawayCustomTask[]
   winners               Winner[]
 
+  // Task 0.5: new relations
+  theme         GiveawayTheme?
+  trackingLinks TrackingLink[]
+  referralLinks ReferralLink[]
+  errorLogs     GiveawayErrorLog[]
+  reminders     GiveawayReminder[]
+  views         GiveawayView[]
+  prizeForms    PrizeForm[]
+  reports       Report[]
+
   @@index([ownerUserId])
   @@index([status])
   @@index([status, endAt])
   @@index([status, startAt])
   @@index([ownerUserId, status])
+  @@index([shortCode])
 }
 
 model GiveawayCondition {
@@ -225,14 +273,22 @@ model GiveawayCondition {
   giveaway        Giveaway    @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
   captchaMode     CaptchaMode @default(SUSPICIOUS_ONLY)
   boostRequired   Boolean     @default(false)
-  boostEnabled    Boolean     @default(false)  // Дополнительные билеты за бусты
-  boostChannelIds String[]    @default([])     // ID каналов для бустов
+  boostEnabled    Boolean     @default(false) // Дополнительные билеты за бусты
+  boostChannelIds String[]    @default([]) // ID каналов для бустов
   inviteEnabled   Boolean     @default(false)
   inviteMax       Int?
   storiesEnabled  Boolean     @default(false)
   livenessEnabled Boolean     @default(false)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
+
+  // Task 0.5: additional condition flags
+  inviteMin            Int     @default(1) // Минимум приглашений для участия
+  subscriptionRequired Boolean @default(true) // Обязательна ли подписка
+  inviteRequired       Boolean @default(false) // Обязательны ли приглашения
+  boostBonusEnabled    Boolean @default(false) // Бонусные билеты за буст
+  inviteBonusEnabled   Boolean @default(false) // Бонусные билеты за инвайт
+  storiesBonusEnabled  Boolean @default(false) // Бонусные билеты за сторис
 }
 
 model GiveawayCustomTask {
@@ -270,6 +326,10 @@ model GiveawayPublishChannel {
   channelId  String
   channel    Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
+
+  // Task 0.5: original text for "edit start post" mode
+  originalText     Json? // Оригинальный текст поста для восстановления при "Итоги в стартовом посте"
+  originalEntities Json? // Оригинальные entities поста
 
   @@unique([giveawayId, channelId])
   @@index([giveawayId])
@@ -319,13 +379,25 @@ model Participation {
   referrer           User?               @relation("Referrer", fields: [referrerUserId], references: [id])
   conditionsSnapshot Json?
   fraudScore         Int                 @default(0)
-  boostedChannelIds  String[]            @default([]) // ID каналов, которые забустил участник
-  boostsSnapshot     Json?               // Снапшот данных о бустах {channelId: boostCount}
-  storiesShared      Boolean             @default(false) // Поделился ли в сторис (deprecated, использовать storyRequest)
-  storiesSharedAt    DateTime?           // Когда поделился в сторис (deprecated)
-  storyRequest       StoryRequest?       // Заявка на проверку сторис
+  boostedChannelIds  String[]            @default([])
+  boostsSnapshot     Json?
+  storiesShared      Boolean             @default(false)
+  storiesSharedAt    DateTime?
+  storyRequest       StoryRequest?
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
+
+  // Task 0.5: granular condition check fields
+  captchaPassed        Boolean @default(false)
+  subscriptionVerified Boolean @default(false)
+  boostVerified        Boolean @default(false)
+  inviteCount          Int     @default(0)
+  storiesPosted        Boolean @default(false)
+  customTasksCompleted Int     @default(0)
+  displayName          String? // Имя участника на момент участия
+  livenessChecked      Boolean @default(false)
+  livenessPhotoPath    String?
+  livenessStatus       String? // PENDING | APPROVED | REJECTED
 
   @@unique([giveawayId, userId])
   @@index([giveawayId])
@@ -340,10 +412,10 @@ model StoryRequest {
   participation   Participation      @relation(fields: [participationId], references: [id], onDelete: Cascade)
   status          StoryRequestStatus @default(PENDING)
   submittedAt     DateTime           @default(now())
-  reviewedAt      DateTime?          // Когда проверили
-  reviewedBy      String?            // userId модератора
+  reviewedAt      DateTime? // Когда проверили
+  reviewedBy      String? // userId модератора
   reviewer        User?              @relation("StoryReviewer", fields: [reviewedBy], references: [id])
-  rejectReason    String?            // Причина отклонения (опционально)
+  rejectReason    String? // Причина отклонения (опционально)
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 
@@ -356,18 +428,19 @@ model StoryRequest {
 // =============================================================================
 
 model Product {
-  id             String      @id @default(uuid())
-  code           String      @unique
-  title          String
-  description    String?
-  price          Int         // Price in minor units (kopecks for RUB)
-  currency       String      @default("RUB")
-  periodDays     Int?        // For subscriptions
-  type           ProductType
-  entitlementCode String     // What entitlement this grants
-  isActive       Boolean     @default(true)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id              String      @id @default(uuid())
+  code            String      @unique
+  title           String
+  description     String?
+  price           Int // Price in minor units (kopecks for RUB)
+  currency        String      @default("RUB")
+  periodDays      Int? // For subscriptions
+  type            ProductType
+  entitlementCode String // What entitlement this grants
+  isActive        Boolean     @default(true)
+  starsPrice      Int? // Цена в Telegram Stars (для будущего)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
   // Relations
   purchases Purchase[]
@@ -384,8 +457,8 @@ model Purchase {
   product    Product          @relation(fields: [productId], references: [id])
   status     PurchaseStatus   @default(PENDING)
   provider   PurchaseProvider @default(YOOKASSA)
-  externalId String?          // Payment ID from provider
-  amount     Int              // Amount in minor units
+  externalId String? // Payment ID from provider
+  amount     Int // Amount in minor units
   currency   String           @default("RUB")
   metadata   Json?
   paidAt     DateTime?
@@ -402,13 +475,17 @@ model Entitlement {
   id         String    @id @default(uuid())
   userId     String
   user       User      @relation(fields: [userId], references: [id])
-  code       String    // e.g., "catalog.access"
-  sourceType String    // "purchase", "promo", "manual"
-  sourceId   String?   // Purchase ID or promo code
+  code       String // e.g., "catalog.access"
+  sourceType String // "purchase", "promo", "manual"
+  sourceId   String? // Purchase ID or promo code
   expiresAt  DateTime? // null = permanent
   metadata   Json?
   createdAt  DateTime  @default(now())
   revokedAt  DateTime?
+
+  // Task 0.5: auto-renew & cancellation
+  autoRenew   Boolean   @default(false)
+  cancelledAt DateTime?
 
   @@index([userId])
   @@index([userId, code])
@@ -416,19 +493,243 @@ model Entitlement {
 }
 
 // =============================================================================
+// Task 0.5: New Models (13 models)
+// =============================================================================
+
+// --- Tracking Links (статистика ссылок) ---
+
+model TrackingLink {
+  id         String   @id @default(uuid())
+  giveawayId String
+  giveaway   Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  tag        String // utm_source-подобный тег: "telegram", "instagram", "vk"
+  url        String // Полная ссылка с тегом
+  clicks     Int      @default(0)
+  joins      Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@unique([giveawayId, tag])
+  @@index([giveawayId])
+}
+
+// --- Mascots (маскоты розыгрышей) ---
+
+model Mascot {
+  id        String   @id @default(uuid())
+  name      String // "Мишка", "Зайка" и т.д.
+  imageUrl  String // URL изображения
+  isDefault Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  // Relations
+  giveaways Giveaway[]
+}
+
+// --- Giveaway Theme (кастомизация Mini App под бренд создателя) ---
+
+model GiveawayTheme {
+  id              String   @id @default(uuid())
+  giveawayId      String   @unique
+  giveaway        Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  backgroundColor String? // Hex: "#ffffff"
+  accentColor     String? // Hex: "#ff6b6b"
+  buttonStyle     String   @default("default") // default | rounded | outline
+  logoFileId      String? // Telegram file_id логотипа бренда
+  iconVariant     String   @default("brand") // brand (свои иконки) | lucide
+  iconColor       String   @default("#000000") // Цвет иконок из библиотеки
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// --- Referral Links (реферальные ссылки) ---
+
+model ReferralLink {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  giveawayId  String
+  giveaway    Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  code        String   @unique // nanoid — уникальный реферальный код
+  clicks      Int      @default(0)
+  conversions Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, giveawayId])
+  @@index([userId])
+  @@index([giveawayId])
+  @@index([code])
+}
+
+// --- Creator Ban List (бан-лист создателя) ---
+
+model CreatorBanList {
+  id            String   @id @default(uuid())
+  creatorUserId String
+  creator       User     @relation("BanCreator", fields: [creatorUserId], references: [id], onDelete: Cascade)
+  bannedUserId  String
+  bannedUser    User     @relation("BanBanned", fields: [bannedUserId], references: [id], onDelete: Cascade)
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  @@unique([creatorUserId, bannedUserId])
+  @@index([creatorUserId])
+  @@index([bannedUserId])
+}
+
+// --- User Badges (бейджи пользователей) ---
+
+model UserBadge {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeCode String // newcomer, activist, veteran, champion, winner, multi_winner, friend, patron
+  earnedAt  DateTime @default(now())
+
+  @@unique([userId, badgeCode])
+  @@index([userId])
+}
+
+// --- Giveaway Error Log (лог ошибок розыгрышей) ---
+
+model GiveawayErrorLog {
+  id         String   @id @default(uuid())
+  giveawayId String
+  giveaway   Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  errorType  String // PUBLISH_FAILED, FINISH_FAILED, NOTIFICATION_FAILED, RIGHTS_LOST
+  message    String
+  stack      String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([giveawayId])
+  @@index([errorType])
+}
+
+// --- Giveaway Reminders (напоминания о розыгрышах) ---
+
+model GiveawayReminder {
+  id         String    @id @default(uuid())
+  giveawayId String
+  giveaway   Giveaway  @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  remindAt   DateTime
+  sentAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@unique([giveawayId, userId])
+  @@index([giveawayId])
+  @@index([userId])
+  @@index([remindAt])
+}
+
+// --- Audit Log (аудит действий) ---
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String // GIVEAWAY_CREATED, GIVEAWAY_STARTED, PARTICIPANT_BANNED, ...
+  entityType String // giveaway, user, channel, ...
+  entityId   String
+  metadata   Json? // Дополнительные данные: IP, userAgent и т.д.
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// --- System Ban (системный бан пользователей) ---
+
+model SystemBan {
+  id        String    @id @default(uuid())
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason    String
+  bannedBy  String? // Admin user ID
+  bannedAt  DateTime  @default(now())
+  expiresAt DateTime? // null = permanent
+
+  @@index([userId])
+}
+
+// --- Giveaway Views (просмотры для статистики) ---
+
+model GiveawayView {
+  id           String   @id @default(uuid())
+  giveawayId   String
+  giveaway     Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  viewerUserId String?
+  viewer       User?    @relation(fields: [viewerUserId], references: [id])
+  source       String? // "mini_app", "catalog", "tracking_link", "direct"
+  createdAt    DateTime @default(now())
+
+  @@index([giveawayId])
+  @@index([viewerUserId])
+  @@index([createdAt])
+}
+
+// --- Prize Form (форма получения приза) ---
+
+model PrizeForm {
+  id           String    @id @default(uuid())
+  giveawayId   String
+  giveaway     Giveaway  @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  winnerUserId String
+  winner       User      @relation(fields: [winnerUserId], references: [id], onDelete: Cascade)
+  formData     Json // { name: string, phone?: string, address?: string, ... }
+  submittedAt  DateTime  @default(now())
+  processedAt  DateTime?
+
+  @@unique([giveawayId, winnerUserId])
+  @@index([giveawayId])
+  @@index([winnerUserId])
+}
+
+// --- Reports (жалобы на розыгрыши) ---
+
+model Report {
+  id          String    @id @default(uuid())
+  giveawayId  String
+  giveaway    Giveaway  @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  reporterId  String
+  reporter    User      @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  reason      String
+  description String?
+  status      String    @default("PENDING") // PENDING, REVIEWED, RESOLVED, DISMISSED
+  reviewedAt  DateTime?
+  reviewedBy  String? // Admin user ID
+  createdAt   DateTime  @default(now())
+
+  @@index([giveawayId])
+  @@index([reporterId])
+  @@index([status])
+}
+
+// =============================================================================
 // Winner Model
 // =============================================================================
 
 model Winner {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   giveawayId  String
-  giveaway    Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  giveaway    Giveaway  @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  place       Int      // Место победителя (1, 2, 3...)
-  ticketsUsed Int      // Сколько билетов было у участника
-  selectedAt  DateTime @default(now())
-  notifiedAt  DateTime? // Когда отправлено уведомление
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  place       Int // Место победителя (1, 2, 3...)
+  ticketsUsed Int // Сколько билетов было у участника
+  selectedAt  DateTime  @default(now())
+  notifiedAt  DateTime?
+
+  // Task 0.5: reserve & reroll support
+  isReserve            Boolean   @default(false)
+  isConfirmed          Boolean   @default(false)
+  rerolled             Boolean   @default(false)
+  rerolledAt           DateTime?
+  previousWinnerUserId String? // Кого заменил этот победитель при reroll
 
   @@unique([giveawayId, userId])
   @@unique([giveawayId, place])

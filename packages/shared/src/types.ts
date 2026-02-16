@@ -670,3 +670,87 @@ export const isGiveawayStatus = (value: unknown): value is GiveawayStatus => {
 export const isParticipationStatus = (value: unknown): value is ParticipationStatus => {
   return typeof value === 'string' && Object.values(ParticipationStatus).includes(value as ParticipationStatus);
 };
+
+// ============================================================================
+// Subscription & Payment Enums (Task 0.2)
+// ============================================================================
+
+/**
+ * Creator subscription tiers
+ */
+export enum SubscriptionTier {
+  FREE = 'FREE',
+  PLUS = 'PLUS',
+  PRO = 'PRO',
+  BUSINESS = 'BUSINESS',
+}
+
+/**
+ * Payment provider
+ */
+export enum PaymentProvider {
+  YOOKASSA = 'YOOKASSA',
+}
+
+/**
+ * Prize delivery method
+ */
+export type PrizeDeliveryMethod = 'CONTACT_CREATOR' | 'BOT_INSTRUCTION' | 'FORM';
+
+/**
+ * Creator notification mode
+ */
+export type CreatorNotificationMode = 'MILESTONE' | 'DAILY' | 'OFF';
+
+/**
+ * Liveness check status
+ */
+export type LivenessStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+/**
+ * Report status
+ */
+export type ReportStatus = 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED';
+
+/**
+ * Badge codes for user achievements
+ */
+export type BadgeCode =
+  | 'newcomer'
+  | 'activist'
+  | 'veteran'
+  | 'champion'
+  | 'winner'
+  | 'multi_winner'
+  | 'friend'
+  | 'patron';
+
+/**
+ * Giveaway error types for error logging
+ */
+export type GiveawayErrorType =
+  | 'PUBLISH_FAILED'
+  | 'FINISH_FAILED'
+  | 'NOTIFICATION_FAILED'
+  | 'RIGHTS_LOST';
+
+/**
+ * Audit log action types
+ */
+export type AuditAction =
+  | 'GIVEAWAY_CREATED'
+  | 'GIVEAWAY_STARTED'
+  | 'GIVEAWAY_FINISHED'
+  | 'PARTICIPANT_BANNED'
+  | 'PAYMENT_CREATED'
+  | 'CHANNEL_ADDED'
+  | 'SETTINGS_CHANGED'
+  | 'EXPORT_PARTICIPANTS';
+
+// ============================================================================
+// Subscription Tier Type Guard
+// ============================================================================
+
+export const isSubscriptionTier = (value: unknown): value is SubscriptionTier => {
+  return typeof value === 'string' && Object.values(SubscriptionTier).includes(value as SubscriptionTier);
+};

@@ -65,6 +65,51 @@ async function main() {
   console.log(`   - Price: ${randomizerProduct.price / 100} ${randomizerProduct.currency}`);
   console.log(`   - Period: ${randomizerProduct.periodDays} days`);
 
+  // Task 0.5: Test user (only in development)
+  if (process.env.NODE_ENV !== 'production') {
+    const testUser = await prisma.user.upsert({
+      where: { telegramUserId: BigInt(123456789) },
+      update: {
+        username: 'test_creator',
+        firstName: 'Test',
+        lastName: 'Creator',
+      },
+      create: {
+        telegramUserId: BigInt(123456789),
+        username: 'test_creator',
+        firstName: 'Test',
+        lastName: 'Creator',
+        language: 'RU',
+        isPremium: false,
+      },
+    });
+
+    console.log(`✅ Test user created/updated: ${testUser.username} (telegramUserId: ${testUser.telegramUserId})`);
+
+    // Test channel
+    const testChannel = await prisma.channel.upsert({
+      where: { telegramChatId: BigInt(-1001234567890) },
+      update: {
+        title: 'Test Channel',
+        username: 'test_channel',
+        botIsAdmin: true,
+        creatorIsAdmin: true,
+      },
+      create: {
+        telegramChatId: BigInt(-1001234567890),
+        title: 'Test Channel',
+        username: 'test_channel',
+        type: 'CHANNEL',
+        addedByUserId: testUser.id,
+        botIsAdmin: true,
+        creatorIsAdmin: true,
+        memberCount: 100,
+      },
+    });
+
+    console.log(`✅ Test channel created/updated: ${testChannel.title} (@${testChannel.username})`);
+  }
+
   console.log('🌱 Seeding completed!');
 }
 
