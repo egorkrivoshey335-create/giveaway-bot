@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { prisma, GiveawayStatus } from '@randombeast/database';
+import { ErrorCode } from '@randombeast/shared';
 import { requireUser, getUser } from '../plugins/auth.js';
 import { finishGiveaway } from '../scheduler/giveaway-lifecycle.js';
 
@@ -40,16 +41,13 @@ export const lifecycleRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
-    return reply.send({
-      ok: true,
-      status: giveaway.status,
+    return reply.success({ status: giveaway.status,
       title: giveaway.title,
       winnersCount: giveaway.winnersCount,
       participantsCount: giveaway._count.participations,
       selectedWinnersCount: giveaway._count.winners,
       startsAt: giveaway.startAt?.toISOString() || null,
-      endsAt: giveaway.endAt?.toISOString() || null,
-    });
+      endsAt: giveaway.endAt?.toISOString() || null });
   });
 
   /**
@@ -98,13 +96,10 @@ export const lifecycleRoutes: FastifyPluginAsync = async (fastify) => {
 
     // Если розыгрыш не завершён — победителей нет
     if (giveaway.status !== GiveawayStatus.FINISHED) {
-      return reply.send({
-        ok: true,
-        status: giveaway.status,
+      return reply.success({ status: giveaway.status,
         winners: [],
         totalParticipants: giveaway._count.participations,
-        message: 'Розыгрыш ещё не завершён',
-      });
+        message: 'Розыгрыш ещё не завершён' });
     }
 
     return reply.send({
@@ -241,11 +236,8 @@ export const lifecycleRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     if (!participation) {
-      return reply.send({
-        ok: true,
-        participated: false,
-        message: 'Вы не участвовали в этом розыгрыше',
-      });
+      return reply.success({ participated: false,
+        message: 'Вы не участвовали в этом розыгрыше' });
     }
 
     // Проверяем победу

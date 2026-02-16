@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { prisma, GiveawayStatus, Prisma } from '@randombeast/database';
 import { WIZARD_STEPS, type WizardStep } from '@randombeast/shared';
+import { ErrorCode } from '@randombeast/shared';
 import { requireUser } from '../plugins/auth.js';
 
 // Zod schemas
@@ -98,10 +99,7 @@ export const draftsRoutes: FastifyPluginAsync = async (fastify) => {
       },
     });
 
-    return reply.send({
-      ok: true,
-      draft: draft ? serializeDraft(draft) : null,
-    });
+    return reply.success({ draft: draft ? serializeDraft(draft) : null });
   });
 
   /**
@@ -131,11 +129,8 @@ export const draftsRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     if (existingDraft) {
-      return reply.send({
-        ok: true,
-        draft: serializeDraft(existingDraft),
-        created: false,
-      });
+      return reply.success({ draft: serializeDraft(existingDraft),
+        created: false });
     }
 
     // Create new draft
@@ -217,10 +212,7 @@ export const draftsRoutes: FastifyPluginAsync = async (fastify) => {
         },
       });
 
-      return reply.send({
-        ok: true,
-        draft: serializeDraft(updatedDraft),
-      });
+      return reply.success({ draft: serializeDraft(updatedDraft) });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return reply.status(400).send({
@@ -271,6 +263,6 @@ export const draftsRoutes: FastifyPluginAsync = async (fastify) => {
 
     fastify.log.info({ userId: user.id, draftId: id }, 'Draft giveaway discarded');
 
-    return reply.send({ ok: true });
+    return reply.success({ message: 'Success' });
   });
 };

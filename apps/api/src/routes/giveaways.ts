@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { prisma, GiveawayStatus, GiveawayType, LanguageCode, PublishResultsMode, CaptchaMode } from '@randombeast/database';
 import type { GiveawayDraftPayload } from '@randombeast/shared';
+import { ErrorCode } from '@randombeast/shared';
 import { requireUser } from '../plugins/auth.js';
 
 // UUID validation regex
@@ -150,21 +151,16 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       if (!draft) {
-        return reply.status(404).send({
-          ok: false,
-          error: 'Draft not found or access denied',
-        });
+        return reply.notFound('Draft not found or access denied');
       }
 
       // Validate draftPayload has all required fields
       const rawPayload = draft.draftPayload as GiveawayDraftPayload | null;
       
       if (!rawPayload || Object.keys(rawPayload).length === 0) {
-        return reply.status(400).send({
-          ok: false,
-          error: 'Validation failed',
-          details: [{ field: 'payload', message: 'Черновик пустой. Заполните данные в мастере.' }],
-        });
+        return reply.badRequest('Validation failed', [
+          { field: 'payload', message: 'Черновик пустой. Заполните данные в мастере.' }
+        ]);
       }
 
       // Normalize payload before validation
@@ -174,11 +170,7 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
       const validation = confirmDraftPayloadSchema.safeParse(normalizedPayload);
       
       if (!validation.success) {
-        return reply.status(400).send({
-          ok: false,
-          error: 'Validation failed',
-          details: formatZodErrors(validation.error),
-        });
+        return reply.badRequest('Validation failed', formatZodErrors(validation.error));
       }
 
       const validatedPayload = validation.data;
@@ -280,8 +272,7 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
         'Giveaway confirmed, awaiting publication'
       );
 
-      return reply.send({
-        ok: true,
+      return reply.success({
         giveawayId: updatedGiveaway.id,
         status: updatedGiveaway.status,
         summary: {
@@ -331,19 +322,13 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     if (!giveaway) {
-      return reply.status(404).send({
-        ok: false,
-        error: 'Giveaway not found',
-      });
+      return reply.notFound('Giveaway not found');
     }
 
-    return reply.send({
-      ok: true,
-      giveaway: {
-        ...giveaway,
-        createdAt: giveaway.createdAt.toISOString(),
-        updatedAt: giveaway.updatedAt.toISOString(),
-      },
+    return reply.success({
+      ...giveaway,
+      createdAt: giveaway.createdAt.toISOString(),
+      updatedAt: giveaway.updatedAt.toISOString(),
     });
   });
 
@@ -426,9 +411,8 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
       totalAll += c._count;
     }
 
-    return reply.send({
-      ok: true,
-      giveaways: giveaways.map(g => ({
+    return reply.paginated(
+      giveaways.map(g => ({
         id: g.id,
         status: g.status,
         title: g.title,
@@ -444,19 +428,18 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
           mediaType: g.postTemplate.mediaType,
           hasMedia: g.postTemplate.mediaType !== 'NONE' && !!g.postTemplate.telegramFileId,
         } : null,
+        counts: {
+          all: totalAll,
+          draft: countByStatus.DRAFT || 0,
+          pendingConfirm: countByStatus.PENDING_CONFIRM || 0,
+          scheduled: countByStatus.SCHEDULED || 0,
+          active: countByStatus.ACTIVE || 0,
+          finished: countByStatus.FINISHED || 0,
+          cancelled: countByStatus.CANCELLED || 0,
+        },
       })),
-      total,
-      hasMore: offset + giveaways.length < total,
-      counts: {
-        all: totalAll,
-        draft: countByStatus.DRAFT || 0,
-        pendingConfirm: countByStatus.PENDING_CONFIRM || 0,
-        scheduled: countByStatus.SCHEDULED || 0,
-        active: countByStatus.ACTIVE || 0,
-        finished: countByStatus.FINISHED || 0,
-        cancelled: countByStatus.CANCELLED || 0,
-      },
-    });
+      { total, hasMore: offset + giveaways.length < total }
+    );
   });
 
   /**
@@ -596,22 +579,19 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
       username: pc.channel.username,
     }));
 
-    return reply.send({
-      ok: true,
-      stats: {
-        participantsCount,
-        participantsToday,
-        participantsGrowth,
-        ticketsTotal,
-        ticketsFromInvites,
-        ticketsFromBoosts,
-        ticketsFromStories,
-        invitesCount,
-        boostsCount,
-        storiesApproved,
-        storiesPending,
-        channelStats,
-      },
+    return reply.success({
+      participantsCount,
+      participantsToday,
+      participantsGrowth,
+      ticketsTotal,
+      ticketsFromInvites,
+      ticketsFromBoosts,
+      ticketsFromStories,
+      invitesCount,
+      boostsCount,
+      storiesApproved,
+      storiesPending,
+      channelStats,
     });
   });
 
@@ -645,10 +625,7 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     if (!giveaway) {
-      return reply.status(404).send({
-        ok: false,
-        error: 'Розыгрыш не найден',
-      });
+      return reply.notFound('Розыгрыш не найден');
     }
 
     // Формируем условие поиска
@@ -715,9 +692,8 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
-    return reply.send({
-      ok: true,
-      participants: participants.map(p => ({
+    return reply.paginated(
+      participants.map(p => ({
         id: p.id,
         user: {
           id: p.user.id,
@@ -734,9 +710,8 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
         storyRequestStatus: p.storyRequest?.status || null,
         joinedAt: p.joinedAt.toISOString(),
       })),
-      total,
-      hasMore: offset + participants.length < total,
-    });
+      { total, hasMore: offset + participants.length < total }
+    );
   });
 
   /**
@@ -761,10 +736,7 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     if (!original) {
-      return reply.status(404).send({
-        ok: false,
-        error: 'Розыгрыш не найден',
-      });
+      return reply.notFound('Розыгрыш не найден');
     }
 
     // Создаём копию как DRAFT
@@ -805,8 +777,7 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
       'Giveaway duplicated'
     );
 
-    return reply.send({
-      ok: true,
+    return reply.success({
       newGiveawayId: newGiveaway.id,
     });
   });
@@ -834,20 +805,14 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     if (!giveaway) {
-      return reply.status(404).send({
-        ok: false,
-        error: 'Розыгрыш не найден',
-      });
+      return reply.notFound('Розыгрыш не найден');
     }
 
     // Можно удалить только DRAFT или CANCELLED
     // Можно удалить черновики, ожидающие подтверждения и отменённые
     const deletableStatuses: GiveawayStatus[] = [GiveawayStatus.DRAFT, GiveawayStatus.PENDING_CONFIRM, GiveawayStatus.CANCELLED];
     if (!deletableStatuses.includes(giveaway.status)) {
-      return reply.status(400).send({
-        ok: false,
-        error: 'Удалить можно только черновики или отменённые розыгрыши',
-      });
+      return reply.badRequest('Удалить можно только черновики или отменённые розыгрыши');
     }
 
     // Удаляем розыгрыш (каскадно удалятся связанные записи)
@@ -860,9 +825,7 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
       'Giveaway deleted'
     );
 
-    return reply.send({
-      ok: true,
-    });
+    return reply.success({ message: 'Giveaway deleted successfully' });
   });
 
   /**
@@ -935,15 +898,10 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     if (!giveaway) {
-      return reply.status(404).send({
-        ok: false,
-        error: 'Розыгрыш не найден',
-      });
+      return reply.notFound('Розыгрыш не найден');
     }
 
-    return reply.send({
-      ok: true,
-      giveaway: {
+    return reply.success({
         id: giveaway.id,
         status: giveaway.status,
         title: giveaway.title,
@@ -979,7 +937,6 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
             username: w.user.username,
           },
         })),
-      },
     });
   });
 };

@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { prisma, MediaType } from '@randombeast/database';
 import { POST_LIMITS, POST_TEMPLATE_UNDO_WINDOW_MS } from '@randombeast/shared';
+import { ErrorCode } from '@randombeast/shared';
 import { requireUser } from '../plugins/auth.js';
 
 interface PostTemplateResponse {
@@ -54,10 +55,7 @@ export const postTemplatesRoutes: FastifyPluginAsync = async (fastify) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    return reply.send({
-      ok: true,
-      templates: templates.map(serializePostTemplate),
-    });
+    return reply.success({ templates: templates.map(serializePostTemplate) });
   });
 
   /**
@@ -92,10 +90,7 @@ export const postTemplatesRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
-    return reply.send({
-      ok: true,
-      template: serializePostTemplate(template),
-    });
+    return reply.success({ template: serializePostTemplate(template) });
   });
 
   /**
@@ -133,10 +128,7 @@ export const postTemplatesRoutes: FastifyPluginAsync = async (fastify) => {
 
     fastify.log.info({ userId: user.id, templateId: id }, 'Post template soft deleted');
 
-    return reply.send({
-      ok: true,
-      undoUntil: undoUntil.toISOString(),
-    });
+    return reply.success({ undoUntil: undoUntil.toISOString() });
   });
 
   /**
@@ -182,6 +174,6 @@ export const postTemplatesRoutes: FastifyPluginAsync = async (fastify) => {
 
     fastify.log.info({ userId: user.id, templateId: id }, 'Post template undo delete');
 
-    return reply.send({ ok: true });
+    return reply.success({ message: 'Success' });
   });
 };

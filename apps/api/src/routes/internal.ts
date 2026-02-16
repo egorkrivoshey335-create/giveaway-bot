@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { prisma, GiveawayStatus, LanguageCode, ChannelType, MediaType, Prisma, GiveawayMessageKind } from '@randombeast/database';
 import { POST_LIMITS, POST_TEMPLATE_UNDO_WINDOW_MS } from '@randombeast/shared';
+import { ErrorCode } from '@randombeast/shared';
 import { config } from '../config.js';
 
 // Schema for giveaway accept
@@ -70,14 +71,14 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
     const token = request.headers['x-internal-token'];
     
     if (!token) {
-      return reply.status(401).send({ ok: false, error: 'Missing internal token' });
+      return reply.unauthorized('Missing internal token');
     }
 
     // Verify token matches configured internal API token
     if (token !== config.internalApiToken) {
       // In development, also accept any non-empty token for convenience
       if (!config.isDev) {
-        return reply.status(403).send({ ok: false, error: 'Invalid internal token' });
+        return reply.forbidden('Invalid internal token');
       }
     }
   });
@@ -370,10 +371,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
 
       const undoUntil = new Date(deletedAt.getTime() + POST_TEMPLATE_UNDO_WINDOW_MS);
 
-      return reply.send({
-        ok: true,
-        undoUntil: undoUntil.toISOString(),
-      });
+      return reply.success({ undoUntil: undoUntil.toISOString() });
     } catch (error) {
       fastify.log.error(error, 'Internal post template delete error');
 
@@ -422,7 +420,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
         data: { deletedAt: null },
       });
 
-      return reply.send({ ok: true });
+      return reply.success({ message: 'Success' });
     } catch (error) {
       fastify.log.error(error, 'Internal post template undo delete error');
 
@@ -628,10 +626,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
         'Giveaway accepted and published'
       );
 
-      return reply.send({
-        ok: true,
-        status: newStatus,
-      });
+      return reply.success({ status: newStatus });
     } catch (error) {
       fastify.log.error(error, 'Internal giveaway accept error');
 
@@ -684,7 +679,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
 
       fastify.log.info({ giveawayId: id }, 'Giveaway rejected, returned to draft');
 
-      return reply.send({ ok: true });
+      return reply.success({ message: 'Success' });
     } catch (error) {
       fastify.log.error(error, 'Internal giveaway reject error');
 
@@ -751,22 +746,16 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
           { telegramUserId: body.telegramUserId, telegramChatId: body.telegramChatId, error: data.description },
           'Failed to check chat member'
         );
-        return reply.send({
-          ok: true,
-          isMember: false,
+        return reply.success({ isMember: false,
           status: 'error',
-          error: data.description,
-        });
+          error: data.description });
       }
 
       const memberStatus = data.result.status;
       const isMember = ['member', 'administrator', 'creator'].includes(memberStatus);
 
-      return reply.send({
-        ok: true,
-        isMember,
-        status: memberStatus,
-      });
+      return reply.success({ isMember,
+        status: memberStatus });
     } catch (error) {
       fastify.log.error(error, 'Internal check-subscription error');
 
@@ -846,7 +835,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
         'Winner notification sent'
       );
 
-      return reply.send({ ok: true });
+      return reply.success({ message: 'Success' });
     } catch (error) {
       fastify.log.error(error, 'Internal notify-winner error');
 
@@ -911,13 +900,10 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.send({ ok: false, error: data.description });
       }
 
-      return reply.send({ 
-        ok: true, 
-        messageId: data.result?.message_id 
-      });
+      return reply.success({ messageId: data.result?.message_id });
     } catch (error) {
       fastify.log.error(error, 'Internal send-message error');
-      return reply.status(500).send({ ok: false, error: 'Internal server error' });
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
     }
   });
 
@@ -974,10 +960,10 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.send({ ok: false, error: data.description });
       }
 
-      return reply.send({ ok: true });
+      return reply.success({ message: 'Success' });
     } catch (error) {
       fastify.log.error(error, 'Internal edit-message error');
-      return reply.status(500).send({ ok: false, error: 'Internal server error' });
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
     }
   });
 
@@ -1015,16 +1001,16 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       if (!data.ok) {
         // Игнорируем ошибку если сообщение не изменилось
         if (data.description?.includes('message is not modified')) {
-          return reply.send({ ok: true });
+          return reply.success({ message: 'Success' });
         }
         fastify.log.warn({ chatId: body.chatId, messageId: body.messageId, error: data.description }, 'Failed to edit message button');
         return reply.send({ ok: false, error: data.description });
       }
 
-      return reply.send({ ok: true });
+      return reply.success({ message: 'Success' });
     } catch (error) {
       fastify.log.error(error, 'Internal edit-message-button error');
-      return reply.status(500).send({ ok: false, error: 'Internal server error' });
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
     }
   });
 
@@ -1100,11 +1086,8 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
         'Got user chat boosts'
       );
 
-      return reply.send({
-        ok: true,
-        boosts,
-        count: boosts.length,
-      });
+      return reply.success({ boosts,
+        count: boosts.length });
     } catch (error) {
       fastify.log.error(error, 'Internal check-boosts error');
       return reply.status(500).send({ ok: false, error: 'Internal server error', boosts: [], count: 0 });
@@ -1143,10 +1126,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
         'User language updated via internal API'
       );
 
-      return reply.send({
-        ok: true,
-        language: body.language,
-      });
+      return reply.success({ language: body.language });
     } catch (error) {
       fastify.log.error(error, 'Internal user language update error');
 

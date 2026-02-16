@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { validate, parse } from '@telegram-apps/init-data-node';
 import { z } from 'zod';
 import { prisma, LanguageCode } from '@randombeast/database';
+import { ErrorCode } from '@randombeast/shared';
 import { config, requireTmaBotToken, isUserAllowed } from '../config.js';
 import {
   createSessionToken,
@@ -13,24 +14,6 @@ import {
 const telegramAuthSchema = z.object({
   initData: z.string().min(1),
 });
-
-// Response types
-interface AuthMeResponse {
-  ok: boolean;
-  user?: {
-    id: string;
-    telegramUserId: string;
-    language: string;
-    isPremium: boolean;
-    createdAt: string;
-  };
-  error?: string;
-}
-
-interface AuthResponse {
-  ok: boolean;
-  error?: string;
-}
 
 /**
  * Map Telegram language_code to our LanguageCode enum
@@ -59,100 +42,75 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
    * POST /auth/telegram
    * Validates Telegram initData and creates a session
    */
-  fastify.post<{ Body: { initData: string }; Reply: AuthResponse }>(
+  fastify.post<{ Body: { initData: string } }>(
     '/auth/telegram',
     async (request, reply) => {
+      // Parse and validate request body
+      const body = telegramAuthSchema.parse(request.body);
+      const { initData } = body;
+
+      // Get bot token (required for auth)
+      const botToken = requireTmaBotToken();
+
+      // Validate initData signature
       try {
-        // Parse and validate request body
-        const body = telegramAuthSchema.parse(request.body);
-        const { initData } = body;
-
-        // Get bot token (required for auth)
-        const botToken = requireTmaBotToken();
-
-        // Validate initData signature
-        try {
-          validate(initData, botToken, {
-            expiresIn: config.auth.initDataExpiresIn,
-          });
-        } catch (validationError) {
-          fastify.log.warn({ error: validationError }, 'Invalid initData');
-          return reply.status(401).send({
-            ok: false,
-            error: 'Invalid initData signature',
-          });
-        }
-
-        // Parse the validated initData
-        const parsedData = parse(initData);
-
-        if (!parsedData.user) {
-          return reply.status(400).send({
-            ok: false,
-            error: 'No user data in initData',
-          });
-        }
-
-        const telegramUser = parsedData.user;
-
-        // Проверка whitelist (режим разработки)
-        if (!isUserAllowed(telegramUser.id)) {
-          return reply.status(403).send({
-            ok: false,
-            error: 'Приложение на доработке. Доступ ограничен.',
-          });
-        }
-
-        // Upsert user in database
-        const user = await prisma.user.upsert({
-          where: {
-            telegramUserId: BigInt(telegramUser.id),
-          },
-          update: {
-            username: telegramUser.username || null,
-            firstName: telegramUser.firstName || null,
-            lastName: telegramUser.lastName || null,
-            isPremium: telegramUser.isPremium || false,
-            language: mapLanguageCode(telegramUser.languageCode),
-          },
-          create: {
-            telegramUserId: BigInt(telegramUser.id),
-            username: telegramUser.username || null,
-            firstName: telegramUser.firstName || null,
-            lastName: telegramUser.lastName || null,
-            isPremium: telegramUser.isPremium || false,
-            language: mapLanguageCode(telegramUser.languageCode),
-          },
+        validate(initData, botToken, {
+          expiresIn: config.auth.initDataExpiresIn,
         });
-
-        // Create session token
-        const sessionToken = createSessionToken(user.id);
-
-        // Set session cookie
-        reply.setCookie(
-          config.auth.cookieName,
-          sessionToken,
-          getSessionCookieOptions()
-        );
-
-        fastify.log.info({ userId: user.id, telegramUserId: telegramUser.id }, 'User authenticated');
-
-        return reply.send({ ok: true });
-      } catch (error) {
-        fastify.log.error(error, 'Auth error');
-
-        if (error instanceof z.ZodError) {
-          return reply.status(400).send({
-            ok: false,
-            error: 'Invalid request body',
-          });
-        }
-
-        return reply.status(500).send({
-          ok: false,
-          error: 'Internal server error',
-        });
+      } catch (validationError) {
+        fastify.log.warn({ error: validationError }, 'Invalid initData');
+        return reply.unauthorized('Invalid initData signature');
       }
+
+      // Parse the validated initData
+      const parsedData = parse(initData);
+
+      if (!parsedData.user) {
+        return reply.badRequest('No user data in initData');
+      }
+
+      const telegramUser = parsedData.user;
+
+      // Проверка whitelist (режим разработки)
+      if (!isUserAllowed(telegramUser.id)) {
+        return reply.forbidden('Приложение на доработке. Доступ ограничен.');
+      }
+
+      // Upsert user in database
+      const user = await prisma.user.upsert({
+        where: {
+          telegramUserId: BigInt(telegramUser.id),
+        },
+        update: {
+          username: telegramUser.username || null,
+          firstName: telegramUser.firstName || null,
+          lastName: telegramUser.lastName || null,
+          isPremium: telegramUser.isPremium || false,
+          language: mapLanguageCode(telegramUser.languageCode),
+        },
+        create: {
+          telegramUserId: BigInt(telegramUser.id),
+          username: telegramUser.username || null,
+          firstName: telegramUser.firstName || null,
+          lastName: telegramUser.lastName || null,
+          isPremium: telegramUser.isPremium || false,
+          language: mapLanguageCode(telegramUser.languageCode),
+        },
+      });
+
+      // Create session token
+      const sessionToken = createSessionToken(user.id);
+
+      // Set session cookie
+      reply.setCookie(
+        config.auth.cookieName,
+        sessionToken,
+        getSessionCookieOptions()
+      );
+
+      fastify.log.info({ userId: user.id, telegramUserId: telegramUser.id }, 'User authenticated');
+
+      return reply.success({ message: 'Authenticated successfully' });
     }
   );
 
@@ -160,70 +118,50 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
    * GET /auth/me
    * Returns the current authenticated user
    */
-  fastify.get<{ Reply: AuthMeResponse }>('/auth/me', async (request, reply) => {
-    try {
-      // Get session cookie
-      const sessionToken = request.cookies[config.auth.cookieName];
+  fastify.get('/auth/me', async (request, reply) => {
+    // Get session cookie
+    const sessionToken = request.cookies[config.auth.cookieName];
 
-      if (!sessionToken) {
-        return reply.status(401).send({
-          ok: false,
-          error: 'Not authenticated',
-        });
-      }
-
-      // Verify session token
-      const userId = verifySessionToken(sessionToken);
-
-      if (!userId) {
-        // Clear invalid cookie
-        reply.clearCookie(config.auth.cookieName, getSessionCookieOptions());
-        return reply.status(401).send({
-          ok: false,
-          error: 'Invalid or expired session',
-        });
-      }
-
-      // Load user from database
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-      });
-
-      if (!user) {
-        // User was deleted, clear cookie
-        reply.clearCookie(config.auth.cookieName, getSessionCookieOptions());
-        return reply.status(401).send({
-          ok: false,
-          error: 'User not found',
-        });
-      }
-
-      return reply.send({
-        ok: true,
-        user: {
-          id: user.id,
-          telegramUserId: user.telegramUserId.toString(),
-          language: user.language,
-          isPremium: user.isPremium,
-          createdAt: user.createdAt.toISOString(),
-        },
-      });
-    } catch (error) {
-      fastify.log.error(error, 'Auth/me error');
-      return reply.status(500).send({
-        ok: false,
-        error: 'Internal server error',
-      });
+    if (!sessionToken) {
+      return reply.unauthorized('Not authenticated');
     }
+
+    // Verify session token
+    const userId = verifySessionToken(sessionToken);
+
+    if (!userId) {
+      // Clear invalid cookie
+      reply.clearCookie(config.auth.cookieName, getSessionCookieOptions());
+      return reply.unauthorized('Invalid or expired session');
+    }
+
+    // Load user from database
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      // User was deleted, clear cookie
+      reply.clearCookie(config.auth.cookieName, getSessionCookieOptions());
+      return reply.unauthorized('User not found');
+    }
+
+    return reply.success({
+      id: user.id,
+      telegramUserId: user.telegramUserId.toString(),
+      language: user.language,
+      isPremium: user.isPremium,
+      createdAt: user.createdAt.toISOString(),
+    });
   });
 
   /**
    * POST /auth/logout
    * Clears the session cookie
    */
-  fastify.post<{ Reply: AuthResponse }>('/auth/logout', async (_request, reply) => {
+  fastify.post('/auth/logout', async (_request, reply) => {
     reply.clearCookie(config.auth.cookieName, getSessionCookieOptions());
-    return reply.send({ ok: true });
+    return reply.success({ message: 'Logged out successfully' });
   });
 
   /**
@@ -231,7 +169,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
    * Creates a mock session for testing without Telegram
    */
   if (config.isDev) {
-    fastify.post<{ Body: { telegramUserId?: string }; Reply: AuthResponse }>(
+    fastify.post<{ Body: { telegramUserId?: string } }>(
       '/auth/dev',
       async (request, reply) => {
         // Генерируем случайный ID если не передан (для тестирования)
@@ -258,7 +196,10 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
 
         fastify.log.info({ userId: user.id }, 'Dev user authenticated');
 
-        return reply.send({ ok: true });
+        return reply.success({ 
+          userId: user.id,
+          message: 'Dev user authenticated' 
+        });
       }
     );
   }

@@ -8,10 +8,7 @@ interface HealthResponse {
 
 export const healthRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get<{ Reply: HealthResponse }>('/health', async (_request, reply) => {
-    return reply.send({
-      ok: true,
-      service: 'api',
-      timestamp: new Date().toISOString(),
-    });
+    return reply.success({ service: 'api',
+      timestamp: new Date().toISOString() });
   });
 };

@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { prisma, GiveawayStatus } from '@randombeast/database';
+import { ErrorCode } from '@randombeast/shared';
 import { getUser, requireUser } from '../plugins/auth.js';
 
 // Код права доступа к каталогу
@@ -131,15 +132,12 @@ export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
       };
     });
 
-    return reply.send({
-      ok: true,
-      hasAccess,
+    return reply.success({ hasAccess,
       giveaways: result,
       total,
       previewCount: PREVIEW_COUNT,
       subscriptionPrice: SUBSCRIPTION_PRICE,
-      hasMore: hasAccess && (offsetNum + limitNum) < total,
-    });
+      hasMore: hasAccess && (offsetNum + limitNum) < total });
   });
 
   /**
@@ -150,30 +148,21 @@ export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
     const user = await getUser(request);
 
     if (!user) {
-      return reply.send({
-        ok: true,
-        hasAccess: false,
+      return reply.success({ hasAccess: false,
         price: SUBSCRIPTION_PRICE,
-        currency: 'RUB',
-      });
+        currency: 'RUB' });
     }
 
     const access = await checkCatalogAccess(user.id);
 
     if (access.hasAccess) {
-      return reply.send({
-        ok: true,
-        hasAccess: true,
-        expiresAt: access.expiresAt?.toISOString() || null,
-      });
+      return reply.success({ hasAccess: true,
+        expiresAt: access.expiresAt?.toISOString() || null });
     }
 
-    return reply.send({
-      ok: true,
-      hasAccess: false,
+    return reply.success({ hasAccess: false,
       price: SUBSCRIPTION_PRICE,
-      currency: 'RUB',
-    });
+      currency: 'RUB' });
   });
 
   /**
@@ -220,9 +209,6 @@ export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
       'Catalog visibility updated'
     );
 
-    return reply.send({
-      ok: true,
-      catalogEnabled: body.enabled,
-    });
+    return reply.success({ catalogEnabled: body.enabled });
   });
 };

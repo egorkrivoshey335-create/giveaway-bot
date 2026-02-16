@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { prisma, PurchaseStatus } from '@randombeast/database';
+import { ErrorCode } from '@randombeast/shared';
 import { requireUser, getUser } from '../plugins/auth.js';
 import { config } from '../config.js';
 import { createPayment, getPayment, isYooKassaConfigured, YooKassaWebhookPayload } from '../lib/yookassa.js';
@@ -107,11 +108,8 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
         'Payment created'
       );
 
-      return reply.send({
-        ok: true,
-        paymentUrl: payment.confirmation?.confirmation_url,
-        purchaseId: purchase.id,
-      });
+      return reply.success({ paymentUrl: payment.confirmation?.confirmation_url,
+        purchaseId: purchase.id });
     } catch (error) {
       fastify.log.error({ error, purchaseId: purchase.id }, 'Failed to create payment');
       
@@ -166,32 +164,23 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
           // Обрабатываем успешный платёж
           await processSuccessfulPayment(purchase.id, fastify);
           
-          return reply.send({
-            ok: true,
-            status: 'COMPLETED',
-            productTitle: purchase.product.title,
-          });
+          return reply.success({ status: 'COMPLETED',
+            productTitle: purchase.product.title });
         } else if (payment.status === 'canceled') {
           await prisma.purchase.update({
             where: { id: purchase.id },
             data: { status: PurchaseStatus.FAILED },
           });
           
-          return reply.send({
-            ok: true,
-            status: 'FAILED',
-          });
+          return reply.success({ status: 'FAILED' });
         }
       } catch (error) {
         fastify.log.error({ error, purchaseId }, 'Failed to check payment status');
       }
     }
 
-    return reply.send({
-      ok: true,
-      status: purchase.status,
-      productTitle: purchase.product.title,
-    });
+    return reply.success({ status: purchase.status,
+      productTitle: purchase.product.title });
   });
 
   /**
@@ -206,7 +195,7 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
 
       // Обрабатываем только успешные платежи
       if (payload.event !== 'payment.succeeded') {
-        return reply.send({ ok: true });
+        return reply.success({ message: 'Success' });
       }
 
       const payment = payload.object;
@@ -214,17 +203,17 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
 
       if (!purchaseId) {
         fastify.log.warn({ paymentId: payment.id }, 'Webhook without purchaseId in metadata');
-        return reply.send({ ok: true });
+        return reply.success({ message: 'Success' });
       }
 
       // Обрабатываем успешный платёж
       await processSuccessfulPayment(purchaseId, fastify);
 
-      return reply.send({ ok: true });
+      return reply.success({ message: 'Success' });
     } catch (error) {
       fastify.log.error({ error }, 'Webhook processing error');
       // Всегда возвращаем 200 чтобы ЮKassa не ретраила
-      return reply.send({ ok: true });
+      return reply.success({ message: 'Success' });
     }
   });
 };

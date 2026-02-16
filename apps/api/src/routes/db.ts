@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { prisma } from '@randombeast/database';
+import { ErrorCode } from '@randombeast/shared';
 
 interface DbPingResponse {
   ok: boolean;
@@ -21,11 +22,8 @@ export const dbRoutes: FastifyPluginAsync = async (fastify) => {
         // Execute simple query to check database connection
         await prisma.$queryRaw`SELECT 1`;
 
-        return reply.send({
-          ok: true,
-          db: 'up',
-          timestamp: new Date().toISOString(),
-        });
+        return reply.success({ db: 'up',
+          timestamp: new Date().toISOString() });
       } catch (error) {
         fastify.log.error(error, 'Database ping failed');
 

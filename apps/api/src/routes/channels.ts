@@ -1,20 +1,8 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { prisma } from '@randombeast/database';
+import { ErrorCode } from '@randombeast/shared';
 import { requireUser } from '../plugins/auth.js';
 import { config } from '../config.js';
-
-interface ChannelResponse {
-  id: string;
-  telegramChatId: string;
-  username: string | null;
-  title: string;
-  type: string;
-  botIsAdmin: boolean;
-  creatorIsAdmin: boolean;
-  memberCount: number | null;
-  lastCheckedAt: string | null;
-  createdAt: string;
-}
 
 function serializeChannel(channel: {
   id: string;
@@ -27,7 +15,7 @@ function serializeChannel(channel: {
   memberCount: number | null;
   lastCheckedAt: Date | null;
   createdAt: Date;
-}): ChannelResponse {
+}) {
   return {
     id: channel.id,
     telegramChatId: channel.telegramChatId.toString(),
@@ -68,10 +56,7 @@ export const channelsRoutes: FastifyPluginAsync = async (fastify) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    return reply.send({
-      ok: true,
-      channels: channels.map(serializeChannel),
-    });
+    return reply.success(channels.map(serializeChannel));
   });
 
   /**
@@ -104,16 +89,10 @@ export const channelsRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     if (!channel) {
-      return reply.status(404).send({
-        ok: false,
-        error: 'Channel not found',
-      });
+      return reply.notFound('Channel not found');
     }
 
-    return reply.send({
-      ok: true,
-      channel: serializeChannel(channel),
-    });
+    return reply.success(serializeChannel(channel));
   });
 
   /**
@@ -134,10 +113,7 @@ export const channelsRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     if (!channel) {
-      return reply.status(404).send({
-        ok: false,
-        error: 'Channel not found',
-      });
+      return reply.notFound('Channel not found');
     }
 
     await prisma.channel.delete({
@@ -146,7 +122,7 @@ export const channelsRoutes: FastifyPluginAsync = async (fastify) => {
 
     fastify.log.info({ userId: user.id, channelId: id }, 'Channel deleted');
 
-    return reply.send({ ok: true });
+    return reply.success({ message: 'Channel deleted successfully' });
   });
 
   /**
@@ -167,18 +143,12 @@ export const channelsRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     if (!channel) {
-      return reply.status(404).send({
-        ok: false,
-        error: 'Channel not found',
-      });
+      return reply.notFound('Channel not found');
     }
 
     const botToken = config.botToken;
     if (!botToken) {
-      return reply.status(500).send({
-        ok: false,
-        error: 'Bot not configured',
-      });
+      return reply.error(ErrorCode.BOT_API_ERROR, 'Bot not configured');
     }
 
     const telegramChatId = channel.telegramChatId.toString();
@@ -260,9 +230,6 @@ export const channelsRoutes: FastifyPluginAsync = async (fastify) => {
       'Channel rechecked'
     );
 
-    return reply.send({
-      ok: true,
-      channel: serializeChannel(updatedChannel),
-    });
+    return reply.success(serializeChannel(updatedChannel));
   });
 };

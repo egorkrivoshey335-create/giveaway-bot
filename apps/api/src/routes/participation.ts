@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { prisma, GiveawayStatus, ParticipationStatus } from '@randombeast/database';
+import { ErrorCode } from '@randombeast/shared';
 import { getUser, requireUser } from '../plugins/auth.js';
 import { config } from '../config.js';
 import crypto from 'crypto';
@@ -238,11 +239,8 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
     const requiredSubIds = draftPayload.requiredSubscriptionChannelIds || [];
 
     if (requiredSubIds.length === 0) {
-      return reply.send({
-        ok: true,
-        subscribed: true,
-        channels: [],
-      });
+      return reply.success({ subscribed: true,
+        channels: [] });
     }
 
     // Загружаем каналы
@@ -300,11 +298,8 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
-    return reply.send({
-      ok: true,
-      subscribed: allSubscribed,
-      channels: results,
-    });
+    return reply.success({ subscribed: allSubscribed,
+      channels: results });
   });
 
   /**
@@ -568,11 +563,8 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       expiresAt: Date.now() + 5 * 60 * 1000, // 5 минут
     });
 
-    return reply.send({
-      ok: true,
-      question,
-      token,
-    });
+    return reply.success({ question,
+      token });
   });
 
   /**
@@ -666,15 +658,12 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
     // Формируем реферальную ссылку
     const referralLink = `https://t.me/${BOT_USERNAME}/participate?startapp=join_${id}_ref_${user.id}`;
 
-    return reply.send({
-      ok: true,
-      referralLink,
+    return reply.success({ referralLink,
       referralCode: user.id,
       invitedCount,
       inviteMax,
       inviteEnabled,
-      ticketsFromInvites: invitedCount, // 1 билет за каждого приглашённого
-    });
+      ticketsFromInvites: invitedCount, // 1 билет за каждого приглашённого });
   });
 
   /**
@@ -750,12 +739,9 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       joinedAt: p.joinedAt.toISOString(),
     }));
 
-    return reply.send({
-      ok: true,
-      invites,
+    return reply.success({ invites,
       count: invites.length,
-      max: inviteMax,
-    });
+      max: inviteMax });
   });
 
   // =========================================================================
@@ -823,14 +809,11 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
     const boostChannelIds = giveaway.condition?.boostChannelIds || [];
 
     if (!boostEnabled || boostChannelIds.length === 0) {
-      return reply.send({
-        ok: true,
-        boostEnabled: false,
+      return reply.success({ boostEnabled: false,
         channels: [],
         totalBoosts: 0,
         maxBoostsPerChannel: MAX_BOOSTS_PER_CHANNEL,
-        ticketsFromBoosts: 0,
-      });
+        ticketsFromBoosts: 0 });
     }
 
     // Получаем каналы
@@ -863,14 +846,11 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
     // Считаем общее количество билетов от бустов
     const totalBoosts = Object.values(boostsSnapshot).reduce((sum, count) => sum + Math.min(count, MAX_BOOSTS_PER_CHANNEL), 0);
 
-    return reply.send({
-      ok: true,
-      boostEnabled: true,
+    return reply.success({ boostEnabled: true,
       channels: channelsData,
       totalBoosts,
       maxBoostsPerChannel: MAX_BOOSTS_PER_CHANNEL,
-      ticketsFromBoosts: totalBoosts,
-    });
+      ticketsFromBoosts: totalBoosts });
   });
 
   /**
@@ -1030,13 +1010,10 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       },
     });
 
-    return reply.send({
-      ok: true,
-      newBoosts,
+    return reply.success({ newBoosts,
       totalBoostsForChannel: actualBoostCount,
       ticketsAdded: ticketsToAdd,
-      totalTickets: (updatedParticipation?.ticketsBase || 1) + (updatedParticipation?.ticketsExtra || 0),
-    });
+      totalTickets: (updatedParticipation?.ticketsBase || 1) + (updatedParticipation?.ticketsExtra || 0) });
   });
 
   // =========================================================================
@@ -1143,11 +1120,8 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       'Story request submitted'
     );
 
-    return reply.send({
-      ok: true,
-      status: 'PENDING',
-      message: 'Заявка отправлена на проверку',
-    });
+    return reply.success({ status: 'PENDING',
+      message: 'Заявка отправлена на проверку' });
   });
 
   /**
@@ -1180,21 +1154,15 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     if (!participation.storyRequest) {
-      return reply.send({
-        ok: true,
-        hasRequest: false,
-        status: null,
-      });
+      return reply.success({ hasRequest: false,
+        status: null });
     }
 
-    return reply.send({
-      ok: true,
-      hasRequest: true,
+    return reply.success({ hasRequest: true,
       status: participation.storyRequest.status,
       submittedAt: participation.storyRequest.submittedAt.toISOString(),
       reviewedAt: participation.storyRequest.reviewedAt?.toISOString() || null,
-      rejectReason: participation.storyRequest.rejectReason || null,
-    });
+      rejectReason: participation.storyRequest.rejectReason || null });
   });
 
   /**
@@ -1371,10 +1339,7 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
         'Story request approved'
       );
 
-      return reply.send({
-        ok: true,
-        message: 'Заявка одобрена, билет начислен',
-      });
+      return reply.success({ message: 'Заявка одобрена, билет начислен' });
     }
   );
 
@@ -1458,10 +1423,7 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
         'Story request rejected'
       );
 
-      return reply.send({
-        ok: true,
-        message: 'Заявка отклонена',
-      });
+      return reply.success({ message: 'Заявка отклонена' });
     }
   );
 

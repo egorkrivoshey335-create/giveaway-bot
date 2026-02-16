@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '@randombeast/database';
+import { ErrorCode } from '@randombeast/shared';
 import { config } from '../config.js';
 import { createSessionToken, verifySessionToken, getSessionCookieOptions } from '../utils/session.js';
 
@@ -79,7 +80,7 @@ export async function siteRoutes(fastify: FastifyInstance) {
   fastify.post('/site/auth/telegram', async (request, reply) => {
     // Проверяем internal token
     if (!verifyInternalToken(request)) {
-      return reply.status(401).send({ ok: false, error: 'Unauthorized' });
+      return reply.unauthorized('Unauthorized');
     }
 
     // Валидируем данные
@@ -117,13 +118,10 @@ export async function siteRoutes(fastify: FastifyInstance) {
       // Создаём session token
       const sessionToken = createSessionToken(user.id);
 
-      return reply.send({
-        ok: true,
-        sessionToken,
-      });
+      return reply.success({ sessionToken });
     } catch (error) {
       fastify.log.error(error);
-      return reply.status(500).send({ ok: false, error: 'Internal server error' });
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
     }
   });
 
@@ -135,7 +133,7 @@ export async function siteRoutes(fastify: FastifyInstance) {
     const userId = getUserIdFromSiteSession(request);
 
     if (!userId) {
-      return reply.status(401).send({ ok: false, error: 'Unauthorized' });
+      return reply.unauthorized('Unauthorized');
     }
 
     try {
@@ -144,7 +142,7 @@ export async function siteRoutes(fastify: FastifyInstance) {
       });
 
       if (!user) {
-        return reply.status(401).send({ ok: false, error: 'User not found' });
+        return reply.unauthorized('User not found');
       }
 
       // Проверяем доступ к рандомайзеру
@@ -166,7 +164,7 @@ export async function siteRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       fastify.log.error(error);
-      return reply.status(500).send({ ok: false, error: 'Internal server error' });
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
     }
   });
 
@@ -178,7 +176,7 @@ export async function siteRoutes(fastify: FastifyInstance) {
     const userId = getUserIdFromSiteSession(request);
 
     if (!userId) {
-      return reply.status(401).send({ ok: false, error: 'Unauthorized' });
+      return reply.unauthorized('Unauthorized');
     }
 
     try {
@@ -216,7 +214,7 @@ export async function siteRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       fastify.log.error(error);
-      return reply.status(500).send({ ok: false, error: 'Internal server error' });
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
     }
   });
 
@@ -231,7 +229,7 @@ export async function siteRoutes(fastify: FastifyInstance) {
       const userId = getUserIdFromSiteSession(request);
 
       if (!userId) {
-        return reply.status(401).send({ ok: false, error: 'Unauthorized' });
+        return reply.unauthorized('Unauthorized');
       }
 
       const { id } = request.params;
@@ -240,7 +238,7 @@ export async function siteRoutes(fastify: FastifyInstance) {
         // Проверяем доступ к рандомайзеру
         const hasRandomizerAccess = await hasEntitlement(userId, 'randomizer.access');
         if (!hasRandomizerAccess) {
-          return reply.status(403).send({ ok: false, error: 'Randomizer access required' });
+          return reply.forbidden('Randomizer access required');
         }
 
         // Получаем розыгрыш с участниками и победителями
@@ -279,17 +277,17 @@ export async function siteRoutes(fastify: FastifyInstance) {
         });
 
         if (!giveaway) {
-          return reply.status(404).send({ ok: false, error: 'Giveaway not found' });
+          return reply.notFound('Giveaway not found');
         }
 
         // Проверяем, что розыгрыш принадлежит пользователю
         if (giveaway.ownerUserId !== userId) {
-          return reply.status(403).send({ ok: false, error: 'Access denied' });
+          return reply.forbidden('Access denied');
         }
 
         // Проверяем, что розыгрыш завершён
         if (giveaway.status !== 'FINISHED') {
-          return reply.status(400).send({ ok: false, error: 'Giveaway is not finished' });
+          return reply.badRequest('Giveaway is not finished');
         }
 
         // Парсим JSON поля
@@ -332,7 +330,7 @@ export async function siteRoutes(fastify: FastifyInstance) {
         });
       } catch (error) {
         fastify.log.error(error);
-        return reply.status(500).send({ ok: false, error: 'Internal server error' });
+        return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
       }
     }
   );
@@ -347,7 +345,7 @@ export async function siteRoutes(fastify: FastifyInstance) {
       const userId = getUserIdFromSiteSession(request);
 
       if (!userId) {
-        return reply.status(401).send({ ok: false, error: 'Unauthorized' });
+        return reply.unauthorized('Unauthorized');
       }
 
       const { id } = request.params;
@@ -361,11 +359,11 @@ export async function siteRoutes(fastify: FastifyInstance) {
         });
 
         if (!giveaway) {
-          return reply.status(404).send({ ok: false, error: 'Giveaway not found' });
+          return reply.notFound('Giveaway not found');
         }
 
         if (giveaway.ownerUserId !== userId) {
-          return reply.status(403).send({ ok: false, error: 'Access denied' });
+          return reply.forbidden('Access denied');
         }
 
         // Сохраняем призы
@@ -374,10 +372,10 @@ export async function siteRoutes(fastify: FastifyInstance) {
           data: { randomizerPrizes: prizes },
         });
 
-        return reply.send({ ok: true });
+        return reply.success({ message: 'Success' });
       } catch (error) {
         fastify.log.error(error);
-        return reply.status(500).send({ ok: false, error: 'Internal server error' });
+        return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
       }
     }
   );
@@ -392,7 +390,7 @@ export async function siteRoutes(fastify: FastifyInstance) {
       const userId = getUserIdFromSiteSession(request);
 
       if (!userId) {
-        return reply.status(401).send({ ok: false, error: 'Unauthorized' });
+        return reply.unauthorized('Unauthorized');
       }
 
       const { id } = request.params;
@@ -406,11 +404,11 @@ export async function siteRoutes(fastify: FastifyInstance) {
         });
 
         if (!giveaway) {
-          return reply.status(404).send({ ok: false, error: 'Giveaway not found' });
+          return reply.notFound('Giveaway not found');
         }
 
         if (giveaway.ownerUserId !== userId) {
-          return reply.status(403).send({ ok: false, error: 'Access denied' });
+          return reply.forbidden('Access denied');
         }
 
         // Сохраняем кастомизацию
@@ -425,10 +423,10 @@ export async function siteRoutes(fastify: FastifyInstance) {
           },
         });
 
-        return reply.send({ ok: true });
+        return reply.success({ message: 'Success' });
       } catch (error) {
         fastify.log.error(error);
-        return reply.status(500).send({ ok: false, error: 'Internal server error' });
+        return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
       }
     }
   );
@@ -469,12 +467,12 @@ export async function siteRoutes(fastify: FastifyInstance) {
         });
 
         if (!giveaway) {
-          return reply.status(404).send({ ok: false, error: 'Giveaway not found' });
+          return reply.notFound('Giveaway not found');
         }
 
         // Проверяем, что розыгрыш завершён
         if (giveaway.status !== 'FINISHED') {
-          return reply.status(400).send({ ok: false, error: 'Giveaway is not finished' });
+          return reply.badRequest('Giveaway is not finished');
         }
 
         // Парсим JSON поля
@@ -504,7 +502,7 @@ export async function siteRoutes(fastify: FastifyInstance) {
         });
       } catch (error) {
         fastify.log.error(error);
-        return reply.status(500).send({ ok: false, error: 'Internal server error' });
+        return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
       }
     }
   );
@@ -520,7 +518,7 @@ export async function siteRoutes(fastify: FastifyInstance) {
       const userId = getUserIdFromSiteSession(request);
 
       if (!userId) {
-        return reply.status(401).send({ ok: false, error: 'Unauthorized' });
+        return reply.unauthorized('Unauthorized');
       }
 
       const { id } = request.params;
@@ -547,19 +545,19 @@ export async function siteRoutes(fastify: FastifyInstance) {
         });
 
         if (!giveaway) {
-          return reply.status(404).send({ ok: false, error: 'Giveaway not found' });
+          return reply.notFound('Giveaway not found');
         }
 
         if (giveaway.ownerUserId !== userId) {
-          return reply.status(403).send({ ok: false, error: 'Access denied' });
+          return reply.forbidden('Access denied');
         }
 
         if (giveaway.status !== 'FINISHED') {
-          return reply.status(400).send({ ok: false, error: 'Giveaway is not finished' });
+          return reply.badRequest('Giveaway is not finished');
         }
 
         if (giveaway.winnersPublished) {
-          return reply.status(400).send({ ok: false, error: 'Winners already published' });
+          return reply.badRequest('Winners already published');
         }
 
         // Формируем текст с победителями
@@ -689,10 +687,10 @@ export async function siteRoutes(fastify: FastifyInstance) {
           data: { winnersPublished: true },
         });
 
-        return reply.send({ ok: true });
+        return reply.success({ message: 'Success' });
       } catch (error) {
         fastify.log.error(error);
-        return reply.status(500).send({ ok: false, error: 'Internal server error' });
+        return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
       }
     }
   );
@@ -707,6 +705,6 @@ export async function siteRoutes(fastify: FastifyInstance) {
       domain: config.auth.cookieDomain,
     });
 
-    return reply.send({ ok: true });
+    return reply.success({ message: 'Success' });
   });
 }
