@@ -110,15 +110,14 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       if (existingDraft) {
-        return reply.send({
-          ok: true,
-          draft: {
-            ...existingDraft,
-            createdAt: existingDraft.createdAt.toISOString(),
-            updatedAt: existingDraft.updatedAt.toISOString(),
-          },
-          created: false,
-        });
+      return reply.success({
+        draft: {
+          ...existingDraft,
+          createdAt: existingDraft.createdAt.toISOString(),
+          updatedAt: existingDraft.updatedAt.toISOString(),
+        },
+        created: false,
+      });
       }
 
       // Create new draft
@@ -145,8 +144,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
         'Draft created via internal API'
       );
 
-      return reply.status(201).send({
-        ok: true,
+      return reply.success({
         draft: {
           ...newDraft,
           createdAt: newDraft.createdAt.toISOString(),
@@ -158,16 +156,10 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       fastify.log.error(error, 'Internal draft creation error');
 
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({
-          ok: false,
-          error: 'Invalid request body',
-        });
+      return reply.badRequest('Invalid request body');
       }
 
-      return reply.status(500).send({
-        ok: false,
-        error: 'Internal server error',
-      });
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
     }
   });
 
@@ -245,10 +237,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
 
-      return reply.status(500).send({
-        ok: false,
-        error: 'Internal server error',
-      });
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
     }
   });
 
@@ -335,10 +324,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
 
-      return reply.status(500).send({
-        ok: false,
-        error: 'Internal server error',
-      });
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
     }
   });
 
@@ -376,10 +362,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
     } catch (error) {
       fastify.log.error(error, 'Internal post template delete error');
 
-      return reply.status(500).send({
-        ok: false,
-        error: 'Internal server error',
-      });
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
     }
   });
 
@@ -425,10 +408,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
     } catch (error) {
       fastify.log.error(error, 'Internal post template undo delete error');
 
-      return reply.status(500).send({
-        ok: false,
-        error: 'Internal server error',
-      });
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
     }
   });
 
@@ -557,10 +537,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
     } catch (error) {
       fastify.log.error(error, 'Internal giveaway full fetch error');
 
-      return reply.status(500).send({
-        ok: false,
-        error: 'Internal server error',
-      });
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
     }
   });
 
@@ -639,10 +616,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
 
-      return reply.status(500).send({
-        ok: false,
-        error: 'Internal server error',
-      });
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
     }
   });
 
@@ -684,10 +658,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
     } catch (error) {
       fastify.log.error(error, 'Internal giveaway reject error');
 
-      return reply.status(500).send({
-        ok: false,
-        error: 'Internal server error',
-      });
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
     }
   });
 
@@ -777,16 +748,10 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       fastify.log.error(error, 'Internal check-subscription error');
 
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({
-          ok: false,
-          error: 'Invalid request body',
-        });
+      return reply.badRequest('Invalid request body');
       }
 
-      return reply.status(500).send({
-        ok: false,
-        error: 'Internal server error',
-      });
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
     }
   });
 
@@ -857,16 +822,10 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       fastify.log.error(error, 'Internal notify-winner error');
 
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({
-          ok: false,
-          error: 'Invalid request body',
-        });
+      return reply.badRequest('Invalid request body');
       }
 
-      return reply.status(500).send({
-        ok: false,
-        error: 'Internal server error',
-      });
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
     }
   });
 
@@ -885,7 +844,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
 
       const botToken = config.botToken;
       if (!botToken) {
-        return reply.send({ ok: false, error: 'Bot not configured' });
+        return reply.badRequest('Bot not configured');
       }
 
       const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -914,7 +873,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
 
       if (!data.ok) {
         fastify.log.warn({ chatId: body.chatId, error: data.description }, 'Failed to send message');
-        return reply.send({ ok: false, error: data.description });
+        return reply.error(ErrorCode.TELEGRAM_API_ERROR, data.description || 'Telegram API error');
       }
 
       return reply.success({ messageId: data.result?.message_id });
@@ -941,7 +900,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
 
       const botToken = config.botToken;
       if (!botToken) {
-        return reply.send({ ok: false, error: 'Bot not configured' });
+        return reply.badRequest('Bot not configured');
       }
 
       // Определяем метод: editMessageText или editMessageCaption
@@ -974,7 +933,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
 
       if (!data.ok) {
         fastify.log.warn({ chatId: body.chatId, messageId: body.messageId, error: data.description }, 'Failed to edit message');
-        return reply.send({ ok: false, error: data.description });
+        return reply.error(ErrorCode.TELEGRAM_API_ERROR, data.description || 'Telegram API error');
       }
 
       return reply.success({ message: 'Success' });
@@ -998,7 +957,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
 
       const botToken = config.botToken;
       if (!botToken) {
-        return reply.send({ ok: false, error: 'Bot not configured' });
+        return reply.badRequest('Bot not configured');
       }
 
       const telegramUrl = `https://api.telegram.org/bot${botToken}/editMessageReplyMarkup`;
@@ -1021,7 +980,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
           return reply.success({ message: 'Success' });
         }
         fastify.log.warn({ chatId: body.chatId, messageId: body.messageId, error: data.description }, 'Failed to edit message button');
-        return reply.send({ ok: false, error: data.description });
+        return reply.error(ErrorCode.TELEGRAM_API_ERROR, data.description || 'Telegram API error');
       }
 
       return reply.success({ message: 'Success' });
@@ -1155,10 +1114,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
 
-      return reply.status(500).send({
-        ok: false,
-        error: 'Internal server error',
-      });
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
     }
   });
 };

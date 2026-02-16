@@ -6,7 +6,7 @@
  * @packageDocumentation
  */
 
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import { config } from '../config.js';
 
 // ============================================================================
@@ -15,11 +15,11 @@ import { config } from '../config.js';
 
 export const redis = new Redis(config.redis.url, {
   maxRetriesPerRequest: 3,
-  retryStrategy(times) {
+  retryStrategy(times: number) {
     const delay = Math.min(times * 50, 2000);
     return delay;
   },
-  reconnectOnError(err) {
+  reconnectOnError(err: Error) {
     const targetError = 'READONLY';
     if (err.message.includes(targetError)) {
       // Only reconnect when the error starts with "READONLY"
@@ -29,7 +29,7 @@ export const redis = new Redis(config.redis.url, {
   },
 });
 
-redis.on('error', (err) => {
+redis.on('error', (err: Error) => {
   console.error('[Redis] Connection error:', err);
 });
 

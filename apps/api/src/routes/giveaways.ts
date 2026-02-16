@@ -802,6 +802,7 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
       select: {
         id: true,
         status: true,
+        title: true,
       },
     });
 

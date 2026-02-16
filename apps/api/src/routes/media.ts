@@ -66,7 +66,7 @@ export const mediaRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     // Для изображений: оптимизируем если нужно
-    let processedBuffer = buffer;
+    let processedBuffer: Buffer<ArrayBufferLike> = buffer;
     if (mediaType === 'photo') {
       try {
         const image = sharp(buffer);
@@ -74,13 +74,13 @@ export const mediaRoutes: FastifyPluginAsync = async (fastify) => {
 
         // Если изображение больше 2048px по любой стороне - ресайзим
         if (metadata.width && metadata.width > 2048 || metadata.height && metadata.height > 2048) {
-          processedBuffer = await image
+          processedBuffer = (await image
             .resize(2048, 2048, {
               fit: 'inside',
               withoutEnlargement: true,
             })
             .jpeg({ quality: 85 })
-            .toBuffer();
+            .toBuffer()) as Buffer;
         }
       } catch (error) {
         fastify.log.warn({ error }, 'Failed to optimize image');

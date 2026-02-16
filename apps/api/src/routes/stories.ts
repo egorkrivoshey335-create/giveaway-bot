@@ -40,25 +40,31 @@ export const storiesRoutes: FastifyPluginAsync = async (fastify) => {
     const [stories, total] = await Promise.all([
       prisma.storyRequest.findMany({
         where: {
-          giveaway: {
-            ownerUserId: user.id,
+          participation: {
+            giveaway: {
+              ownerUserId: user.id,
+            },
           },
           status: StoryRequestStatus.PENDING,
         },
         include: {
-          user: {
-            select: {
-              id: true,
-              telegramUserId: true,
-              firstName: true,
-              lastName: true,
-              username: true,
-            },
-          },
-          giveaway: {
-            select: {
-              id: true,
-              title: true,
+          participation: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  telegramUserId: true,
+                  firstName: true,
+                  lastName: true,
+                  username: true,
+                },
+              },
+              giveaway: {
+                select: {
+                  id: true,
+                  title: true,
+                },
+              },
             },
           },
         },
@@ -68,8 +74,10 @@ export const storiesRoutes: FastifyPluginAsync = async (fastify) => {
       }),
       prisma.storyRequest.count({
         where: {
-          giveaway: {
-            ownerUserId: user.id,
+          participation: {
+            giveaway: {
+              ownerUserId: user.id,
+            },
           },
           status: StoryRequestStatus.PENDING,
         },
@@ -80,14 +88,13 @@ export const storiesRoutes: FastifyPluginAsync = async (fastify) => {
       stories.map(s => ({
         id: s.id,
         user: {
-          id: s.user.id,
-          telegramUserId: s.user.telegramUserId.toString(),
-          firstName: s.user.firstName,
-          lastName: s.user.lastName,
-          username: s.user.username,
+          id: s.participation.user.id,
+          telegramUserId: s.participation.user.telegramUserId.toString(),
+          firstName: s.participation.user.firstName,
+          lastName: s.participation.user.lastName,
+          username: s.participation.user.username,
         },
-        giveaway: s.giveaway,
-        screenshotFileId: s.screenshotFileId,
+        giveaway: s.participation.giveaway,
         status: s.status,
         createdAt: s.createdAt.toISOString(),
       })),
@@ -135,17 +142,23 @@ export const storiesRoutes: FastifyPluginAsync = async (fastify) => {
     const [stories, total] = await Promise.all([
       prisma.storyRequest.findMany({
         where: {
-          giveawayId,
+          participation: {
+            giveawayId,
+          },
           ...(statusFilter ? { status: statusFilter } : {}),
         },
         include: {
-          user: {
-            select: {
-              id: true,
-              telegramUserId: true,
-              firstName: true,
-              lastName: true,
-              username: true,
+          participation: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  telegramUserId: true,
+                  firstName: true,
+                  lastName: true,
+                  username: true,
+                },
+              },
             },
           },
         },
@@ -155,7 +168,9 @@ export const storiesRoutes: FastifyPluginAsync = async (fastify) => {
       }),
       prisma.storyRequest.count({
         where: {
-          giveawayId,
+          participation: {
+            giveawayId,
+          },
           ...(statusFilter ? { status: statusFilter } : {}),
         },
       }),
@@ -165,15 +180,14 @@ export const storiesRoutes: FastifyPluginAsync = async (fastify) => {
       stories.map(s => ({
         id: s.id,
         user: {
-          id: s.user.id,
-          telegramUserId: s.user.telegramUserId.toString(),
-          firstName: s.user.firstName,
-          lastName: s.user.lastName,
-          username: s.user.username,
+          id: s.participation.user.id,
+          telegramUserId: s.participation.user.telegramUserId.toString(),
+          firstName: s.participation.user.firstName,
+          lastName: s.participation.user.lastName,
+          username: s.participation.user.username,
         },
-        screenshotFileId: s.screenshotFileId,
         status: s.status,
-        rejectionReason: s.rejectionReason,
+        rejectionReason: s.rejectReason,
         reviewedAt: s.reviewedAt?.toISOString() || null,
         createdAt: s.createdAt.toISOString(),
       })),
@@ -196,8 +210,10 @@ export const storiesRoutes: FastifyPluginAsync = async (fastify) => {
     const storyRequest = await prisma.storyRequest.findFirst({
       where: {
         id,
-        giveaway: {
-          ownerUserId: user.id,
+        participation: {
+          giveaway: {
+            ownerUserId: user.id,
+          },
         },
       },
       include: {
@@ -219,8 +235,9 @@ export const storiesRoutes: FastifyPluginAsync = async (fastify) => {
       where: { id },
       data: {
         status: body.status as StoryRequestStatus,
-        rejectionReason: body.status === 'REJECTED' ? body.rejectionReason : null,
+        rejectReason: body.status === 'REJECTED' ? body.rejectionReason : null,
         reviewedAt: new Date(),
+        reviewedBy: user.id,
       },
     });
 
@@ -230,7 +247,8 @@ export const storiesRoutes: FastifyPluginAsync = async (fastify) => {
         where: { id: storyRequest.participation.id },
         data: {
           ticketsExtra: { increment: 1 },
-          storiesShared: { increment: 1 },
+          storiesShared: true,
+          storiesSharedAt: new Date(),
         },
       });
     }
@@ -243,7 +261,7 @@ export const storiesRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.success({
       id: updated.id,
       status: updated.status,
-      rejectionReason: updated.rejectionReason,
+      rejectionReason: updated.rejectReason,
       reviewedAt: updated.reviewedAt?.toISOString() || null,
     });
   });

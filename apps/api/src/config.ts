@@ -57,6 +57,11 @@ export const config = {
     'https://api.randombeast.ru',
   ] as string[],
 
+  // Redis
+  redis: {
+    url: env.REDIS_URL || 'redis://localhost:6379',
+  },
+
   // Database
   databaseUrl: env.DATABASE_URL,
 
@@ -86,6 +91,7 @@ export const config = {
   yookassa: {
     shopId: env.YOOKASSA_SHOP_ID,
     secretKey: env.YOOKASSA_SECRET_KEY,
+    webhookSecret: env.YOOKASSA_SECRET_KEY, // Use the same secret for webhooks
     returnUrl: env.YOOKASSA_RETURN_URL || env.WEBAPP_URL + '/payments/return' || 'http://localhost:3000/payments/return',
   },
   

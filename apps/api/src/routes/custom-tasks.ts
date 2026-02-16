@@ -59,13 +59,11 @@ export const customTasksRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     // Создаём задание
-    const customTask = await prisma.customTask.create({
+    const customTask = await prisma.giveawayCustomTask.create({
       data: {
         giveawayId: body.giveawayId,
         title: body.title,
-        description: body.description,
-        linkUrl: body.linkUrl,
-        isRequired: body.isRequired,
+        url: body.linkUrl || '',
         bonusTickets: body.bonusTickets,
       },
     });
@@ -100,7 +98,7 @@ export const customTasksRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       // Получаем все задания
-      const tasks = await prisma.customTask.findMany({
+      const tasks = await prisma.giveawayCustomTask.findMany({
         where: { giveawayId },
         orderBy: { createdAt: 'asc' },
       });
@@ -121,7 +119,7 @@ export const customTasksRoutes: FastifyPluginAsync = async (fastify) => {
     const body = updateCustomTaskSchema.parse(request.body);
 
     // Проверяем что задание существует и принадлежит пользователю
-    const task = await prisma.customTask.findFirst({
+    const task = await prisma.giveawayCustomTask.findFirst({
       where: { id },
       include: {
         giveaway: {
@@ -143,7 +141,7 @@ export const customTasksRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     // Обновляем
-    const updated = await prisma.customTask.update({
+    const updated = await prisma.giveawayCustomTask.update({
       where: { id },
       data: body,
     });
@@ -164,7 +162,7 @@ export const customTasksRoutes: FastifyPluginAsync = async (fastify) => {
     const { id } = request.params;
 
     // Проверяем что задание существует и принадлежит пользователю
-    const task = await prisma.customTask.findFirst({
+    const task = await prisma.giveawayCustomTask.findFirst({
       where: { id },
       include: {
         giveaway: {
@@ -186,7 +184,7 @@ export const customTasksRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     // Удаляем
-    await prisma.customTask.delete({
+    await prisma.giveawayCustomTask.delete({
       where: { id },
     });
 

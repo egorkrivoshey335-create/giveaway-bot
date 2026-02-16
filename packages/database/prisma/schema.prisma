@@ -692,21 +692,26 @@ model PrizeForm {
 // --- Reports (жалобы на розыгрыши) ---
 
 model Report {
-  id          String    @id @default(uuid())
-  giveawayId  String
-  giveaway    Giveaway  @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
-  reporterId  String
-  reporter    User      @relation(fields: [reporterId], references: [id], onDelete: Cascade)
-  reason      String
-  description String?
-  status      String    @default("PENDING") // PENDING, REVIEWED, RESOLVED, DISMISSED
-  reviewedAt  DateTime?
-  reviewedBy  String? // Admin user ID
-  createdAt   DateTime  @default(now())
+  id             String    @id @default(uuid())
+  giveawayId     String
+  giveaway       Giveaway  @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  reporterId     String
+  reporter       User      @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType     String? // USER, GIVEAWAY (nullable for backward compatibility)
+  targetId       String? // ID of reported entity
+  reason         String
+  description    String?
+  status         String    @default("PENDING") // PENDING, REVIEWED, RESOLVED, DISMISSED
+  reviewedAt     DateTime?
+  reviewedBy     String? // Admin user ID
+  moderatorNotes String? // Internal notes from moderator
+  resolvedAt     DateTime? // When report was resolved
+  createdAt      DateTime  @default(now())
 
   @@index([giveawayId])
   @@index([reporterId])
   @@index([status])
+  @@index([targetType, targetId])
 }
 
 // =============================================================================

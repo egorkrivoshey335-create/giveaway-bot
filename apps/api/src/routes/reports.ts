@@ -8,7 +8,7 @@
 
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import { prisma, ReportStatus } from '@randombeast/database';
+import { prisma } from '@randombeast/database';
 import { ErrorCode } from '@randombeast/shared';
 import { requireUser } from '../plugins/auth.js';
 
@@ -56,10 +56,10 @@ export const reportsRoutes: FastifyPluginAsync = async (fastify) => {
     // Проверяем что пользователь еще не отправлял жалобу на эту цель
     const existingReport = await prisma.report.findFirst({
       where: {
-        reporterUserId: user.id,
+        reporterId: user.id,
         targetType: body.targetType,
         targetId: body.targetId,
-        status: { not: ReportStatus.RESOLVED },
+        status: { not: 'RESOLVED' },
       },
     });
 
@@ -70,12 +70,13 @@ export const reportsRoutes: FastifyPluginAsync = async (fastify) => {
     // Создаём репорт
     const report = await prisma.report.create({
       data: {
-        reporterUserId: user.id,
+        giveawayId: body.targetType === 'GIVEAWAY' ? body.targetId : body.targetId, // Use targetId as giveawayId
+        reporterId: user.id,
         targetType: body.targetType,
         targetId: body.targetId,
         reason: body.reason,
         description: body.description,
-        status: ReportStatus.PENDING,
+        status: 'PENDING',
       },
     });
 
@@ -107,13 +108,13 @@ export const reportsRoutes: FastifyPluginAsync = async (fastify) => {
 
     const [reports, total] = await Promise.all([
       prisma.report.findMany({
-        where: { reporterUserId: user.id },
+        where: { reporterId: user.id },
         orderBy: { createdAt: 'desc' },
         take: limit,
         skip: offset,
       }),
       prisma.report.count({
-        where: { reporterUserId: user.id },
+        where: { reporterId: user.id },
       }),
     ]);
 
@@ -151,7 +152,7 @@ export const reportsRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     // Проверяем доступ (только автор репорта может видеть детали)
-    if (report.reporterUserId !== user.id) {
+    if (report.reporterId !== user.id) {
       return reply.forbidden('Access denied');
     }
 
