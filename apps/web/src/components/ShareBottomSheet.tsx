@@ -90,8 +90,8 @@ export function ShareBottomSheet({
         {/* Табы */}
         <Tabs
           tabs={[
-            { id: 'commands', label: t('share.tabs.commands') },
-            { id: 'links', label: t('share.tabs.links') },
+            { id: 'commands', label: t('share.tabs.commands'), content: null },
+            { id: 'links', label: t('share.tabs.links'), content: null },
           ]}
           activeTab={activeTab}
           onChange={setActiveTab}

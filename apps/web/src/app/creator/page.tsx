@@ -105,6 +105,7 @@ function GiveawayCard({
   const t = useTranslations('dashboard');
   const tGiveaway = useTranslations('giveaway');
   const tCard = useTranslations('dashboard.card');
+  const tCommon = useTranslations('common');
 
   // Получить текст даты для карточки (всегда показываем, чтобы высота была одинаковой)
   const getDateInfo = () => {

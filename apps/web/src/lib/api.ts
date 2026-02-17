@@ -25,6 +25,14 @@ export interface GiveawayDraftPayload {
   postTemplateId?: string | null;
   buttonText?: string;
   winnersCount?: number;
+  /** Описание приза (опционально) */
+  prizeDescription?: string;
+  /** Способ получения приза */
+  prizeDeliveryMethod?: 'CONTACT_ORGANIZER' | 'INSTRUCTION' | 'FORM';
+  /** Инструкция по получению приза (для INSTRUCTION) */
+  prizeInstruction?: string;
+  /** URL формы для получения приза (для FORM) */
+  prizeFormUrl?: string;
   /** Дата и время начала (ISO string или null = сразу) */
   startAt?: string | null;
   /** Дата и время окончания (ISO string или null = не указано) */
@@ -55,6 +63,28 @@ export interface GiveawayDraftPayload {
   
   /** Показывать ли в каталоге */
   catalogEnabled?: boolean;
+  
+  // === Дополнительные настройки ===
+  
+  /** Минимальное количество участников для проведения */
+  minParticipants?: number;
+  /** Отменить розыгрыш, если не набрано минимальное количество */
+  cancelIfNotEnough?: boolean;
+  /** Автопродление на N дней, если не хватает участников */
+  autoExtendDays?: number;
+  
+  /** ID выбранного маскота */
+  mascotId?: string;
+  
+  /** Кастомные задания (для типа CUSTOM) */
+  customTasks?: Array<{
+    id?: string;
+    title: string;
+    description?: string;
+    url?: string;
+    tickets?: number;
+    required?: boolean;
+  }>;
 }
 
 /**
@@ -448,6 +478,7 @@ export interface PublicGiveaway {
   id: string;
   title: string;
   status: string;
+  startAt: string | null;
   endAt: string | null;
   winnersCount: number;
   participantsCount: number;

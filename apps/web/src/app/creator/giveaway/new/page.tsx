@@ -1459,7 +1459,7 @@ export default function GiveawayWizardPage() {
                   <button
                     onClick={() => {
                       const tasks = [...(payload.customTasks || [])];
-                      tasks.push({ description: '', url: '', tickets: 1 });
+                      tasks.push({ title: '', description: '', url: '', tickets: 1 });
                       updatePayload({ customTasks: tasks });
                     }}
                     className="w-full py-3 border-2 border-dashed border-tg-hint/30 rounded-lg text-tg-hint hover:border-tg-button hover:text-tg-button transition-colors"

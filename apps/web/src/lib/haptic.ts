@@ -20,7 +20,7 @@ function isHapticAvailable(): boolean {
  */
 export function hapticLight() {
   if (isHapticAvailable()) {
-    window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
   }
 }
 
@@ -29,7 +29,7 @@ export function hapticLight() {
  */
 export function hapticMedium() {
   if (isHapticAvailable()) {
-    window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium');
   }
 }
 
@@ -38,7 +38,7 @@ export function hapticMedium() {
  */
 export function hapticHeavy() {
   if (isHapticAvailable()) {
-    window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('heavy');
   }
 }
 
@@ -47,7 +47,7 @@ export function hapticHeavy() {
  */
 export function hapticRigid() {
   if (isHapticAvailable()) {
-    window.Telegram.WebApp.HapticFeedback.impactOccurred('rigid');
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('rigid');
   }
 }
 
@@ -56,7 +56,7 @@ export function hapticRigid() {
  */
 export function hapticSoft() {
   if (isHapticAvailable()) {
-    window.Telegram.WebApp.HapticFeedback.impactOccurred('soft');
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('soft');
   }
 }
 
@@ -65,7 +65,7 @@ export function hapticSoft() {
  */
 export function hapticError() {
   if (isHapticAvailable()) {
-    window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
   }
 }
 
@@ -74,7 +74,7 @@ export function hapticError() {
  */
 export function hapticSuccess() {
   if (isHapticAvailable()) {
-    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
   }
 }
 
@@ -83,7 +83,7 @@ export function hapticSuccess() {
  */
 export function hapticWarning() {
   if (isHapticAvailable()) {
-    window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('warning');
   }
 }
 
@@ -92,7 +92,7 @@ export function hapticWarning() {
  */
 export function hapticSelectionChanged() {
   if (isHapticAvailable()) {
-    window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    window.Telegram?.WebApp?.HapticFeedback?.selectionChanged();
   }
 }
 

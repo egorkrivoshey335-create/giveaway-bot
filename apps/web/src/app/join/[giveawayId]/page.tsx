@@ -944,7 +944,7 @@ export default function JoinGiveawayPage() {
     return (
       <main className="min-h-screen p-4">
         {/* Конфетти при успешном участии */}
-        <ConfettiOverlay show={showConfetti} />
+        <ConfettiOverlay trigger={showConfetti} />
         
         <div className="max-w-md mx-auto">
           {/* Заголовок с маскотом и таймером */}
@@ -964,7 +964,7 @@ export default function JoinGiveawayPage() {
             <p className="text-tg-hint mb-4">{t('success.subtitle')}</p>
             
             {/* Таймер до окончания розыгрыша */}
-            {giveaway && (
+            {giveaway && giveaway.endAt && (
               <div className="bg-tg-secondary-bg rounded-xl p-4 mb-4">
                 <div className="text-sm text-tg-hint mb-2">{t('success.endsIn')}</div>
                 <CountdownTimer 
@@ -983,30 +983,32 @@ export default function JoinGiveawayPage() {
           )}
 
           {/* ID розыгрыша и кнопка шаринга */}
-          <div className="bg-tg-secondary rounded-xl p-4 mb-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex-1">
-                <div className="text-xs text-tg-hint mb-1">{t('success.giveawayId')}</div>
-                <div className="text-sm font-mono truncate">#{giveawayId.slice(0, 8)}</div>
+          {giveaway && (
+            <div className="bg-tg-secondary rounded-xl p-4 mb-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1">
+                  <div className="text-xs text-tg-hint mb-1">{t('success.giveawayId')}</div>
+                  <div className="text-sm font-mono truncate">#{giveawayId.slice(0, 8)}</div>
+                </div>
+                <button
+                  onClick={() => {
+                    const shareText = `🎁 Участвуйте в розыгрыше "${giveaway.title}"!`;
+                    const shareUrl = `https://t.me/share/url?url=https://t.me/${BOT_USERNAME}/participate?startapp=join_${giveawayId}&text=${encodeURIComponent(shareText)}`;
+                    
+                    if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
+                      (window as any).Telegram.WebApp.openTelegramLink(shareUrl);
+                    } else {
+                      window.open(shareUrl, '_blank');
+                    }
+                  }}
+                  className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2 hover:opacity-90"
+                >
+                  <span>📤</span>
+                  <span>{t('success.shareGiveaway')}</span>
+                </button>
               </div>
-              <button
-                onClick={() => {
-                  const shareText = `🎁 Участвуйте в розыгрыше "${giveaway.title}"!`;
-                  const shareUrl = `https://t.me/share/url?url=https://t.me/${BOT_USERNAME}/participate?startapp=join_${giveawayId}&text=${encodeURIComponent(shareText)}`;
-                  
-                  if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
-                    (window as any).Telegram.WebApp.openTelegramLink(shareUrl);
-                  } else {
-                    window.open(shareUrl, '_blank');
-                  }
-                }}
-                className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2 hover:opacity-90"
-              >
-                <span>📤</span>
-                <span>{t('success.shareGiveaway')}</span>
-              </button>
             </div>
-          </div>
+          )}
 
           {/* Билеты */}
           <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl p-6 mb-6 text-white text-center">
@@ -1062,44 +1064,45 @@ export default function JoinGiveawayPage() {
           )}
 
           {/* Bottom Sheet "Увеличить шансы" */}
-          <BottomSheet
-            isOpen={showExtrasSheet}
-            onClose={() => setShowExtrasSheet(false)}
-            title={`⚡️ ${t('success.increaseChances')}`}
-          >
-            <div className="px-4 py-3">
-              {/* Табы */}
-              <Tabs
-                variant="pills"
-                activeTab={activeExtrasTab}
-                onChange={(tabId) => setActiveExtrasTab(tabId as any)}
-                tabs={[
-                  ...(giveaway.conditions.inviteEnabled ? [{ 
-                    id: 'invites', 
-                    label: t('extras.inviteFriends'), 
-                    icon: '👥',
-                    content: null 
-                  }] : []),
-                  ...(giveaway.conditions.boostEnabled ? [{ 
-                    id: 'boosts', 
-                    label: t('extras.boostChannels'), 
-                    icon: '⚡️',
-                    content: null 
-                  }] : []),
-                  ...(giveaway.conditions.storiesEnabled ? [{ 
-                    id: 'stories', 
-                    label: t('extras.publishStory'), 
-                    icon: '📺',
-                    content: null 
-                  }] : []),
-                  ...(customTasks.length > 0 ? [{ 
-                    id: 'tasks', 
-                    label: t('extras.customTasks'), 
-                    icon: '📝',
-                    content: null 
-                  }] : []),
-                ]}
-              />
+          {giveaway && (
+            <BottomSheet
+              isOpen={showExtrasSheet}
+              onClose={() => setShowExtrasSheet(false)}
+              title={`⚡️ ${t('success.increaseChances')}`}
+            >
+              <div className="px-4 py-3">
+                {/* Табы */}
+                <Tabs
+                  variant="pills"
+                  activeTab={activeExtrasTab}
+                  onChange={(tabId) => setActiveExtrasTab(tabId as any)}
+                  tabs={[
+                    ...(giveaway.conditions.inviteEnabled ? [{ 
+                      id: 'invites', 
+                      label: t('extras.inviteFriends'), 
+                      icon: '👥',
+                      content: null 
+                    }] : []),
+                    ...(giveaway.conditions.boostEnabled ? [{ 
+                      id: 'boosts', 
+                      label: t('extras.boostChannels'), 
+                      icon: '⚡️',
+                      content: null 
+                    }] : []),
+                    ...(giveaway.conditions.storiesEnabled ? [{ 
+                      id: 'stories', 
+                      label: t('extras.publishStory'), 
+                      icon: '📺',
+                      content: null 
+                    }] : []),
+                    ...(customTasks.length > 0 ? [{ 
+                      id: 'tasks', 
+                      label: t('extras.customTasks'), 
+                      icon: '📝',
+                      content: null 
+                    }] : []),
+                  ]}
+                />
 
               {/* Контент табов */}
               <div className="mt-4 pb-4">
@@ -1184,13 +1187,13 @@ export default function JoinGiveawayPage() {
                         <div className="flex-1">
                           <div className="font-medium text-sm">{channel.title}</div>
                           <div className="text-xs text-tg-hint mt-1">
-                            {t('extras.boostCount', { count: channel.boostedCount })}
+                            {t('extras.boostCount', { count: channel.boostCount })}
                           </div>
                         </div>
-                        {channel.boostedCount < 10 && (
+                        {channel.boostCount < 10 && (
                           <div className="flex gap-2">
                             <button
-                              onClick={() => openBoostLink(channel.id)}
+                              onClick={() => openBoostLink(channel)}
                               className="bg-tg-button text-tg-button-text text-xs rounded-lg px-3 py-1.5"
                             >
                               ⚡️ {t('extras.boostButton')}
@@ -1381,6 +1384,7 @@ export default function JoinGiveawayPage() {
               </div>
             </div>
           </BottomSheet>
+          )}
 
           {/* Кнопка "Больше розыгрышей" */}
           <button
@@ -1423,7 +1427,7 @@ export default function JoinGiveawayPage() {
             <p className="text-tg-hint mb-4">{giveaway?.title}</p>
             
             {/* Таймер до окончания розыгрыша */}
-            {giveaway && (
+            {giveaway && giveaway.endAt && (
               <div className="bg-tg-secondary-bg rounded-xl p-4 mb-4">
                 <div className="text-sm text-tg-hint mb-2">{t('success.endsIn')}</div>
                 <CountdownTimer 

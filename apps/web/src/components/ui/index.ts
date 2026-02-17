@@ -2,7 +2,6 @@ export { Button } from './Button';
 export type { ButtonProps } from './Button';
 
 export { BottomSheet } from './BottomSheet';
-export type { BottomSheetProps } from './BottomSheet';
 
 export { Toggle } from './Toggle';
 export type { ToggleProps } from './Toggle';

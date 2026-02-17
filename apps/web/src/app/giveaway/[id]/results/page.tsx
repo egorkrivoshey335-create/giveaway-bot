@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { ConfettiOverlay } from '@/components/ui/ConfettiOverlay';
+import { Mascot } from '@/components/Mascot';
 import {
   getGiveawayWinners,
   getMyResult,
@@ -28,6 +30,10 @@ export default function GiveawayResultsPage() {
   const [winners, setWinners] = useState<WinnerInfo[]>([]);
   const [totalParticipants, setTotalParticipants] = useState(0);
   const [finishedAt, setFinishedAt] = useState<string | null>(null);
+  const [prizeDeliveryMethod, setPrizeDeliveryMethod] = useState<'BOT_MESSAGE' | 'FORM' | 'DESCRIPTION' | null>(null);
+  const [prizeDescription, setPrizeDescription] = useState<string | null>(null);
+  const [mascotType, setMascotType] = useState<string | null>(null);
+  const [creatorUsername, setCreatorUsername] = useState<string | null>(null);
   
   // Мой результат
   const [myResult, setMyResult] = useState<{
@@ -35,6 +41,9 @@ export default function GiveawayResultsPage() {
     isWinner: boolean;
     place: number | null;
   } | null>(null);
+
+  // Анимации
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -53,6 +62,10 @@ export default function GiveawayResultsPage() {
         setWinners(winnersRes.winners || []);
         setTotalParticipants(winnersRes.totalParticipants || 0);
         setFinishedAt(winnersRes.finishedAt || null);
+        setPrizeDeliveryMethod(winnersRes.prizeDeliveryMethod || null);
+        setPrizeDescription(winnersRes.prizeDescription || null);
+        setMascotType(winnersRes.mascotType || null);
+        setCreatorUsername(winnersRes.creatorUsername || null);
 
         // Пробуем загрузить свой результат
         try {
@@ -63,6 +76,11 @@ export default function GiveawayResultsPage() {
               isWinner: myRes.isWinner || false,
               place: myRes.winner?.place || null,
             });
+            
+            // Если победитель - запускаем конфетти
+            if (myRes.isWinner) {
+              setShowConfetti(true);
+            }
           }
         } catch {
           // Не авторизован — это нормально
@@ -146,6 +164,9 @@ export default function GiveawayResultsPage() {
 
   return (
     <main className="min-h-screen p-4">
+      {/* Конфетти для победителей */}
+      <ConfettiOverlay trigger={showConfetti} />
+      
       <div className="max-w-md mx-auto">
         {/* Заголовок */}
         <div className="text-center mb-6">
@@ -163,16 +184,124 @@ export default function GiveawayResultsPage() {
           }`}>
             {myResult.isWinner ? (
               <div className="text-center">
+                {/* Радостный маскот для победителя */}
+                {mascotType && (
+                  <div className="mb-4 flex justify-center">
+                    <Mascot 
+                      type={mascotType as any} 
+                      size={100}
+                      className="mx-auto"
+                    />
+                  </div>
+                )}
+                
                 <div className="text-4xl mb-2">🎉</div>
                 <h2 className="text-lg font-bold text-yellow-500">{t('myResult.congratulations')}</h2>
                 <p className="text-sm mt-1">
                   {t('myResult.place', { place: myResult.place ?? 1 })}
                 </p>
+                
+                {/* Информация о получении приза */}
+                {prizeDeliveryMethod && (
+                  <div className="mt-4 p-3 bg-tg-bg rounded-lg border border-yellow-500/20 text-left">
+                    <div className="flex items-start gap-2 mb-2">
+                      <span className="text-xl">🎁</span>
+                      <h3 className="font-semibold text-sm">{t('myResult.prizeInfo')}</h3>
+                    </div>
+                    
+                    {prizeDeliveryMethod === 'BOT_MESSAGE' && (
+                      <p className="text-xs text-tg-hint">
+                        {t('myResult.prizeMethodBot')}
+                      </p>
+                    )}
+                    
+                    {prizeDeliveryMethod === 'FORM' && (
+                      <div className="space-y-2">
+                        <p className="text-xs text-tg-hint mb-2">
+                          {t('myResult.prizeMethodForm')}
+                        </p>
+                        <button
+                          onClick={() => {
+                            // TODO: открыть форму получения приза (Block 14)
+                            alert('Форма получения приза будет реализована в Block 14');
+                          }}
+                          className="w-full bg-yellow-500 text-black text-sm rounded-lg py-2 font-medium hover:opacity-90"
+                        >
+                          {t('myResult.fillForm')}
+                        </button>
+                      </div>
+                    )}
+                    
+                    {prizeDeliveryMethod === 'DESCRIPTION' && prizeDescription && (
+                      <div className="text-xs text-tg-hint whitespace-pre-wrap">
+                        {prizeDescription}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Кнопки для победителя */}
+                <div className="mt-4 space-y-2">
+                  {/* Кнопка "Поделиться победой" */}
+                  <button
+                    onClick={() => {
+                      const shareText = `🎉 Я выиграл в розыгрыше "${title}"! Участвуйте и вы!`;
+                      const shareUrl = `https://t.me/share/url?url=https://t.me/BeastRandomBot/participate?startapp=join_${giveawayId}&text=${encodeURIComponent(shareText)}`;
+                      
+                      if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
+                        (window as any).Telegram.WebApp.openTelegramLink(shareUrl);
+                      } else {
+                        window.open(shareUrl, '_blank');
+                      }
+                    }}
+                    className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg py-2.5 text-sm font-medium flex items-center justify-center gap-2"
+                  >
+                    <span>🎉</span>
+                    <span>{t('myResult.shareVictory')}</span>
+                  </button>
+                  
+                  {/* Кнопка "Связаться с организатором" */}
+                  {creatorUsername && (
+                    <button
+                      onClick={() => {
+                        const link = `https://t.me/${creatorUsername.replace('@', '')}`;
+                        if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
+                          (window as any).Telegram.WebApp.openTelegramLink(link);
+                        } else {
+                          window.open(link, '_blank');
+                        }
+                      }}
+                      className="w-full bg-tg-button text-tg-button-text rounded-lg py-2.5 text-sm font-medium flex items-center justify-center gap-2"
+                    >
+                      <span>💬</span>
+                      <span>{t('myResult.contactCreator')}</span>
+                    </button>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="text-center">
+                {/* Грустный маскот для проигравшего */}
+                {mascotType && (
+                  <div className="mb-4 flex justify-center">
+                    <Mascot 
+                      type={mascotType as any} 
+                      size={80}
+                      className="mx-auto opacity-70"
+                    />
+                  </div>
+                )}
+                
                 <p className="text-tg-hint">{t('myResult.notWinner')}</p>
                 <p className="text-sm text-tg-hint mt-1">{t('myResult.goodLuck')} 🍀</p>
+                
+                {/* Кнопка "Другие розыгрыши" для проигравших */}
+                <button
+                  onClick={() => router.push('/catalog')}
+                  className="mt-4 w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg py-2.5 text-sm font-medium"
+                >
+                  🎁 {t('myResult.moreCatalog')}
+                </button>
               </div>
             )}
           </div>

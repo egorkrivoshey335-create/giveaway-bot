@@ -219,14 +219,10 @@ export function PostsManager({
             icon="📝"
             title={t('empty.title')}
             description={t('empty.description')}
-            action={
-              <button
-                onClick={handleCreatePost}
-                className="bg-tg-button text-tg-button-text rounded-lg px-6 py-3 font-medium"
-              >
-                {t('createNew')}
-              </button>
-            }
+            action={{
+              label: t('createNew'),
+              onClick: handleCreatePost
+            }}
           />
         ) : (
           <div className="space-y-3">
