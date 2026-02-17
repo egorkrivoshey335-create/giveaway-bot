@@ -5,6 +5,7 @@ import type { GiveawayDraftPayload } from '@randombeast/shared';
 import { ErrorCode, generateShortCode } from '@randombeast/shared';
 import { requireUser } from '../plugins/auth.js';
 import { createAuditLog, AuditAction, AuditEntityType } from '../lib/audit.js';
+import { getCache, setCache } from '../lib/redis.js';
 
 // UUID validation regex
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -446,12 +447,20 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * GET /giveaways/:id/stats
    * Детальная статистика розыгрыша
+   * 🔒 ИСПРАВЛЕНО (2026-02-16): Redis кеширование (TTL 60 секунд)
    */
   fastify.get<{ Params: { id: string } }>('/giveaways/:id/stats', async (request, reply) => {
     const user = await requireUser(request, reply);
     if (!user) return;
 
     const { id } = request.params;
+
+    // 🔒 Проверяем кеш (60 секунд)
+    const cacheKey = `stats:giveaway:${id}`;
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      return reply.success(cached);
+    }
 
     // Проверяем владельца
     const giveaway = await prisma.giveaway.findFirst({
@@ -580,7 +589,7 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
       username: pc.channel.username,
     }));
 
-    return reply.success({
+    const stats = {
       participantsCount,
       participantsToday,
       participantsGrowth,
@@ -593,7 +602,12 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
       storiesApproved,
       storiesPending,
       channelStats,
-    });
+    };
+
+    // 🔒 Сохраняем в кеш (60 секунд)
+    await setCache(cacheKey, stats, 60);
+
+    return reply.success(stats);
   });
 
   /**

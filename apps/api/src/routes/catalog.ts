@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma, GiveawayStatus } from '@randombeast/database';
 import { ErrorCode } from '@randombeast/shared';
 import { getUser, requireUser } from '../plugins/auth.js';
+import { getCache, setCache } from '../lib/redis.js';
 
 // Код права доступа к каталогу
 const CATALOG_ENTITLEMENT_CODE = 'catalog.access';
@@ -42,6 +43,35 @@ async function checkCatalogAccess(userId: string): Promise<{ hasAccess: boolean;
  * Routes для каталога розыгрышей
  */
 export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /catalog/count
+   * Публичный endpoint с количеством розыгрышей в каталоге
+   * 🔒 СОЗДАНО (2026-02-16): Redis кеширование (TTL 300 секунд)
+   */
+  fastify.get('/catalog/count', async (request, reply) => {
+    // 🔒 Проверяем кеш (5 минут)
+    const cacheKey = 'catalog:count';
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      return reply.success(cached);
+    }
+
+    // Считаем активные розыгрыши в каталоге
+    const count = await prisma.giveaway.count({
+      where: {
+        status: GiveawayStatus.ACTIVE,
+        isPublicInCatalog: true,
+      },
+    });
+
+    const data = { count };
+
+    // 🔒 Сохраняем в кеш (5 минут)
+    await setCache(cacheKey, data, 300);
+
+    return reply.success(data);
+  });
+
   /**
    * GET /catalog
    * Список публичных розыгрышей в каталоге
