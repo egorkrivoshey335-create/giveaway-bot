@@ -9,7 +9,12 @@ import { verifySessionToken, getSessionCookieOptions } from '../utils/session.js
 export interface AuthUser {
   id: string;
   telegramUserId: bigint;
+  firstName: string | null;
+  lastName: string | null;
+  username: string | null;
+  language: 'RU' | 'EN' | 'KK';
   isPremium: boolean;
+  createdAt: Date;
 }
 
 /**
@@ -31,7 +36,16 @@ export async function getUser(request: FastifyRequest): Promise<AuthUser | null>
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, telegramUserId: true, isPremium: true },
+    select: {
+      id: true,
+      telegramUserId: true,
+      firstName: true,
+      lastName: true,
+      username: true,
+      language: true,
+      isPremium: true,
+      createdAt: true,
+    },
   });
 
   return user;

@@ -5,6 +5,9 @@ import Script from 'next/script';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import { FullscreenInit } from '@/components/FullscreenInit';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { NetworkErrorHandler } from '@/components/NetworkErrorHandler';
+import { SWRProvider } from '@/components/SWRProvider';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
@@ -38,9 +41,15 @@ export default async function RootLayout({
       </head>
       <body className={`${inter.className} bg-tg-bg text-tg-text`}>
         <FullscreenInit />
-        <NextIntlClientProvider locale={locale} messages={messages}>
-          {children}
-        </NextIntlClientProvider>
+        <ErrorBoundary>
+          <NextIntlClientProvider locale={locale} messages={messages}>
+            <SWRProvider>
+              <NetworkErrorHandler>
+                {children}
+              </NetworkErrorHandler>
+            </SWRProvider>
+          </NextIntlClientProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

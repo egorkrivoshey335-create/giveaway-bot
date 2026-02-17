@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { prisma, GiveawayStatus, Prisma } from '@randombeast/database';
-import { WIZARD_STEPS, type WizardStep } from '@randombeast/shared';
+import { WIZARD_STEPS, type WizardStep, generateShortCode } from '@randombeast/shared';
 import { ErrorCode } from '@randombeast/shared';
 import { requireUser } from '../plugins/auth.js';
 
@@ -137,6 +137,7 @@ export const draftsRoutes: FastifyPluginAsync = async (fastify) => {
     const newDraft = await prisma.giveaway.create({
       data: {
         ownerUserId: user.id,
+        shortCode: generateShortCode(),
         status: GiveawayStatus.DRAFT,
         wizardStep: body?.wizardStep || 'TYPE',
         draftPayload: {},

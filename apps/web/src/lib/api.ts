@@ -86,6 +86,54 @@ export async function getCurrentUser(): Promise<AuthMeResponse> {
 }
 
 /**
+ * Get initial data (user, draft, stats, config) - один запрос вместо множества
+ */
+export interface InitDataResponse {
+  ok: boolean;
+  user?: {
+    id: string;
+    telegramUserId: string;
+    firstName: string;
+    lastName?: string;
+    username?: string;
+    language: string;
+    createdAt: string;
+  };
+  draft?: {
+    id: string;
+    step: string | null;
+    payload: unknown;
+    updatedAt: string;
+  } | null;
+  participantStats?: {
+    totalCount: number;
+    wonCount: number;
+    activeCount: number;
+  };
+  creatorStats?: {
+    totalCount: number;
+    activeCount: number;
+    channelCount: number;
+    postCount: number;
+  };
+  config?: {
+    limits: Record<string, number>;
+    features: Record<string, boolean | string>;
+    subscriptionTier: string;
+  };
+  error?: string;
+}
+
+export async function getInitData(): Promise<InitDataResponse> {
+  const response = await fetch(`${API_URL}/init`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  return response.json();
+}
+
+/**
  * Logout (clear session)
  */
 export async function logout(): Promise<AuthResponse> {
@@ -462,6 +510,33 @@ interface CaptchaVerifyResponse {
  */
 export async function getPublicGiveaway(giveawayId: string): Promise<PublicGiveawayResponse> {
   const response = await fetch(`${API_URL}/giveaways/${giveawayId}/public`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  return response.json();
+}
+
+/**
+ * Получить розыгрыш по shortCode (для deep links)
+ */
+export interface GiveawayByCodeResponse {
+  ok: boolean;
+  giveaway?: {
+    id: string;
+    shortCode: string;
+    title: string;
+    status: string;
+    type: string;
+    startAt: string | null;
+    endAt: string | null;
+    isPublicInCatalog: boolean;
+  };
+  error?: string;
+}
+
+export async function getGiveawayByShortCode(shortCode: string): Promise<GiveawayByCodeResponse> {
+  const response = await fetch(`${API_URL}/giveaways/by-code/${shortCode}`, {
     method: 'GET',
     credentials: 'include',
   });

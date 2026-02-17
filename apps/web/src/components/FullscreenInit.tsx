@@ -15,10 +15,17 @@ interface TelegramWebApp {
   exitFullscreen?: () => void;
   isFullscreen?: boolean;
   expand?: () => void;
+  ready?: () => void;
   safeAreaInset?: SafeAreaInset;
   contentSafeAreaInset?: SafeAreaInset;
   onEvent?: (event: string, callback: () => void) => void;
   offEvent?: (event: string, callback: () => void) => void;
+  headerColor?: string;
+  backgroundColor?: string;
+  setHeaderColor?: (color: string) => void;
+  setBackgroundColor?: (color: string) => void;
+  enableClosingConfirmation?: () => void;
+  disableClosingConfirmation?: () => void;
 }
 
 /**
@@ -71,6 +78,28 @@ export function FullscreenInit() {
       } catch (err) {
         console.warn('Fullscreen not supported:', err);
       }
+    }
+
+    // Установить брендовые цвета
+    try {
+      if (tg.setHeaderColor) {
+        tg.setHeaderColor('#f2b6b6');
+      } else if (tg.headerColor !== undefined) {
+        tg.headerColor = '#f2b6b6';
+      }
+
+      if (tg.setBackgroundColor) {
+        tg.setBackgroundColor('#ffffff');
+      } else if (tg.backgroundColor !== undefined) {
+        tg.backgroundColor = '#ffffff';
+      }
+    } catch (err) {
+      console.debug('Color setting not supported:', err);
+    }
+
+    // Сигнал готовности
+    if (tg.ready) {
+      tg.ready();
     }
 
     // Установить начальные значения Safe Area

@@ -16,6 +16,8 @@ import { draftsRoutes } from './routes/drafts.js';
 import { channelsRoutes } from './routes/channels.js';
 import { postTemplatesRoutes } from './routes/post-templates.js';
 import { giveawaysRoutes } from './routes/giveaways.js';
+import { giveawayByShortCodeRoutes } from './routes/giveaway-by-code.js';
+import { initRoutes } from './routes/init.js';
 import { internalRoutes } from './routes/internal.js';
 import { participationRoutes } from './routes/participation.js';
 import { lifecycleRoutes } from './routes/lifecycle.js';
@@ -135,7 +137,9 @@ async function main() {
         await instance.register(draftsRoutes);
         await instance.register(channelsRoutes);
         await instance.register(postTemplatesRoutes);
+        await instance.register(initRoutes);
         await instance.register(giveawaysRoutes);
+        await instance.register(giveawayByShortCodeRoutes, { prefix: '/giveaways' });
         await instance.register(participationRoutes);
         await instance.register(lifecycleRoutes);
         await instance.register(catalogRoutes);

@@ -192,6 +192,7 @@ model PostTemplate {
 
 model Giveaway {
   id                  String             @id @default(uuid())
+  shortCode           String?            @unique // 8-char code for deep links (nanoid)
   ownerUserId         String
   owner               User               @relation(fields: [ownerUserId], references: [id])
   title               String             @default("")
@@ -227,7 +228,6 @@ model Giveaway {
   mascotId              String? // FK → Mascot (nullable)
   mascot                Mascot?   @relation(fields: [mascotId], references: [id])
   promotionEnabled      Boolean   @default(false)
-  shortCode             String?   @unique // nanoid 8 chars для отображения вместо UUID
   catalogApproved       Boolean   @default(false)
   catalogApprovedAt     DateTime?
   catalogRejectedReason String?

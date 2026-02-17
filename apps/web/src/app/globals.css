@@ -3,14 +3,22 @@
 @tailwind utilities;
 
 :root {
+  /* Brand Colors */
+  --brand-primary: #f2b6b6;
+  --brand-primary-hover: #e69999;
+  --brand-primary-light: #fef2f2;
+  --brand-primary-dark: #d97777;
+  
   /* Telegram Theme Colors */
   --tg-theme-bg-color: #ffffff;
   --tg-theme-text-color: #000000;
   --tg-theme-hint-color: #999999;
-  --tg-theme-link-color: #2481cc;
-  --tg-theme-button-color: #2481cc;
+  --tg-theme-link-color: #f2b6b6;
+  --tg-theme-button-color: #f2b6b6;
   --tg-theme-button-text-color: #ffffff;
-  --tg-theme-secondary-bg-color: #f0f0f0;
+  --tg-theme-secondary-bg-color: #f7f7f7;
+  --tg-theme-header-bg-color: #f2b6b6;
+  --tg-theme-section-bg-color: #ffffff;
   
   /* Safe Area Insets (устанавливаются через FullscreenInit.tsx) */
   --tg-safe-area-top: 0px;
@@ -21,6 +29,17 @@
   --tg-content-safe-area-bottom: 0px;
   --tg-header-height: 16px;
   --tg-footer-height: 16px;
+  
+  /* Dark theme overrides (set by Telegram) */
+  &[data-theme='dark'] {
+    --tg-theme-bg-color: #17212b;
+    --tg-theme-text-color: #ffffff;
+    --tg-theme-hint-color: #708499;
+    --tg-theme-link-color: #f2b6b6;
+    --tg-theme-button-color: #f2b6b6;
+    --tg-theme-secondary-bg-color: #232e3c;
+    --tg-theme-header-bg-color: #17212b;
+  }
 }
 
 body {

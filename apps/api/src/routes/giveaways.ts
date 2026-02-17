@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { prisma, GiveawayStatus, GiveawayType, LanguageCode, PublishResultsMode, CaptchaMode } from '@randombeast/database';
 import type { GiveawayDraftPayload } from '@randombeast/shared';
-import { ErrorCode } from '@randombeast/shared';
+import { ErrorCode, generateShortCode } from '@randombeast/shared';
 import { requireUser } from '../plugins/auth.js';
 import { createAuditLog, AuditAction, AuditEntityType } from '../lib/audit.js';
 
@@ -744,6 +744,7 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
     const newGiveaway = await prisma.giveaway.create({
       data: {
         ownerUserId: user.id,
+        shortCode: generateShortCode(),
         status: GiveawayStatus.DRAFT,
         title: `${original.title} (копия)`,
         language: original.language,
