@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import type { TelegramWebApp } from '@/types/telegram';
 
 /**
  * Hook для работы с Telegram WebApp BackButton
@@ -26,19 +27,19 @@ export function useBackButton(onBack?: () => void) {
   const callbackRef = useRef<(() => void) | null>(null);
 
   const show = useCallback(() => {
-    const tg = window.Telegram?.WebApp;
+    const tg = window.Telegram?.WebApp as TelegramWebApp | undefined;
     if (!tg?.BackButton) return;
     tg.BackButton.show();
   }, []);
 
   const hide = useCallback(() => {
-    const tg = window.Telegram?.WebApp;
+    const tg = window.Telegram?.WebApp as TelegramWebApp | undefined;
     if (!tg?.BackButton) return;
     tg.BackButton.hide();
   }, []);
 
   useEffect(() => {
-    const tg = window.Telegram?.WebApp;
+    const tg = window.Telegram?.WebApp as TelegramWebApp | undefined;
     if (!tg?.BackButton) return;
 
     const handleBack = onBack || (() => router.back());

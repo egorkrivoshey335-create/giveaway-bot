@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
+import type { TelegramWebApp } from '@/types/telegram';
 
 type ImpactStyle = 'light' | 'medium' | 'heavy' | 'rigid' | 'soft';
 type NotificationStyle = 'error' | 'success' | 'warning';
@@ -22,7 +23,7 @@ type NotificationStyle = 'error' | 'success' | 'warning';
  */
 export function useHaptic() {
   const impactOccurred = useCallback((style: ImpactStyle = 'medium') => {
-    const tg = window.Telegram?.WebApp as any; // TODO: fix types
+    const tg = window.Telegram?.WebApp as TelegramWebApp | undefined;
     if (!tg?.HapticFeedback) return;
     
     try {
@@ -34,7 +35,7 @@ export function useHaptic() {
   }, []);
 
   const notificationOccurred = useCallback((style: NotificationStyle) => {
-    const tg = window.Telegram?.WebApp as any; // TODO: fix types
+    const tg = window.Telegram?.WebApp as TelegramWebApp | undefined;
     if (!tg?.HapticFeedback) return;
     
     try {
@@ -45,7 +46,7 @@ export function useHaptic() {
   }, []);
 
   const selectionChanged = useCallback(() => {
-    const tg = window.Telegram?.WebApp as any; // TODO: fix types
+    const tg = window.Telegram?.WebApp as TelegramWebApp | undefined;
     if (!tg?.HapticFeedback) return;
     
     try {

@@ -32,13 +32,14 @@ Sentry.init({
 
     // Добавляем контекст Telegram
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-      const tg = window.Telegram.WebApp as any; // TODO: fix types
+      const tg = window.Telegram.WebApp;
       event.contexts = {
         ...event.contexts,
         telegram: {
           initData: !!tg.initData,
-          platform: tg.platform,
-          version: tg.version,
+          platform: tg.platform || 'unknown',
+          version: tg.version || 'unknown',
+          colorScheme: tg.colorScheme || 'unknown',
         },
       };
     }

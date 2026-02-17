@@ -1,18 +1,27 @@
 'use client';
 
 import { ButtonHTMLAttributes, forwardRef } from 'react';
+import { motion, HTMLMotionProps } from 'framer-motion';
 
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+// Исключаем конфликтующие props между React и Framer Motion
+type MotionButtonProps = Omit<
+  HTMLMotionProps<'button'>,
+  'onAnimationStart' | 'onDragStart' | 'onDragEnd' | 'onDrag'
+>;
+
+export interface ButtonProps extends Omit<MotionButtonProps, 'children'> {
   variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
   fullWidth?: boolean;
+  children?: React.ReactNode;
 }
 
 /**
  * Универсальная кнопка с поддержкой вариантов, размеров, иконок и loading state
+ * Использует Framer Motion для плавных анимаций
  * 
  * @example
  * ```tsx
@@ -41,7 +50,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    const baseStyles = 'inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+    const baseStyles = 'inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
 
     const variantStyles = {
       primary: 'bg-brand text-white hover:bg-brand-600 active:bg-brand-700 focus:ring-brand-400',
@@ -66,10 +75,17 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const widthStyle = fullWidth ? 'w-full' : '';
 
     return (
-      <button
+      <motion.button
         ref={ref}
         className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${widthStyle} ${className}`}
         disabled={disabled || loading}
+        whileTap={disabled || loading ? undefined : { scale: 0.98 }}
+        whileHover={disabled || loading ? undefined : { scale: 1.02 }}
+        transition={{
+          type: 'spring',
+          stiffness: 400,
+          damping: 17,
+        }}
         {...props}
       >
         {loading && (
@@ -101,7 +117,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {!loading && icon && iconPosition === 'right' && (
           <span className={`${iconSizeStyles[size]} ml-2`}>{icon}</span>
         )}
-      </button>
+      </motion.button>
     );
   }
 );

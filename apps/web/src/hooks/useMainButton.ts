@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useCallback, useRef } from 'react';
+import type { TelegramWebApp } from '@/types/telegram';
 
 interface MainButtonParams {
   text: string;
@@ -30,7 +31,7 @@ export function useMainButton() {
   const callbackRef = useRef<(() => void) | null>(null);
 
   const show = useCallback((text: string, onClick: () => void, params?: Partial<MainButtonParams>) => {
-    const tg = window.Telegram?.WebApp;
+    const tg = window.Telegram?.WebApp as TelegramWebApp | undefined;
     if (!tg?.MainButton) return;
 
     callbackRef.current = onClick;
@@ -53,7 +54,7 @@ export function useMainButton() {
   }, []);
 
   const hide = useCallback(() => {
-    const tg = window.Telegram?.WebApp;
+    const tg = window.Telegram?.WebApp as TelegramWebApp | undefined;
     if (!tg?.MainButton) return;
 
     if (callbackRef.current) {
@@ -65,31 +66,31 @@ export function useMainButton() {
   }, []);
 
   const showProgress = useCallback((leaveActive = true) => {
-    const tg = window.Telegram?.WebApp;
+    const tg = window.Telegram?.WebApp as TelegramWebApp | undefined;
     if (!tg?.MainButton) return;
     tg.MainButton.showProgress(leaveActive);
   }, []);
 
   const hideProgress = useCallback(() => {
-    const tg = window.Telegram?.WebApp;
+    const tg = window.Telegram?.WebApp as TelegramWebApp | undefined;
     if (!tg?.MainButton) return;
     tg.MainButton.hideProgress();
   }, []);
 
   const setText = useCallback((text: string) => {
-    const tg = window.Telegram?.WebApp;
+    const tg = window.Telegram?.WebApp as TelegramWebApp | undefined;
     if (!tg?.MainButton) return;
     tg.MainButton.setText(text);
   }, []);
 
   const enable = useCallback(() => {
-    const tg = window.Telegram?.WebApp;
+    const tg = window.Telegram?.WebApp as TelegramWebApp | undefined;
     if (!tg?.MainButton) return;
     tg.MainButton.enable();
   }, []);
 
   const disable = useCallback(() => {
-    const tg = window.Telegram?.WebApp;
+    const tg = window.Telegram?.WebApp as TelegramWebApp | undefined;
     if (!tg?.MainButton) return;
     tg.MainButton.disable();
   }, []);

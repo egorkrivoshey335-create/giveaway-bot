@@ -141,8 +141,8 @@ export function handle401Error() {
   });
 
   // Показать уведомление
-  const tg = window.Telegram?.WebApp as any; // TODO: fix types
-  if (tg?.showAlert) {
+  const tg = window.Telegram?.WebApp;
+  if (tg && 'showAlert' in tg && typeof tg.showAlert === 'function') {
     tg.showAlert('Сессия истекла. Перезапустите приложение.');
   }
 
