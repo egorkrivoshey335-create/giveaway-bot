@@ -433,6 +433,17 @@ export interface RequiredSubscription {
 }
 
 /** Публичная информация о розыгрыше */
+export interface CustomTask {
+  id: string;
+  title: string;
+  description: string | null;
+  linkUrl: string;
+  isRequired: boolean;
+  bonusTickets: number;
+  orderIndex: number;
+  createdAt: string;
+}
+
 export interface PublicGiveaway {
   id: string;
   title: string;
@@ -441,6 +452,7 @@ export interface PublicGiveaway {
   winnersCount: number;
   participantsCount: number;
   buttonText: string;
+  mascotType?: string;
   postTemplate: {
     text: string;
     mediaType: 'NONE' | 'PHOTO' | 'VIDEO';
@@ -452,6 +464,7 @@ export interface PublicGiveaway {
     inviteMax: number;
     boostEnabled: boolean;
     storiesEnabled: boolean;
+    customTasks?: CustomTask[];
   };
 }
 
@@ -651,6 +664,10 @@ interface GiveawayWinnersResponse {
   winners?: WinnerInfo[];
   totalParticipants?: number;
   finishedAt?: string;
+  prizeDeliveryMethod?: 'BOT_MESSAGE' | 'FORM' | 'DESCRIPTION' | null;
+  prizeDescription?: string | null;
+  mascotType?: string | null;
+  creatorUsername?: string | null;
   message?: string;
   error?: string;
 }
@@ -1426,6 +1443,183 @@ export async function checkPaymentStatus(
   purchaseId: string
 ): Promise<PaymentStatusResponse> {
   const response = await fetch(`${API_URL}/payments/status/${purchaseId}`, {
+    credentials: 'include',
+  });
+
+  return response.json();
+}
+
+// =============================================================================
+// Custom Tasks API
+// =============================================================================
+
+interface CustomTasksResponse {
+  ok: boolean;
+  tasks?: CustomTask[];
+  error?: string;
+}
+
+/**
+ * Получить кастомные задания розыгрыша
+ */
+export async function getCustomTasks(
+  giveawayId: string
+): Promise<CustomTasksResponse> {
+  const response = await fetch(`${API_URL}/custom-tasks/giveaway/${giveawayId}`, {
+    credentials: 'include',
+  });
+
+  return response.json();
+}
+
+interface CompleteCustomTaskResponse {
+  ok: boolean;
+  completed?: boolean;
+  error?: string;
+}
+
+/**
+ * Отметить кастомное задание как выполненное
+ */
+export async function completeCustomTask(
+  giveawayId: string,
+  taskId: string
+): Promise<CompleteCustomTaskResponse> {
+  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/custom-tasks/${taskId}/complete`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+  });
+
+  return response.json();
+}
+
+interface CustomTaskCompletionStatus {
+  taskId: string;
+  completed: boolean;
+  completedAt: string | null;
+}
+
+interface CustomTaskCompletionsResponse {
+  ok: boolean;
+  completions?: CustomTaskCompletionStatus[];
+  error?: string;
+}
+
+/**
+ * Получить статус выполнения кастомных заданий участником
+ */
+export async function getMyCustomTaskCompletions(
+  giveawayId: string
+): Promise<CustomTaskCompletionsResponse> {
+  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/my-custom-tasks`, {
+    credentials: 'include',
+  });
+
+  return response.json();
+}
+
+// === Трекинг-ссылки ===
+
+export interface TrackingLink {
+  id: string;
+  tag: string;
+  url: string;
+  clicks: number;
+  joins: number;
+  createdAt: string;
+}
+
+interface TrackingLinksResponse {
+  ok: boolean;
+  items?: TrackingLink[];
+  error?: string;
+}
+
+interface CreateTrackingLinkResponse {
+  ok: boolean;
+  id?: string;
+  tag?: string;
+  url?: string;
+  clicks?: number;
+  joins?: number;
+  createdAt?: string;
+  error?: string;
+}
+
+/**
+ * Получить список трекинг-ссылок розыгрыша
+ */
+export async function getTrackingLinks(giveawayId: string): Promise<TrackingLinksResponse> {
+  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/tracking-links`, {
+    credentials: 'include',
+  });
+
+  return response.json();
+}
+
+/**
+ * Создать трекинг-ссылку
+ */
+export async function createTrackingLink(
+  giveawayId: string,
+  tag: string
+): Promise<CreateTrackingLinkResponse> {
+  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/tracking-links`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ tag }),
+    credentials: 'include',
+  });
+
+  return response.json();
+}
+
+/**
+ * Запустить розыгрыш (SCHEDULED → ACTIVE)
+ */
+export async function startGiveaway(giveawayId: string): Promise<{ok: boolean; error?: string}> {
+  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/start`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+
+  return response.json();
+}
+
+/**
+ * Отменить розыгрыш
+ */
+export async function cancelGiveaway(giveawayId: string): Promise<{ok: boolean; error?: string}> {
+  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/cancel`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+
+  return response.json();
+}
+
+/**
+ * Повторить ошибку (для статуса ERROR)
+ */
+export async function retryGiveaway(giveawayId: string): Promise<{ok: boolean; error?: string}> {
+  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/retry`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+
+  return response.json();
+}
+
+/**
+ * Получить количество участников (для polling)
+ */
+export async function getParticipantCount(giveawayId: string): Promise<{ok: boolean; count?: number; error?: string}> {
+  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/participant-count`, {
     credentials: 'include',
   });
 

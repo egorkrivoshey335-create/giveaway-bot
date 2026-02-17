@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -8,11 +8,18 @@ import {
   getGiveawayStats,
   getGiveawayParticipants,
   duplicateGiveaway,
+  startGiveaway,
+  cancelGiveaway,
+  retryGiveaway,
+  getParticipantCount,
   GiveawayFull,
   GiveawayStats,
   GiveawayParticipant,
 } from '@/lib/api';
 import { InlineToast } from '@/components/Toast';
+import { ShareBottomSheet } from '@/components/ShareBottomSheet';
+import { StatsBottomSheet } from '@/components/StatsBottomSheet';
+import { AnimatedCounter } from '@/components/AnimatedCounter';
 
 // Берём username бота из env
 const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
@@ -28,6 +35,7 @@ function getStatusLabel(status: string, t: ReturnType<typeof useTranslations<'gi
     case 'ACTIVE': return `🟢 ${t('status.active')}`;
     case 'FINISHED': return `✅ ${t('status.finished')}`;
     case 'CANCELLED': return `❌ ${t('status.cancelled')}`;
+    case 'ERROR': return `⚠️ ${t('status.error')}`;
     default: return status;
   }
 }
@@ -48,9 +56,15 @@ function formatDate(dateStr: string | null): string {
 // Компонент карточки статистики
 function StatCard({ icon, label, value, subValue }: { icon: string; label: string; value: number | string; subValue?: string }) {
   return (
-    <div className="bg-tg-secondary rounded-lg p-4 text-center">
+    <div className="bg-tg-secondary rounded-lg p-4 text-center transition-all duration-300 hover:scale-105">
       <div className="text-2xl mb-1">{icon}</div>
-      <div className="text-2xl font-bold">{value}</div>
+      <div className="text-2xl font-bold">
+        {typeof value === 'number' ? (
+          <AnimatedCounter value={value} />
+        ) : (
+          value
+        )}
+      </div>
       <div className="text-xs text-tg-hint">{label}</div>
       {subValue && <div className="text-xs text-green-500 mt-1">{subValue}</div>}
     </div>
@@ -74,6 +88,18 @@ export default function GiveawayDetailsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [message, setMessage] = useState<string | null>(null);
+
+  // BottomSheet states
+  const [showShareSheet, setShowShareSheet] = useState(false);
+  const [showStatsSheet, setShowStatsSheet] = useState(false);
+
+  // Модалки
+  const [showStartModal, setShowStartModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+
+  // Polling
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Загрузка данных розыгрыша
   const loadGiveaway = useCallback(async () => {
@@ -127,6 +153,33 @@ export default function GiveawayDetailsPage() {
     }
   }, [activeTab, searchQuery, loadParticipants]);
 
+  // Polling участников для активных розыгрышей
+  useEffect(() => {
+    if (!giveaway || giveaway.status !== 'ACTIVE') {
+      return;
+    }
+
+    // Обновляем счётчик каждые 10 секунд
+    const pollParticipantCount = async () => {
+      try {
+        const res = await getParticipantCount(giveawayId);
+        if (res.ok && res.count !== undefined) {
+          setGiveaway(prev => prev ? { ...prev, participantsCount: res.count! } : null);
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+    };
+
+    pollingIntervalRef.current = setInterval(pollParticipantCount, 10000);
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [giveaway?.status, giveawayId]);
+
   // Дублировать
   const handleDuplicate = async () => {
     try {
@@ -146,10 +199,64 @@ export default function GiveawayDetailsPage() {
 
   // Скопировать ссылку
   const handleCopyLink = () => {
-    const link = `https://t.me/${BOT_USERNAME}/participate?startapp=join_${giveawayId}`;
+    const link = `https://t.me/${BOT_USERNAME}/participate?startapp=join_${giveaway?.shortCode || giveawayId}`;
     navigator.clipboard.writeText(link);
     setMessage(t('linkCopied'));
     setTimeout(() => setMessage(null), 2000);
+  };
+
+  // Запустить розыгрыш
+  const handleStart = async () => {
+    setShowStartModal(false);
+    try {
+      const res = await startGiveaway(giveawayId);
+      if (res.ok) {
+        setMessage(t('started'));
+        await loadGiveaway();
+      } else {
+        setMessage(res.error || tErrors('connectionError'));
+      }
+    } catch (err) {
+      console.error('Start error:', err);
+      setMessage(tErrors('connectionError'));
+    }
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  // Отменить розыгрыш
+  const handleCancel = async () => {
+    setShowDeleteModal(false);
+    setShowMenu(false);
+    try {
+      const res = await cancelGiveaway(giveawayId);
+      if (res.ok) {
+        setMessage(t('cancelled'));
+        await loadGiveaway();
+      } else {
+        setMessage(res.error || tErrors('connectionError'));
+      }
+    } catch (err) {
+      console.error('Cancel error:', err);
+      setMessage(tErrors('connectionError'));
+    }
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  // Повторить (для ERROR)
+  const handleRetry = async () => {
+    try {
+      const res = await retryGiveaway(giveawayId);
+      if (res.ok) {
+        setMessage(t('retrying'));
+        await loadGiveaway();
+      } else {
+        setMessage(res.error || tErrors('connectionError'));
+      }
+    } catch (err) {
+      console.error('Retry error:', err);
+      setMessage(tErrors('connectionError'));
+    }
+    setTimeout(() => setMessage(null), 3000);
   };
 
   if (loading) {
@@ -202,9 +309,97 @@ export default function GiveawayDetailsPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold">{giveaway.title}</h1>
+              <p className="text-tg-hint text-sm mt-1">
+                {t('giveawayId')}: #{giveaway.shortCode || giveaway.id.slice(0, 8)}
+              </p>
               <p className="text-tg-hint mt-1">{getStatusLabel(giveaway.status, t)}</p>
             </div>
           </div>
+        </div>
+
+        {/* Управление (кнопки для SCHEDULED/PENDING_CONFIRM) */}
+        {(giveaway.status === 'SCHEDULED' || giveaway.status === 'PENDING_CONFIRM') && (
+          <div className="mb-6 flex gap-3 animate-fadeIn">
+            <button
+              onClick={() => setShowStartModal(true)}
+              className="flex-1 bg-tg-button text-tg-button-text rounded-lg px-6 py-3 font-medium transition-all hover:scale-105 active:scale-95 hover:shadow-lg"
+            >
+              🚀 {t('actions.startNow')}
+            </button>
+            
+            {/* Меню с тремя точками */}
+            <div className="relative">
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="bg-tg-secondary text-tg-text rounded-lg px-4 py-3 font-medium transition-all hover:scale-105 active:scale-95"
+              >
+                ⋯
+              </button>
+              
+              {showMenu && (
+                <div className="absolute right-0 top-full mt-2 bg-tg-secondary rounded-lg shadow-lg overflow-hidden z-10 min-w-[160px] animate-slideIn">
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      // TODO: TASKS-6-payments — проверка подписки для доступа к участникам
+                      setActiveTab('participants');
+                    }}
+                    className="w-full text-left px-4 py-3 hover:bg-tg-bg transition-colors"
+                  >
+                    👥 {t('actions.viewParticipants')}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      setShowDeleteModal(true);
+                    }}
+                    className="w-full text-left px-4 py-3 hover:bg-tg-bg transition-colors text-red-500"
+                  >
+                    🗑️ {t('actions.delete')}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Управление (ERROR) */}
+        {giveaway.status === 'ERROR' && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 animate-shake">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl animate-bounce-subtle">⚠️</div>
+              <div className="flex-1">
+                <div className="font-medium text-red-900 mb-1">
+                  {t('error.title')}
+                </div>
+                <div className="text-sm text-red-700 mb-3">
+                  {t('error.description')}
+                </div>
+                <button
+                  onClick={handleRetry}
+                  className="bg-red-600 text-white rounded-lg px-4 py-2 text-sm font-medium transition-all hover:scale-105 active:scale-95 hover:shadow-lg"
+                >
+                  🔄 {t('actions.retry')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Кнопки шаринга и статистики */}
+        <div className="mb-6 flex gap-3 animate-fadeIn" style={{ animationDelay: '0.1s' }}>
+          <button
+            onClick={() => setShowShareSheet(true)}
+            className="flex-1 bg-tg-secondary text-tg-text rounded-lg px-4 py-3 font-medium transition-all hover:scale-105 active:scale-95 hover:bg-opacity-80"
+          >
+            🔗 {t('actions.share')}
+          </button>
+          <button
+            onClick={() => setShowStatsSheet(true)}
+            className="flex-1 bg-tg-secondary text-tg-text rounded-lg px-4 py-3 font-medium transition-all hover:scale-105 active:scale-95 hover:bg-opacity-80"
+          >
+            📊 {t('actions.statistics')}
+          </button>
         </div>
 
         {/* Сообщение */}
@@ -473,6 +668,92 @@ export default function GiveawayDetailsPage() {
           </div>
         )}
       </div>
+
+      {/* Модалка: Запустить сейчас */}
+      {showStartModal && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn"
+          onClick={() => setShowStartModal(false)}
+        >
+          <div 
+            className="bg-tg-bg rounded-xl p-6 max-w-md w-full animate-slideIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center mb-4">
+              <div className="text-4xl mb-3 animate-bounce">🚀</div>
+              <h3 className="font-bold text-lg mb-2">{t('startModal.title')}</h3>
+              <p className="text-tg-hint text-sm">
+                {t('startModal.description')}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowStartModal(false)}
+                className="flex-1 bg-tg-secondary text-tg-text rounded-lg px-4 py-3 font-medium transition-all hover:scale-105 active:scale-95"
+              >
+                {tCommon('cancel')}
+              </button>
+              <button
+                onClick={handleStart}
+                className="flex-1 bg-tg-button text-tg-button-text rounded-lg px-4 py-3 font-medium transition-all hover:scale-105 active:scale-95 hover:shadow-lg"
+              >
+                {tCommon('confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модалка: Удалить розыгрыш */}
+      {showDeleteModal && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn"
+          onClick={() => setShowDeleteModal(false)}
+        >
+          <div 
+            className="bg-tg-bg rounded-xl p-6 max-w-md w-full animate-slideIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center mb-4">
+              <div className="text-4xl mb-3 animate-shake">🗑️</div>
+              <h3 className="font-bold text-lg mb-2">{t('deleteModal.title')}</h3>
+              <p className="text-tg-hint text-sm">
+                {t('deleteModal.description')}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 bg-tg-secondary text-tg-text rounded-lg px-4 py-3 font-medium transition-all hover:scale-105 active:scale-95"
+              >
+                {tCommon('cancel')}
+              </button>
+              <button
+                onClick={handleCancel}
+                className="flex-1 bg-red-600 text-white rounded-lg px-4 py-3 font-medium transition-all hover:scale-105 active:scale-95 hover:shadow-lg"
+              >
+                {tCommon('delete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BottomSheet: Поделиться */}
+      <ShareBottomSheet
+        isOpen={showShareSheet}
+        onClose={() => setShowShareSheet(false)}
+        giveawayId={giveawayId}
+        shortCode={giveaway.shortCode}
+        botUsername={BOT_USERNAME}
+      />
+
+      {/* BottomSheet: Статистика */}
+      <StatsBottomSheet
+        isOpen={showStatsSheet}
+        onClose={() => setShowStatsSheet(false)}
+        giveawayId={giveawayId}
+      />
     </main>
   );
 }
