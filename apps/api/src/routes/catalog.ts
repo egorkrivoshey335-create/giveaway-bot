@@ -75,17 +75,17 @@ export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * GET /catalog
    * Список публичных розыгрышей в каталоге
+   * 🔒 ИСПРАВЛЕНО (2026-02-16): Cursor-based pagination вместо offset
    */
   fastify.get<{
     Querystring: {
       limit?: string;
-      offset?: string;
+      cursor?: string; // ID последнего элемента предыдущей страницы
     };
   }>('/catalog', async (request, reply) => {
     const user = await getUser(request);
-    const { limit = '20', offset = '0' } = request.query;
-    const limitNum = Math.min(50, Math.max(1, parseInt(limit) || 20));
-    const offsetNum = Math.max(0, parseInt(offset) || 0);
+    const { limit: limitStr, cursor } = request.query;
+    const limitNum = Math.min(parseInt(limitStr || '20', 10), 100);
 
     // Проверяем доступ (если авторизован)
     let hasAccess = false;
@@ -94,29 +94,22 @@ export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
       hasAccess = access.hasAccess;
     }
 
-    // Общее количество розыгрышей в каталоге
-    const total = await prisma.giveaway.count({
-      where: {
-        status: GiveawayStatus.ACTIVE,
-        isPublicInCatalog: true,
-      },
-    });
-
     // Если нет доступа — показываем только PREVIEW_COUNT
     const effectiveLimit = hasAccess ? limitNum : PREVIEW_COUNT;
-    const effectiveOffset = hasAccess ? offsetNum : 0;
 
-    // Получаем розыгрыши
+    // 🔒 Cursor-based pagination: WHERE id > cursor
     const giveaways = await prisma.giveaway.findMany({
       where: {
         status: GiveawayStatus.ACTIVE,
         isPublicInCatalog: true,
+        ...(cursor ? { id: { gt: cursor } } : {}), // Курсор: ID > последний элемент
       },
       select: {
         id: true,
         title: true,
         winnersCount: true,
         endAt: true,
+        totalParticipants: true,
         _count: {
           select: { participations: true },
         },
@@ -135,15 +128,29 @@ export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
         },
       },
       orderBy: [
-        { totalParticipants: 'desc' }, // Популярные сверху
-        { createdAt: 'desc' },
+        { totalParticipants: 'desc' },
+        { id: 'asc' }, // Для стабильности курсора
       ],
-      take: effectiveLimit,
-      skip: effectiveOffset,
+      take: effectiveLimit + 1, // +1 для определения hasMore
+    });
+
+    // Проверяем есть ли ещё элементы
+    const hasMore = giveaways.length > effectiveLimit;
+    const items = hasMore ? giveaways.slice(0, effectiveLimit) : giveaways;
+
+    // Следующий курсор = ID последнего элемента
+    const nextCursor = items.length > 0 ? items[items.length - 1].id : null;
+
+    // Общее количество (для UI)
+    const total = await prisma.giveaway.count({
+      where: {
+        status: GiveawayStatus.ACTIVE,
+        isPublicInCatalog: true,
+      },
     });
 
     // Формируем ответ
-    const result = giveaways.map(g => {
+    const result = items.map(g => {
       const channel = g.publishChannels[0]?.channel;
       return {
         id: g.id,
@@ -162,12 +169,17 @@ export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
       };
     });
 
-    return reply.success({ hasAccess,
+    return reply.success({
+      hasAccess,
       giveaways: result,
-      total,
+      pagination: {
+        cursor: nextCursor,
+        hasMore,
+        total,
+      },
       previewCount: PREVIEW_COUNT,
       subscriptionPrice: SUBSCRIPTION_PRICE,
-      hasMore: hasAccess && (offsetNum + limitNum) < total });
+    });
   });
 
   /**
