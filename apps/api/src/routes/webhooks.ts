@@ -10,6 +10,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { ErrorCode } from '@randombeast/shared';
 import { config } from '../config.js';
+import crypto from 'crypto';
 
 // Schemas
 const telegramUpdateSchema = z.object({
@@ -30,6 +31,22 @@ const telegramUpdateSchema = z.object({
   }).optional(),
   // ... другие поля telegram update
 }).passthrough(); // Allow additional fields
+
+/**
+ * Проверка подписи YooKassa webhook
+ * @see https://yookassa.ru/developers/using-api/webhooks#notification-auth
+ */
+function verifyYooKassaSignature(body: string, signature: string, secret: string): boolean {
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(body)
+    .digest('hex');
+  
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
 
 export const webhooksRoutes: FastifyPluginAsync = async (fastify) => {
   /**
@@ -64,20 +81,50 @@ export const webhooksRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * POST /webhooks/yookassa
    * Webhook endpoint для YooKassa payment notifications
+   * 🔒 ИСПРАВЛЕНО (2026-02-16): Signature verification добавлена
    * 
    * YooKassa отправляет уведомления о статусе платежей.
    */
   fastify.post('/webhooks/yookassa', async (request, reply) => {
-    // TODO: Проверить подпись YooKassa webhook
+    // 🔒 Проверяем подпись YooKassa webhook
     const webhookSecret = config.yookassa?.webhookSecret;
     if (!webhookSecret) {
       fastify.log.warn('YooKassa webhook secret not configured');
       return reply.error(ErrorCode.INTERNAL_ERROR, 'Webhook not configured');
     }
 
+    // Получаем подпись из заголовка
+    const signature = request.headers['x-yookassa-signature'] as string | undefined;
+    if (!signature) {
+      fastify.log.warn('Missing YooKassa signature header');
+      return reply.status(401).send({
+        success: false,
+        error: {
+          code: 'MISSING_SIGNATURE',
+          message: 'Missing signature header',
+        },
+      });
+    }
+
+    // Получаем raw body для проверки подписи
+    const rawBody = JSON.stringify(request.body);
+    
+    // 🔒 Проверяем подпись
+    const isValid = verifyYooKassaSignature(rawBody, signature, webhookSecret);
+    if (!isValid) {
+      fastify.log.warn({ signature }, 'Invalid YooKassa signature');
+      return reply.status(401).send({
+        success: false,
+        error: {
+          code: 'INVALID_SIGNATURE',
+          message: 'Invalid webhook signature',
+        },
+      });
+    }
+
     // TODO: Валидировать и обработать payment notification
     // Для MVP просто логируем
-    fastify.log.info({ body: request.body }, 'YooKassa webhook received');
+    fastify.log.info({ body: request.body }, 'YooKassa webhook received and verified');
 
     // YooKassa ожидает 200 OK
     return reply.success({ ok: true });
