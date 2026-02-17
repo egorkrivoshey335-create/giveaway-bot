@@ -4,6 +4,11 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { syncLocaleFromDb } from '@/hooks/useLocale';
+import { CountdownTimer } from '@/components/ui/CountdownTimer';
+import { ConfettiOverlay } from '@/components/ui/ConfettiOverlay';
+import { Mascot } from '@/components/Mascot';
+import { BottomSheet } from '@/components/ui/BottomSheet';
+import { Tabs } from '@/components/ui/Tabs';
 import {
   getPublicGiveaway,
   checkSubscription,
@@ -18,11 +23,15 @@ import {
   verifyBoost,
   submitStory,
   getMyStoryRequest,
+  getCustomTasks,
+  completeCustomTask,
+  getMyCustomTaskCompletions,
   PublicGiveaway,
   Participation,
   InvitedFriend,
   BoostChannel,
   StoryRequestStatus,
+  CustomTask,
 } from '@/lib/api';
 
 // Состояния экрана
@@ -34,8 +43,10 @@ type ScreenState =
   | 'captcha'
   | 'success'
   | 'already_joined'
-  | 'error'
-  | 'finished';
+  | 'finished'
+  | 'scheduled'
+  | 'cancelled'
+  | 'error';
 
 // Название бота для ссылок
 const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
@@ -118,6 +129,18 @@ export default function JoinGiveawayPage() {
   const [showStoriesInstructions, setShowStoriesInstructions] = useState(false);
   const [storyLinkCopied, setStoryLinkCopied] = useState(false);
 
+  // Анимации
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  // BottomSheet для "Увеличить шансы"
+  const [showExtrasSheet, setShowExtrasSheet] = useState(false);
+  const [activeExtrasTab, setActiveExtrasTab] = useState<'invites' | 'boosts' | 'stories' | 'tasks'>('invites');
+
+  // Кастомные задания
+  const [customTasks, setCustomTasks] = useState<CustomTask[]>([]);
+  const [customTaskCompletions, setCustomTaskCompletions] = useState<Map<string, boolean>>(new Map());
+  const [completingTask, setCompletingTask] = useState<string | null>(null);
+
   // Авторизация и загрузка данных
   useEffect(() => {
     async function init() {
@@ -172,6 +195,16 @@ export default function JoinGiveawayPage() {
         // Проверяем статус
         if (res.giveaway.status === 'FINISHED') {
           setScreen('finished');
+          return;
+        }
+
+        if (res.giveaway.status === 'SCHEDULED') {
+          setScreen('scheduled');
+          return;
+        }
+
+        if (res.giveaway.status === 'CANCELLED') {
+          setScreen('cancelled');
           return;
         }
 
@@ -297,6 +330,59 @@ export default function JoinGiveawayPage() {
       console.error('Failed to load story request status:', err);
     }
   }, [giveawayId]);
+
+  // Загрузить кастомные задания
+  const loadCustomTasks = useCallback(async () => {
+    try {
+      const [tasksRes, completionsRes] = await Promise.all([
+        getCustomTasks(giveawayId),
+        getMyCustomTaskCompletions(giveawayId),
+      ]);
+
+      if (tasksRes.ok && tasksRes.tasks) {
+        setCustomTasks(tasksRes.tasks);
+      }
+
+      if (completionsRes.ok && completionsRes.completions) {
+        const completionsMap = new Map<string, boolean>();
+        completionsRes.completions.forEach((c) => {
+          completionsMap.set(c.taskId, c.completed);
+        });
+        setCustomTaskCompletions(completionsMap);
+      }
+    } catch (err) {
+      console.error('Failed to load custom tasks:', err);
+    }
+  }, [giveawayId]);
+
+  // Выполнить кастомное задание
+  const handleCompleteCustomTask = useCallback(async (taskId: string, linkUrl: string) => {
+    // Открываем ссылку
+    if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
+      (window as any).Telegram.WebApp.openLink(linkUrl);
+    } else {
+      window.open(linkUrl, '_blank');
+    }
+
+    // Отмечаем задание как выполненное
+    setCompletingTask(taskId);
+    try {
+      const res = await completeCustomTask(giveawayId, taskId);
+      if (res.ok && res.completed) {
+        setCustomTaskCompletions((prev) => {
+          const next = new Map(prev);
+          next.set(taskId, true);
+          return next;
+        });
+        // Обновляем данные участия
+        await loadCustomTasks();
+      }
+    } catch (err) {
+      console.error('Failed to complete custom task:', err);
+    } finally {
+      setCompletingTask(null);
+    }
+  }, [giveawayId, loadCustomTasks]);
 
   // Получить ссылку для сторис
   const getStoryLink = useCallback(() => {
@@ -428,9 +514,11 @@ export default function JoinGiveawayPage() {
 
       if (res.ok && res.participation) {
         setParticipation(res.participation);
-        // Загружаем реферальные данные и бусты
-        await Promise.all([loadReferralData(), loadBoostData(), loadStoryRequestStatus()]);
+        // Загружаем реферальные данные, бусты и кастомные задания
+        await Promise.all([loadReferralData(), loadBoostData(), loadStoryRequestStatus(), loadCustomTasks()]);
         setScreen('success');
+        // Запускаем конфетти при успешном участии
+        setShowConfetti(true);
       } else if (res.code === 'SUBSCRIPTION_REQUIRED') {
         setError(res.error || tErrors('subscriptionRequired'));
         setScreen('check_subscription');
@@ -446,7 +534,7 @@ export default function JoinGiveawayPage() {
     } finally {
       setJoining(false);
     }
-  }, [giveawayId, captchaPassed, referrerUserId, loadCaptcha, loadReferralData, loadBoostData, loadStoryRequestStatus, tErrors]);
+  }, [giveawayId, captchaPassed, referrerUserId, loadCaptcha, loadReferralData, loadBoostData, loadStoryRequestStatus, loadCustomTasks, tErrors]);
 
   // Начать участие (кнопка)
   const handleStartParticipation = useCallback(() => {
@@ -566,6 +654,113 @@ export default function JoinGiveawayPage() {
             className="bg-tg-secondary text-tg-text rounded-lg px-6 py-3"
           >
             {t('finished.goHome')}
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  // Розыгрыш ещё не начался (SCHEDULED)
+  if (screen === 'scheduled' && giveaway) {
+    const startDate = giveaway.startAt ? new Date(giveaway.startAt) : null;
+    
+    return (
+      <main className="min-h-screen p-4 flex items-center justify-center">
+        <div className="max-w-md w-full text-center">
+          {/* Маскот ожидания */}
+          {giveaway.mascotType && (
+            <div className="mb-4 flex justify-center">
+              <Mascot 
+                type={giveaway.mascotType as any} 
+                size={120}
+                className="mx-auto"
+              />
+            </div>
+          )}
+          
+          <div className="text-6xl mb-4">⏳</div>
+          <h1 className="text-xl font-bold mb-2">{t('scheduled.title')}</h1>
+          <p className="text-tg-hint mb-4">
+            {giveaway.title}
+          </p>
+          
+          {/* Дата начала */}
+          {startDate && (
+            <div className="bg-tg-secondary rounded-xl p-4 mb-6">
+              <div className="text-sm text-tg-hint mb-2">{t('scheduled.startsAt')}</div>
+              <div className="text-lg font-semibold">
+                {startDate.toLocaleDateString('ru-RU', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </div>
+            </div>
+          )}
+          
+          <p className="text-sm text-tg-hint mb-6">
+            {t('scheduled.description')}
+          </p>
+          
+          {/* TODO: Кнопка "Напомнить" требует Block 14 (Reminders) */}
+          <button
+            onClick={() => {
+              // TODO: Интеграция с Block 14 для уведомлений
+              alert('Напоминание о начале розыгрыша будет реализовано в Block 14');
+            }}
+            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg py-3 mb-3 font-medium"
+          >
+            🔔 {t('scheduled.remindMe')}
+          </button>
+          
+          <button
+            onClick={() => router.push('/')}
+            className="w-full bg-tg-secondary text-tg-text rounded-lg py-3"
+          >
+            {t('scheduled.goHome')}
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  // Розыгрыш отменён (CANCELLED)
+  if (screen === 'cancelled' && giveaway) {
+    return (
+      <main className="min-h-screen p-4 flex items-center justify-center">
+        <div className="max-w-md w-full text-center">
+          {/* Грустный маскот */}
+          {giveaway.mascotType && (
+            <div className="mb-4 flex justify-center">
+              <Mascot 
+                type={giveaway.mascotType as any} 
+                size={120}
+                className="mx-auto"
+              />
+            </div>
+          )}
+          
+          <div className="text-6xl mb-4">❌</div>
+          <h1 className="text-xl font-bold mb-2">{t('cancelled.title')}</h1>
+          <p className="text-tg-hint mb-6">
+            {giveaway.title}
+          </p>
+          <p className="text-sm text-tg-hint mb-6">
+            {t('cancelled.description')}
+          </p>
+          <button
+            onClick={() => router.push('/catalog')}
+            className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg py-3 mb-3 font-medium"
+          >
+            🎁 {t('cancelled.moreCatalog')}
+          </button>
+          <button
+            onClick={() => router.push('/')}
+            className="w-full bg-tg-secondary text-tg-text rounded-lg py-3"
+          >
+            {t('cancelled.goHome')}
           </button>
         </div>
       </main>
@@ -748,11 +943,36 @@ export default function JoinGiveawayPage() {
   if (screen === 'success' && participation) {
     return (
       <main className="min-h-screen p-4">
+        {/* Конфетти при успешном участии */}
+        <ConfettiOverlay show={showConfetti} />
+        
         <div className="max-w-md mx-auto">
+          {/* Заголовок с маскотом и таймером */}
           <div className="text-center mb-6">
-            <div className="text-6xl mb-3">🎉</div>
-            <h1 className="text-2xl font-bold">{t('success.title')}</h1>
-            <p className="text-tg-hint mt-2">{t('success.subtitle')}</p>
+            {/* Маскот розыгрыша */}
+            {giveaway?.mascotType && (
+              <div className="mb-4 flex justify-center">
+                <Mascot 
+                  type={giveaway.mascotType as any} 
+                  size={120}
+                  className="mx-auto"
+                />
+              </div>
+            )}
+            
+            <h1 className="text-2xl font-bold mb-2">{t('success.title')}</h1>
+            <p className="text-tg-hint mb-4">{t('success.subtitle')}</p>
+            
+            {/* Таймер до окончания розыгрыша */}
+            {giveaway && (
+              <div className="bg-tg-secondary-bg rounded-xl p-4 mb-4">
+                <div className="text-sm text-tg-hint mb-2">{t('success.endsIn')}</div>
+                <CountdownTimer 
+                  endDate={giveaway.endAt} 
+                  className="text-lg font-semibold"
+                />
+              </div>
+            )}
           </div>
 
           {/* Сообщение о приглашении */}
@@ -762,55 +982,157 @@ export default function JoinGiveawayPage() {
             </div>
           )}
 
+          {/* ID розыгрыша и кнопка шаринга */}
+          <div className="bg-tg-secondary rounded-xl p-4 mb-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1">
+                <div className="text-xs text-tg-hint mb-1">{t('success.giveawayId')}</div>
+                <div className="text-sm font-mono truncate">#{giveawayId.slice(0, 8)}</div>
+              </div>
+              <button
+                onClick={() => {
+                  const shareText = `🎁 Участвуйте в розыгрыше "${giveaway.title}"!`;
+                  const shareUrl = `https://t.me/share/url?url=https://t.me/${BOT_USERNAME}/participate?startapp=join_${giveawayId}&text=${encodeURIComponent(shareText)}`;
+                  
+                  if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
+                    (window as any).Telegram.WebApp.openTelegramLink(shareUrl);
+                  } else {
+                    window.open(shareUrl, '_blank');
+                  }
+                }}
+                className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2 hover:opacity-90"
+              >
+                <span>📤</span>
+                <span>{t('success.shareGiveaway')}</span>
+              </button>
+            </div>
+          </div>
+
           {/* Билеты */}
           <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl p-6 mb-6 text-white text-center">
             <div className="text-sm opacity-80 mb-1">{t('success.yourTickets')}</div>
             <div className="text-5xl font-bold">
               {participation.ticketsBase + participation.ticketsExtra}
             </div>
-            {invitedCount > 0 && (
+            {participation.ticketsExtra > 0 && (
               <div className="text-sm opacity-80 mt-2">
+                {t('success.bonusChance', { percent: participation.ticketsExtra * 100 })}
+              </div>
+            )}
+            {invitedCount > 0 && (
+              <div className="text-xs opacity-70 mt-1">
                 {t('success.ticketsFromInvites', { count: invitedCount })}
               </div>
             )}
           </div>
 
-          {/* Увеличить шансы */}
-          {giveaway && (giveaway.conditions.inviteEnabled || giveaway.conditions.boostEnabled || giveaway.conditions.storiesEnabled) && (
-            <div className="bg-tg-secondary rounded-lg p-4 mb-6">
-              <h2 className="font-medium mb-3">🎫 {t('success.increaseChances')}:</h2>
-              <div className="space-y-3">
-                {giveaway.conditions.inviteEnabled && (
-                  <div className="p-3 bg-tg-bg rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xl">👥</span>
-                      <span className="font-medium">{t('extras.inviteFriends')}</span>
-                    </div>
-                    <p className="text-xs text-tg-hint mb-3">
+          {/* Кнопка "Увеличить шансы" */}
+          {giveaway && (giveaway.conditions.inviteEnabled || giveaway.conditions.boostEnabled || giveaway.conditions.storiesEnabled || customTasks.length > 0) && (
+            <button
+              onClick={() => {
+                setShowExtrasSheet(true);
+                // Определяем, какую вкладку открыть первой
+                if (giveaway.conditions.inviteEnabled) {
+                  setActiveExtrasTab('invites');
+                } else if (giveaway.conditions.boostEnabled) {
+                  setActiveExtrasTab('boosts');
+                } else if (giveaway.conditions.storiesEnabled) {
+                  setActiveExtrasTab('stories');
+                } else if (customTasks.length > 0) {
+                  setActiveExtrasTab('tasks');
+                }
+              }}
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl p-4 mb-6 flex items-center justify-between hover:opacity-90 transition-opacity"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">⚡️</span>
+                <div className="text-left">
+                  <div className="font-semibold">{t('success.increaseChances')}</div>
+                  <div className="text-xs opacity-80">
+                    {t('success.moreTickets')}
+                  </div>
+                </div>
+              </div>
+              {participation.ticketsExtra > 0 && (
+                <span className="bg-white/20 px-3 py-1.5 rounded-lg font-bold">
+                  +{participation.ticketsExtra * 100}%
+                </span>
+              )}
+            </button>
+          )}
+
+          {/* Bottom Sheet "Увеличить шансы" */}
+          <BottomSheet
+            isOpen={showExtrasSheet}
+            onClose={() => setShowExtrasSheet(false)}
+            title={`⚡️ ${t('success.increaseChances')}`}
+          >
+            <div className="px-4 py-3">
+              {/* Табы */}
+              <Tabs
+                variant="pills"
+                activeTab={activeExtrasTab}
+                onChange={(tabId) => setActiveExtrasTab(tabId as any)}
+                tabs={[
+                  ...(giveaway.conditions.inviteEnabled ? [{ 
+                    id: 'invites', 
+                    label: t('extras.inviteFriends'), 
+                    icon: '👥',
+                    content: null 
+                  }] : []),
+                  ...(giveaway.conditions.boostEnabled ? [{ 
+                    id: 'boosts', 
+                    label: t('extras.boostChannels'), 
+                    icon: '⚡️',
+                    content: null 
+                  }] : []),
+                  ...(giveaway.conditions.storiesEnabled ? [{ 
+                    id: 'stories', 
+                    label: t('extras.publishStory'), 
+                    icon: '📺',
+                    content: null 
+                  }] : []),
+                  ...(customTasks.length > 0 ? [{ 
+                    id: 'tasks', 
+                    label: t('extras.customTasks'), 
+                    icon: '📝',
+                    content: null 
+                  }] : []),
+                ]}
+              />
+
+              {/* Контент табов */}
+              <div className="mt-4 pb-4">
+                {/* Вкладка: Приглашения */}
+                {activeExtrasTab === 'invites' && giveaway.conditions.inviteEnabled && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-tg-hint">
                       {t('extras.inviteDescription', { current: invitedCount, max: inviteMax })}
                     </p>
                     
                     {invitedCount < inviteMax ? (
                       <>
                         {/* Реферальная ссылка */}
-                        <div className="flex gap-2 mb-2">
-                          <input
-                            type="text"
-                            readOnly
-                            value={referralLink}
-                            className="flex-1 bg-tg-secondary rounded-lg px-3 py-2 text-xs truncate"
-                          />
-                          <button
-                            onClick={handleCopyLink}
-                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                              linkCopied 
-                                ? 'bg-green-500 text-white' 
-                                : 'bg-tg-button text-tg-button-text'
-                            }`}
-                          >
-                            {linkCopied ? '✓' : '📋'}
-                          </button>
-                        </div>
+                        {referralLink && (
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              readOnly
+                              value={referralLink}
+                              className="flex-1 bg-tg-secondary rounded-lg px-3 py-2 text-xs truncate"
+                            />
+                            <button
+                              onClick={handleCopyLink}
+                              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                linkCopied 
+                                  ? 'bg-green-500 text-white' 
+                                  : 'bg-tg-button text-tg-button-text'
+                              }`}
+                            >
+                              {linkCopied ? '✓' : '📋'}
+                            </button>
+                          </div>
+                        )}
                         
                         {/* Кнопка "Поделиться в Telegram" */}
                         <button
@@ -822,7 +1144,7 @@ export default function JoinGiveawayPage() {
                         </button>
                       </>
                     ) : (
-                      <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 text-center">
+                      <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
                         <span className="text-green-600 text-sm">✅ {t('extras.inviteLimitReached')}</span>
                       </div>
                     )}
@@ -847,200 +1169,227 @@ export default function JoinGiveawayPage() {
                   </div>
                 )}
 
-                {giveaway.conditions.boostEnabled && boostChannels.length > 0 && (
-                  <div className="p-3 bg-tg-bg rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xl">⚡</span>
-                      <span className="font-medium">{t('extras.boostChannels')}</span>
-                    </div>
-                    <p className="text-xs text-tg-hint mb-3">
+                {/* Вкладка: Бусты */}
+                {activeExtrasTab === 'boosts' && giveaway.conditions.boostEnabled && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-tg-hint mb-3">
                       {t('extras.boostDescription')}
                     </p>
                     
-                    {/* Сообщение о результате */}
-                    {boostMessage && (
-                      <div className={`mb-3 p-2 rounded-lg text-sm text-center ${
-                        boostMessage.startsWith('✅') 
-                          ? 'bg-green-500/10 text-green-600' 
-                          : 'bg-yellow-500/10 text-yellow-600'
-                      }`}>
-                        {boostMessage}
-                      </div>
-                    )}
-                    
-                    {/* Список каналов для буста */}
-                    <div className="space-y-2">
-                      {boostChannels.map((channel) => (
-                        <div key={channel.id} className="bg-tg-secondary rounded-lg p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg">📣</span>
-                              <div>
-                                <div className="text-sm font-medium">{channel.title}</div>
-                                {channel.username && (
-                                  <div className="text-xs text-tg-hint">{channel.username}</div>
-                                )}
-                              </div>
-                            </div>
-                            <div className={`text-xs px-2 py-1 rounded ${
-                              channel.boosted 
-                                ? 'bg-green-500/10 text-green-600' 
-                                : 'bg-gray-500/10 text-tg-hint'
-                            }`}>
-                              {channel.boosted ? `✅ ${t('extras.boostCount', { count: channel.boostCount })}` : `❌ ${t('extras.notBoosted')}`}
-                            </div>
+                    {boostChannels.map((channel) => (
+                      <div
+                        key={channel.id}
+                        className="p-3 bg-tg-secondary rounded-lg flex items-center gap-3"
+                      >
+                        <div className="flex-1">
+                          <div className="font-medium text-sm">{channel.title}</div>
+                          <div className="text-xs text-tg-hint mt-1">
+                            {t('extras.boostCount', { count: channel.boostedCount })}
                           </div>
+                        </div>
+                        {channel.boostedCount < 10 && (
                           <div className="flex gap-2">
                             <button
-                              onClick={() => openBoostLink(channel)}
-                              disabled={!channel.username}
-                              className="flex-1 bg-[#9147ff] text-white text-xs rounded-lg py-2 font-medium disabled:opacity-50"
+                              onClick={() => openBoostLink(channel.id)}
+                              className="bg-tg-button text-tg-button-text text-xs rounded-lg px-3 py-1.5"
                             >
-                              ⚡ {t('extras.boostButton')}
+                              ⚡️ {t('extras.boostButton')}
                             </button>
                             <button
                               onClick={() => handleVerifyBoost(channel.id)}
                               disabled={verifyingBoost === channel.id}
-                              className="flex-1 bg-tg-button text-tg-button-text text-xs rounded-lg py-2 font-medium disabled:opacity-50"
+                              className="bg-green-500 text-white text-xs rounded-lg px-3 py-1.5 disabled:opacity-50"
                             >
-                              {verifyingBoost === channel.id ? '⏳...' : `🔍 ${t('extras.verifyButton')}`}
+                              {verifyingBoost === channel.id ? '⏳' : '🔍'} {t('extras.verifyButton')}
                             </button>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        )}
+                      </div>
+                    ))}
                     
-                    {ticketsFromBoosts > 0 && (
-                      <p className="text-xs text-green-600 mt-3 text-center">
-                        {t('extras.totalTicketsFromBoosts', { count: ticketsFromBoosts })}
-                      </p>
+                    {boostMessage && (
+                      <div className={`p-3 rounded-lg text-center text-sm ${
+                        boostMessage.includes('✅') 
+                          ? 'bg-green-500/10 text-green-600' 
+                          : 'bg-orange-500/10 text-orange-600'
+                      }`}>
+                        {boostMessage}
+                      </div>
                     )}
                   </div>
                 )}
 
-                {giveaway.conditions.storiesEnabled && (
-                  <div className="p-3 bg-tg-bg rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xl">📺</span>
-                      <span className="font-medium">{t('extras.publishStory')}</span>
-                    </div>
-                    <p className="text-xs text-tg-hint mb-3">
+                {/* Вкладка: Сторис */}
+                {activeExtrasTab === 'stories' && giveaway.conditions.storiesEnabled && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-tg-hint">
                       {t('extras.storyDescription')}
                     </p>
                     
-                    {/* Сообщение о результате */}
-                    {storiesMessage && (
-                      <div className={`mb-3 p-2 rounded-lg text-sm text-center ${
-                        storiesMessage.startsWith('✅') 
-                          ? 'bg-green-500/10 text-green-600' 
-                          : 'bg-yellow-500/10 text-yellow-600'
-                      }`}>
-                        {storiesMessage}
+                    {storyRequestStatus === 'APPROVED' ? (
+                      <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
+                        <span className="text-green-600">✅ {t('extras.ticketReceived')}</span>
                       </div>
-                    )}
-                    
-                    {/* Статус APPROVED — билет получен */}
-                    {storyRequestStatus === 'APPROVED' && (
-                      <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 text-center">
-                        <span className="text-green-600 text-sm">✅ {t('extras.ticketReceived')}</span>
+                    ) : storyRequestStatus === 'PENDING' ? (
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 text-center">
+                        <span className="text-orange-600">⏳ {t('extras.requestPending')}</span>
                       </div>
-                    )}
-                    
-                    {/* Статус PENDING — на проверке */}
-                    {storyRequestStatus === 'PENDING' && (
-                      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-2 text-center">
-                        <span className="text-yellow-600 text-sm">⏳ {t('extras.requestPending')}</span>
-                      </div>
-                    )}
-                    
-                    {/* Статус REJECTED — отклонено, можно отправить снова */}
-                    {storyRequestStatus === 'REJECTED' && (
-                      <div className="mb-3">
-                        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2 text-center mb-2">
-                          <span className="text-red-600 text-sm">❌ {t('extras.requestRejected')}</span>
+                    ) : storyRequestStatus === 'REJECTED' ? (
+                      <div className="space-y-2">
+                        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-center">
+                          <span className="text-red-600">❌ {t('extras.requestRejected')}</span>
                           {storyRejectReason && (
-                            <p className="text-xs text-red-500 mt-1">{storyRejectReason}</p>
+                            <p className="text-xs mt-1">{storyRejectReason}</p>
                           )}
                         </div>
                         <button
                           onClick={() => setShowStoriesInstructions(true)}
-                          className="w-full bg-gradient-to-r from-pink-500 to-orange-400 text-white text-sm rounded-lg py-2.5 font-medium"
+                          className="w-full bg-tg-button text-tg-button-text text-sm rounded-lg py-2"
                         >
-                          📤 {t('extras.resubmitStory')}
+                          {t('extras.resubmitStory')}
                         </button>
                       </div>
-                    )}
-                    
-                    {/* Нет заявки — показать кнопку */}
-                    {!storyRequestStatus && !showStoriesInstructions && (
+                    ) : (
                       <button
                         onClick={() => setShowStoriesInstructions(true)}
-                        className="w-full bg-gradient-to-r from-pink-500 to-orange-400 text-white text-sm rounded-lg py-2.5 font-medium flex items-center justify-center gap-2"
+                        className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm rounded-lg py-2.5 font-medium"
                       >
-                        <span>📤</span>
-                        <span>{t('extras.publishStory')}</span>
+                        📺 {t('extras.publishStory')}
                       </button>
                     )}
                     
-                    {/* Инструкция для публикации */}
-                    {showStoriesInstructions && !storyRequestStatus && (
-                      <div className="mt-3 space-y-3">
-                        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                          <h4 className="font-medium text-sm mb-2">📋 {t('extras.howToPublish')}:</h4>
-                          <ol className="text-xs text-tg-hint space-y-1 list-decimal list-inside">
+                    {storiesMessage && (
+                      <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center text-sm text-green-600">
+                        {storiesMessage}
+                      </div>
+                    )}
+                    
+                    {/* Инструкции сторис в отдельном модальном окне будут */}
+                    {showStoriesInstructions && (
+                      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                        <div className="bg-tg-bg rounded-xl p-4 max-w-md w-full space-y-3">
+                          <h3 className="font-semibold">{t('extras.howToPublish')}</h3>
+                          <ol className="text-sm text-tg-hint space-y-2 list-decimal list-inside">
                             <li>{t('extras.copyLinkInstruction')}</li>
                             <li>{t('extras.openTelegramInstruction')}</li>
                             <li>{t('extras.createStoryInstruction')}</li>
                             <li>{t('extras.addLinkInstruction')}</li>
                             <li>{t('extras.publishAndSubmitInstruction')}</li>
                           </ol>
-                        </div>
-                        
-                        {/* Ссылка для копирования */}
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            readOnly
-                            value={getStoryLink()}
-                            className="flex-1 bg-tg-secondary text-tg-text text-xs rounded-lg px-3 py-2"
-                          />
+                          
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              readOnly
+                              value={getStoryLink()}
+                              className="flex-1 bg-tg-secondary text-tg-text text-xs rounded-lg px-3 py-2"
+                            />
+                            <button
+                              onClick={handleCopyStoryLink}
+                              className="bg-tg-button text-tg-button-text text-xs rounded-lg px-3 py-2"
+                            >
+                              {storyLinkCopied ? '✓' : '📋'}
+                            </button>
+                          </div>
+                          
                           <button
-                            onClick={handleCopyStoryLink}
-                            className="bg-tg-button text-tg-button-text text-xs rounded-lg px-3 py-2"
+                            onClick={handleSubmitStory}
+                            disabled={submittingStory}
+                            className="w-full bg-green-500 text-white text-sm rounded-lg py-2.5 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
                           >
-                            {storyLinkCopied ? '✓' : '📋'}
+                            {submittingStory ? (
+                              <span>⏳ {tCommon('loading')}</span>
+                            ) : (
+                              <>
+                                <span>✅</span>
+                                <span>{t('extras.submitStoryButton')}</span>
+                              </>
+                            )}
+                          </button>
+                          
+                          <button
+                            onClick={() => setShowStoriesInstructions(false)}
+                            className="w-full text-tg-hint text-xs py-2"
+                          >
+                            {t('extras.cancel')}
                           </button>
                         </div>
-                        
-                        {/* Кнопка отправки заявки */}
-                        <button
-                          onClick={handleSubmitStory}
-                          disabled={submittingStory}
-                          className="w-full bg-green-500 text-white text-sm rounded-lg py-2.5 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-                        >
-                          {submittingStory ? (
-                            <span>⏳ {tCommon('loading')}</span>
-                          ) : (
-                            <>
-                              <span>✅</span>
-                              <span>{t('extras.submitStoryButton')}</span>
-                            </>
-                          )}
-                        </button>
-                        
-                        <button
-                          onClick={() => setShowStoriesInstructions(false)}
-                          className="w-full text-tg-hint text-xs py-2"
-                        >
-                          {t('extras.cancel')}
-                        </button>
                       </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Вкладка: Кастомные задания */}
+                {activeExtrasTab === 'tasks' && customTasks.length > 0 && (
+                  <div className="space-y-3">
+                    {customTasks.map((task) => {
+                      const isCompleted = customTaskCompletions.get(task.id) || false;
+                      const isCompleting = completingTask === task.id;
+                      
+                      return (
+                        <div 
+                          key={task.id}
+                          className="bg-tg-secondary rounded-lg p-3 border border-tg-secondary"
+                        >
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={isCompleted ? 'text-green-500' : 'text-tg-hint'}>
+                                  {isCompleted ? '✅' : task.isRequired ? '🔴' : '🔵'}
+                                </span>
+                                <span className="font-medium text-sm">{task.title}</span>
+                                {task.bonusTickets > 0 && (
+                                  <span className="text-xs bg-green-500/10 text-green-600 px-1.5 py-0.5 rounded">
+                                    +{task.bonusTickets} 🎫
+                                  </span>
+                                )}
+                              </div>
+                              {task.description && (
+                                <p className="text-xs text-tg-hint">{task.description}</p>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <button
+                            onClick={() => handleCompleteCustomTask(task.id, task.linkUrl)}
+                            disabled={isCompleted || isCompleting}
+                            className={`w-full text-xs rounded-lg py-2 font-medium transition-colors ${
+                              isCompleted
+                                ? 'bg-green-500/10 text-green-600 cursor-not-allowed'
+                                : 'bg-tg-button text-tg-button-text hover:opacity-80'
+                            }`}
+                          >
+                            {isCompleting ? (
+                              <>⏳ {tCommon('loading')}</>
+                            ) : isCompleted ? (
+                              <>✅ {t('extras.taskCompleted')}</>
+                            ) : (
+                              <>🔗 {t('extras.goToTask')}</>
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })}
+                    
+                    {customTasks.some(t => t.isRequired) && (
+                      <p className="text-xs text-tg-hint text-center">
+                        🔴 {t('extras.requiredTasksNote')}
+                      </p>
                     )}
                   </div>
                 )}
               </div>
             </div>
-          )}
+          </BottomSheet>
+
+          {/* Кнопка "Больше розыгрышей" */}
+          <button
+            onClick={() => router.push('/catalog')}
+            className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg py-3.5 font-medium mb-3 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+          >
+            <span>🎁</span>
+            <span>{t('success.moreCatalog')}</span>
+          </button>
 
           <button
             onClick={() => router.push('/')}
@@ -1059,9 +1408,30 @@ export default function JoinGiveawayPage() {
       <main className="min-h-screen p-4">
         <div className="max-w-md mx-auto">
           <div className="text-center mb-6">
-            <div className="text-6xl mb-3">🎉</div>
-            <h1 className="text-2xl font-bold">{t('alreadyJoined.title')}</h1>
-            <p className="text-tg-hint mt-2">{giveaway?.title}</p>
+            {/* Маскот розыгрыша */}
+            {giveaway?.mascotType && (
+              <div className="mb-4 flex justify-center">
+                <Mascot 
+                  type={giveaway.mascotType as any} 
+                  size={120}
+                  className="mx-auto"
+                />
+              </div>
+            )}
+            
+            <h1 className="text-2xl font-bold mb-2">{t('alreadyJoined.title')}</h1>
+            <p className="text-tg-hint mb-4">{giveaway?.title}</p>
+            
+            {/* Таймер до окончания розыгрыша */}
+            {giveaway && (
+              <div className="bg-tg-secondary-bg rounded-xl p-4 mb-4">
+                <div className="text-sm text-tg-hint mb-2">{t('success.endsIn')}</div>
+                <CountdownTimer 
+                  endDate={giveaway.endAt} 
+                  className="text-lg font-semibold"
+                />
+              </div>
+            )}
           </div>
 
           {/* Билеты */}
@@ -1077,271 +1447,38 @@ export default function JoinGiveawayPage() {
             )}
           </div>
 
-          {/* Увеличить шансы */}
-          {giveaway && (giveaway.conditions.inviteEnabled || giveaway.conditions.boostEnabled || giveaway.conditions.storiesEnabled) && (
-            <div className="bg-tg-secondary rounded-lg p-4 mb-6">
-              <h2 className="font-medium mb-3">🎫 {t('extras.title')}:</h2>
-              <div className="space-y-3">
-                {giveaway.conditions.inviteEnabled && (
-                  <div className="p-3 bg-tg-bg rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xl">👥</span>
-                      <span className="font-medium">{t('extras.inviteFriends')}</span>
-                    </div>
-                    <p className="text-xs text-tg-hint mb-3">
-                      {t('extras.inviteDescription', { current: invitedCount, max: inviteMax })}
-                    </p>
-                    
-                    {invitedCount < inviteMax ? (
-                      <>
-                        {/* Реферальная ссылка */}
-                        <div className="flex gap-2 mb-2">
-                          <input
-                            type="text"
-                            readOnly
-                            value={referralLink}
-                            className="flex-1 bg-tg-secondary rounded-lg px-3 py-2 text-xs truncate"
-                          />
-                          <button
-                            onClick={handleCopyLink}
-                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                              linkCopied 
-                                ? 'bg-green-500 text-white' 
-                                : 'bg-tg-button text-tg-button-text'
-                            }`}
-                          >
-                            {linkCopied ? '✓' : '📋'}
-                          </button>
-                        </div>
-                        
-                        {/* Кнопка "Поделиться в Telegram" */}
-                        <button
-                          onClick={handleShareToTelegram}
-                          className="w-full bg-[#0088cc] text-white text-sm rounded-lg py-2.5 font-medium flex items-center justify-center gap-2"
-                        >
-                          <span>📤</span>
-                          <span>{t('extras.shareInTelegram')}</span>
-                        </button>
-                      </>
-                    ) : (
-                      <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 text-center">
-                        <span className="text-green-600 text-sm">✅ {t('extras.inviteLimitReached')}</span>
-                      </div>
-                    )}
-                    
-                    {/* Список приглашённых */}
-                    {invites.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-tg-secondary">
-                        <p className="text-xs text-tg-hint mb-2">{t('extras.invitedFriends')}:</p>
-                        <div className="space-y-1">
-                          {invites.slice(0, 5).map((inv) => (
-                            <div key={inv.userId} className="text-sm flex items-center gap-2">
-                              <span className="text-green-500">✅</span>
-                              <span>{inv.firstName}</span>
-                            </div>
-                          ))}
-                          {invites.length > 5 && (
-                            <p className="text-xs text-tg-hint">{t('extras.moreFriends', { count: invites.length - 5 })}</p>
-                          )}
-                        </div>
-                      </div>
-                    )}
+          {/* Кнопка "Увеличить шансы" */}
+          {giveaway && (giveaway.conditions.inviteEnabled || giveaway.conditions.boostEnabled || giveaway.conditions.storiesEnabled || customTasks.length > 0) && (
+            <button
+              onClick={() => {
+                setShowExtrasSheet(true);
+                if (giveaway.conditions.inviteEnabled) {
+                  setActiveExtrasTab('invites');
+                } else if (giveaway.conditions.boostEnabled) {
+                  setActiveExtrasTab('boosts');
+                } else if (giveaway.conditions.storiesEnabled) {
+                  setActiveExtrasTab('stories');
+                } else if (customTasks.length > 0) {
+                  setActiveExtrasTab('tasks');
+                }
+              }}
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl p-4 mb-6 flex items-center justify-between hover:opacity-90 transition-opacity"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">⚡️</span>
+                <div className="text-left">
+                  <div className="font-semibold">{t('success.increaseChances')}</div>
+                  <div className="text-xs opacity-80">
+                    {t('success.moreTickets')}
                   </div>
-                )}
-
-                {giveaway.conditions.boostEnabled && boostChannels.length > 0 && (
-                  <div className="p-3 bg-tg-bg rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xl">⚡</span>
-                      <span className="font-medium">{t('extras.boostChannels')}</span>
-                    </div>
-                    <p className="text-xs text-tg-hint mb-3">
-                      {t('extras.boostDescription')}
-                    </p>
-                    
-                    {/* Сообщение о результате */}
-                    {boostMessage && (
-                      <div className={`mb-3 p-2 rounded-lg text-sm text-center ${
-                        boostMessage.startsWith('✅') 
-                          ? 'bg-green-500/10 text-green-600' 
-                          : 'bg-yellow-500/10 text-yellow-600'
-                      }`}>
-                        {boostMessage}
-                      </div>
-                    )}
-                    
-                    {/* Список каналов для буста */}
-                    <div className="space-y-2">
-                      {boostChannels.map((channel) => (
-                        <div key={channel.id} className="bg-tg-secondary rounded-lg p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg">📣</span>
-                              <div>
-                                <div className="text-sm font-medium">{channel.title}</div>
-                                {channel.username && (
-                                  <div className="text-xs text-tg-hint">{channel.username}</div>
-                                )}
-                              </div>
-                            </div>
-                            <div className={`text-xs px-2 py-1 rounded ${
-                              channel.boosted 
-                                ? 'bg-green-500/10 text-green-600' 
-                                : 'bg-gray-500/10 text-tg-hint'
-                            }`}>
-                              {channel.boosted ? `✅ ${t('extras.boostCount', { count: channel.boostCount })}` : `❌ ${t('extras.notBoosted')}`}
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => openBoostLink(channel)}
-                              disabled={!channel.username}
-                              className="flex-1 bg-[#9147ff] text-white text-xs rounded-lg py-2 font-medium disabled:opacity-50"
-                            >
-                              ⚡ {t('extras.boostButton')}
-                            </button>
-                            <button
-                              onClick={() => handleVerifyBoost(channel.id)}
-                              disabled={verifyingBoost === channel.id}
-                              className="flex-1 bg-tg-button text-tg-button-text text-xs rounded-lg py-2 font-medium disabled:opacity-50"
-                            >
-                              {verifyingBoost === channel.id ? '⏳...' : `🔍 ${t('extras.verifyButton')}`}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    {ticketsFromBoosts > 0 && (
-                      <p className="text-xs text-green-600 mt-3 text-center">
-                        {t('extras.totalTicketsFromBoosts', { count: ticketsFromBoosts })}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {giveaway.conditions.storiesEnabled && (
-                  <div className="p-3 bg-tg-bg rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xl">📺</span>
-                      <span className="font-medium">{t('extras.publishStory')}</span>
-                    </div>
-                    <p className="text-xs text-tg-hint mb-3">
-                      {t('extras.storyDescription')}
-                    </p>
-                    
-                    {/* Сообщение о результате */}
-                    {storiesMessage && (
-                      <div className={`mb-3 p-2 rounded-lg text-sm text-center ${
-                        storiesMessage.startsWith('✅') 
-                          ? 'bg-green-500/10 text-green-600' 
-                          : 'bg-yellow-500/10 text-yellow-600'
-                      }`}>
-                        {storiesMessage}
-                      </div>
-                    )}
-                    
-                    {/* Статус APPROVED — билет получен */}
-                    {storyRequestStatus === 'APPROVED' && (
-                      <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 text-center">
-                        <span className="text-green-600 text-sm">✅ {t('extras.ticketReceived')}</span>
-                      </div>
-                    )}
-                    
-                    {/* Статус PENDING — на проверке */}
-                    {storyRequestStatus === 'PENDING' && (
-                      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-2 text-center">
-                        <span className="text-yellow-600 text-sm">⏳ {t('extras.requestPending')}</span>
-                      </div>
-                    )}
-                    
-                    {/* Статус REJECTED — отклонено, можно отправить снова */}
-                    {storyRequestStatus === 'REJECTED' && (
-                      <div className="mb-3">
-                        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2 text-center mb-2">
-                          <span className="text-red-600 text-sm">❌ {t('extras.requestRejected')}</span>
-                          {storyRejectReason && (
-                            <p className="text-xs text-red-500 mt-1">{storyRejectReason}</p>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => setShowStoriesInstructions(true)}
-                          className="w-full bg-gradient-to-r from-pink-500 to-orange-400 text-white text-sm rounded-lg py-2.5 font-medium"
-                        >
-                          📤 {t('extras.resubmitStory')}
-                        </button>
-                      </div>
-                    )}
-                    
-                    {/* Нет заявки — показать кнопку */}
-                    {!storyRequestStatus && !showStoriesInstructions && (
-                      <button
-                        onClick={() => setShowStoriesInstructions(true)}
-                        className="w-full bg-gradient-to-r from-pink-500 to-orange-400 text-white text-sm rounded-lg py-2.5 font-medium flex items-center justify-center gap-2"
-                      >
-                        <span>📤</span>
-                        <span>{t('extras.publishStory')}</span>
-                      </button>
-                    )}
-                    
-                    {/* Инструкция для публикации */}
-                    {showStoriesInstructions && !storyRequestStatus && (
-                      <div className="mt-3 space-y-3">
-                        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                          <h4 className="font-medium text-sm mb-2">📋 {t('extras.howToPublish')}:</h4>
-                          <ol className="text-xs text-tg-hint space-y-1 list-decimal list-inside">
-                            <li>{t('extras.copyLinkInstruction')}</li>
-                            <li>{t('extras.openTelegramInstruction')}</li>
-                            <li>{t('extras.createStoryInstruction')}</li>
-                            <li>{t('extras.addLinkInstruction')}</li>
-                            <li>{t('extras.publishAndSubmitInstruction')}</li>
-                          </ol>
-                        </div>
-                        
-                        {/* Ссылка для копирования */}
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            readOnly
-                            value={getStoryLink()}
-                            className="flex-1 bg-tg-secondary text-tg-text text-xs rounded-lg px-3 py-2"
-                          />
-                          <button
-                            onClick={handleCopyStoryLink}
-                            className="bg-tg-button text-tg-button-text text-xs rounded-lg px-3 py-2"
-                          >
-                            {storyLinkCopied ? '✓' : '📋'}
-                          </button>
-                        </div>
-                        
-                        {/* Кнопка отправки заявки */}
-                        <button
-                          onClick={handleSubmitStory}
-                          disabled={submittingStory}
-                          className="w-full bg-green-500 text-white text-sm rounded-lg py-2.5 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-                        >
-                          {submittingStory ? (
-                            <span>⏳ {tCommon('loading')}</span>
-                          ) : (
-                            <>
-                              <span>✅</span>
-                              <span>{t('extras.submitStoryButton')}</span>
-                            </>
-                          )}
-                        </button>
-                        
-                        <button
-                          onClick={() => setShowStoriesInstructions(false)}
-                          className="w-full text-tg-hint text-xs py-2"
-                        >
-                          {t('extras.cancel')}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
+                </div>
               </div>
-            </div>
+              {participation.ticketsExtra > 0 && (
+                <span className="bg-white/20 px-3 py-1.5 rounded-lg font-bold">
+                  +{participation.ticketsExtra * 100}%
+                </span>
+              )}
+            </button>
           )}
 
           <button

@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { config } from '@/lib/config';
@@ -68,11 +68,10 @@ async function getResults(id: string): Promise<ApiResponse | null> {
 }
 
 export default async function ResultsPage({ params }: ResultsPageProps) {
-  const t = useTranslations('results');
-  const tCommon = useTranslations('common');
-  const tLanding = useTranslations('landing');
-  
   const { id } = await params;
+  const t = await getTranslations('results');
+  const tCommon = await getTranslations('common');
+  const tLanding = await getTranslations('landing');
   const data = await getResults(id);
 
   if (!data || !data.ok || !data.giveaway) {

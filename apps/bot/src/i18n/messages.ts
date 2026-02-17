@@ -147,7 +147,7 @@ export const messages = {
       captchaSuspicious: 'Для подозрительных',
       captchaAll: 'Для всех',
     },
-    menu: {
+    wizard: {
       inApp: '📱 В приложении',
       inBotSoon: '🤖 В боте (скоро)',
       continueDraft: '📱 Продолжить создание',
@@ -389,7 +389,7 @@ export const messages = {
       captchaSuspicious: 'For suspicious',
       captchaAll: 'For all',
     },
-    menu: {
+    wizard: {
       inApp: '📱 In App',
       inBotSoon: '🤖 In Bot (soon)',
       continueDraft: '📱 Continue creation',
@@ -631,7 +631,7 @@ export const messages = {
       captchaSuspicious: 'Күдікті үшін',
       captchaAll: 'Барлығы үшін',
     },
-    menu: {
+    wizard: {
       inApp: '📱 Қолданбада',
       inBotSoon: '🤖 Ботта (жақында)',
       continueDraft: '📱 Құруды жалғастыру',

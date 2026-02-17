@@ -199,7 +199,7 @@ export default function GiveawayDetailsPage() {
 
   // Скопировать ссылку
   const handleCopyLink = () => {
-    const link = `https://t.me/${BOT_USERNAME}/participate?startapp=join_${giveaway?.shortCode || giveawayId}`;
+    const link = `https://t.me/${BOT_USERNAME}/participate?startapp=join_${giveawayId}`;
     navigator.clipboard.writeText(link);
     setMessage(t('linkCopied'));
     setTimeout(() => setMessage(null), 2000);
@@ -310,7 +310,7 @@ export default function GiveawayDetailsPage() {
             <div>
               <h1 className="text-2xl font-bold">{giveaway.title}</h1>
               <p className="text-tg-hint text-sm mt-1">
-                {t('giveawayId')}: #{giveaway.shortCode || giveaway.id.slice(0, 8)}
+                {t('giveawayId')}: #{giveaway.id.slice(0, 8)}
               </p>
               <p className="text-tg-hint mt-1">{getStatusLabel(giveaway.status, t)}</p>
             </div>
@@ -744,7 +744,7 @@ export default function GiveawayDetailsPage() {
         isOpen={showShareSheet}
         onClose={() => setShowShareSheet(false)}
         giveawayId={giveawayId}
-        shortCode={giveaway.shortCode}
+        shortCode={giveaway.id.slice(0, 8)}
         botUsername={BOT_USERNAME}
       />
 
