@@ -102,8 +102,7 @@ export const lifecycleRoutes: FastifyPluginAsync = async (fastify) => {
         message: 'Розыгрыш ещё не завершён' });
     }
 
-    return reply.send({
-      ok: true,
+    return reply.success({
       status: giveaway.status,
       title: giveaway.title,
       winners: giveaway.winners.map((w) => ({
@@ -189,8 +188,7 @@ export const lifecycleRoutes: FastifyPluginAsync = async (fastify) => {
       'Giveaway manually finished'
     );
 
-    return reply.send({
-      ok: true,
+    return reply.success({
       winnersCount: result.winnersCount,
       winners: winners.map((w) => ({
         place: w.place,
@@ -267,8 +265,7 @@ export const lifecycleRoutes: FastifyPluginAsync = async (fastify) => {
       },
     });
 
-    return reply.send({
-      ok: true,
+    return reply.success({
       participated: true,
       tickets: participation.ticketsBase + participation.ticketsExtra,
       isWinner: !!winner,

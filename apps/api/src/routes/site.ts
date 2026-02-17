@@ -148,8 +148,7 @@ export async function siteRoutes(fastify: FastifyInstance) {
       // Проверяем доступ к рандомайзеру
       const hasRandomizerAccess = await hasEntitlement(userId, 'randomizer.access');
 
-      return reply.send({
-        ok: true,
+      return reply.success({
         user: {
           id: user.id,
           telegramUserId: user.telegramUserId.toString(),
@@ -200,8 +199,7 @@ export async function siteRoutes(fastify: FastifyInstance) {
         },
       });
 
-      return reply.send({
-        ok: true,
+      return reply.success({
         giveaways: giveaways.map((g) => ({
           id: g.id,
           title: g.title,

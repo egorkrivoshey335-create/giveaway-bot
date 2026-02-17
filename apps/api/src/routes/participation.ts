@@ -237,8 +237,7 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
-    return reply.send({
-      ok: true,
+    return reply.success({
       giveaway: {
         id: giveaway.id,
         title: giveaway.title,
@@ -727,8 +726,7 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
     // 🔒 Освобождаем Redis lock перед отправкой ответа
     await releaseLock();
 
-    return reply.send({
-      ok: true,
+    return reply.success({
       participation: {
         id: participation.id,
         ticketsBase: participation.ticketsBase,
@@ -836,10 +834,11 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
     const isValid = await verifyCaptchaToken(body.token, body.answer);
 
     // ИСПРАВЛЕНО (2026-02-16): результат уже через Redis
-    return reply.send({
-      ok: isValid,
-      error: isValid ? undefined : 'Неверный ответ или истекший токен',
-    });
+    if (isValid) {
+      return reply.success({ verified: true });
+    } else {
+      return reply.badRequest('Неверный ответ или истекший токен');
+    }
   });
 
   // =========================================================================
@@ -1514,8 +1513,7 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
     const approvedCount = requests.filter((r) => r.status === 'APPROVED').length;
     const rejectedCount = requests.filter((r) => r.status === 'REJECTED').length;
 
-    return reply.send({
-      ok: true,
+    return reply.success({
       requests,
       stats: {
         pending: pendingCount,
@@ -1854,16 +1852,9 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       };
     });
 
-    return reply.send({
-      ok: true,
-      participations: result,
-      counts: {
-        all: allCount,
-        active: activeCount,
-        finished: finishedCount,
-        won: wonCount,
-        cancelled: cancelledCount,
-      },
+    return reply.paginated(result, {
+      page: Math.floor(offsetNum / limitNum) + 1,
+      limit: limitNum,
       total,
       hasMore: offsetNum + limitNum < total,
     });

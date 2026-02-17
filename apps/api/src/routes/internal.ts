@@ -1004,7 +1004,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
 
       const botToken = config.botToken;
       if (!botToken) {
-        return reply.send({ ok: false, error: 'Bot not configured', boosts: [], count: 0 });
+        return reply.error('BOT_NOT_CONFIGURED', 'Bot not configured', { boosts: [], count: 0 });
       }
 
       // Вызываем метод Telegram API getUserChatBoosts
@@ -1047,7 +1047,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
           { telegramUserId: body.telegramUserId, telegramChatId: body.telegramChatId, error: data.description },
           'Failed to get user chat boosts'
         );
-        return reply.send({ ok: false, boosts: [], count: 0, error: data.description });
+        return reply.error('TELEGRAM_API_ERROR', data.description || 'Failed to fetch boosts', { boosts: [], count: 0 });
       }
 
       // Преобразуем данные бустов
