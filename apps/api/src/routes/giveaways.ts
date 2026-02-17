@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { prisma, GiveawayStatus, GiveawayType, LanguageCode, PublishResultsMode, CaptchaMode } from '@randombeast/database';
 import type { GiveawayDraftPayload } from '@randombeast/shared';
 import { ErrorCode, generateShortCode } from '@randombeast/shared';
-import { requireUser } from '../plugins/auth.js';
+import { requireUser, getUser } from '../plugins/auth.js';
 import { createAuditLog, AuditAction, AuditEntityType } from '../lib/audit.js';
 import { getCache, setCache } from '../lib/redis.js';
 
@@ -968,5 +968,505 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
           },
         })),
     });
+  });
+
+  // =========================================================================
+  // 🔒 ДОБАВЛЕНО (2026-02-16): Недостающие endpoints
+  // =========================================================================
+
+  /**
+   * POST /giveaways/:id/cancel
+   * Отмена розыгрыша (только owner, только ACTIVE/SCHEDULED/PENDING_CONFIRM)
+   */
+  fastify.post<{ Params: { id: string } }>('/giveaways/:id/cancel', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+
+    const { id } = request.params;
+
+    const giveaway = await prisma.giveaway.findFirst({
+      where: { id, ownerUserId: user.id },
+    });
+
+    if (!giveaway) {
+      return reply.notFound('Розыгрыш не найден');
+    }
+
+    const cancellableStatuses: GiveawayStatus[] = [
+      GiveawayStatus.ACTIVE,
+      GiveawayStatus.SCHEDULED,
+      GiveawayStatus.PENDING_CONFIRM,
+      GiveawayStatus.DRAFT,
+    ];
+
+    if (!cancellableStatuses.includes(giveaway.status as GiveawayStatus)) {
+      return reply.badRequest(`Невозможно отменить розыгрыш в статусе "${giveaway.status}"`);
+    }
+
+    await prisma.giveaway.update({
+      where: { id },
+      data: { status: GiveawayStatus.CANCELLED },
+    });
+
+    await createAuditLog({
+      userId: user.id,
+      action: AuditAction.GIVEAWAY_CANCELLED,
+      entityType: AuditEntityType.GIVEAWAY,
+      entityId: id,
+      metadata: { previousStatus: giveaway.status },
+      request,
+    });
+
+    fastify.log.info({ giveawayId: id, userId: user.id }, 'Giveaway cancelled');
+
+    return reply.success({ id, status: GiveawayStatus.CANCELLED });
+  });
+
+  /**
+   * POST /giveaways/:id/start
+   * Ручной запуск розыгрыша (SCHEDULED → ACTIVE)
+   */
+  fastify.post<{ Params: { id: string } }>('/giveaways/:id/start', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+
+    const { id } = request.params;
+
+    const giveaway = await prisma.giveaway.findFirst({
+      where: { id, ownerUserId: user.id },
+    });
+
+    if (!giveaway) {
+      return reply.notFound('Розыгрыш не найден');
+    }
+
+    if (giveaway.status !== GiveawayStatus.SCHEDULED) {
+      return reply.badRequest(`Запуск возможен только для розыгрышей в статусе "SCHEDULED". Текущий: "${giveaway.status}"`);
+    }
+
+    await prisma.giveaway.update({
+      where: { id },
+      data: { 
+        status: GiveawayStatus.ACTIVE,
+        startAt: new Date(),
+      },
+    });
+
+    fastify.log.info({ giveawayId: id, userId: user.id }, 'Giveaway manually started');
+
+    return reply.success({ id, status: GiveawayStatus.ACTIVE });
+  });
+
+  /**
+   * POST /giveaways/:id/view
+   * Трекинг просмотра розыгрыша (для статистики конверсии)
+   * source: "mini_app" | "catalog" | "tracking_link" | "direct"
+   */
+  fastify.post<{ Params: { id: string } }>('/giveaways/:id/view', async (request, reply) => {
+    const { id } = request.params;
+
+    const body = z.object({
+      source: z.enum(['mini_app', 'catalog', 'tracking_link', 'direct']).optional().default('direct'),
+    }).parse(request.body || {});
+
+    // Получаем пользователя (необязательно — анонимные просмотры тоже считаются)
+    const user = await getUser(request);
+
+    // Проверяем существование розыгрыша
+    const exists = await prisma.giveaway.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!exists) {
+      return reply.notFound('Розыгрыш не найден');
+    }
+
+    try {
+      await prisma.giveawayView.create({
+        data: {
+          giveawayId: id,
+          viewerUserId: user?.id || null,
+          source: body.source,
+        },
+      });
+    } catch {
+      // Игнорируем ошибки (duplicate view и т.д.)
+    }
+
+    return reply.success({ tracked: true });
+  });
+
+  /**
+   * PATCH /giveaways/:id
+   * Редактирование розыгрыша
+   * Разрешено в DRAFT, PENDING_CONFIRM, SCHEDULED. Для ACTIVE — ограниченные поля.
+   */
+  const editGiveawaySchema = z.object({
+    title: z.string().min(1).max(200).optional(),
+    winnersCount: z.number().min(1).max(200).optional(),
+    endAt: z.string().datetime().nullable().optional(),
+    startAt: z.string().datetime().nullable().optional(),
+    buttonText: z.string().min(1).max(100).optional(),
+    postTemplateId: z.string().uuid().nullable().optional(),
+    publishResultsMode: z.enum(['SEPARATE_POSTS', 'EDIT_START_POST', 'RANDOMIZER']).optional(),
+    captchaMode: z.enum(['OFF', 'SUSPICIOUS_ONLY', 'ALL']).optional(),
+    livenessEnabled: z.boolean().optional(),
+    inviteEnabled: z.boolean().optional(),
+    inviteMax: z.number().min(1).max(10000).optional(),
+    boostEnabled: z.boolean().optional(),
+    boostChannelIds: z.array(z.string().uuid()).optional(),
+    storiesEnabled: z.boolean().optional(),
+    catalogEnabled: z.boolean().optional(),
+    requiredSubscriptionChannelIds: z.array(z.string()).optional(),
+    publishChannelIds: z.array(z.string().uuid()).optional(),
+    resultsChannelIds: z.array(z.string()).optional(),
+  });
+
+  fastify.patch<{ Params: { id: string } }>('/giveaways/:id', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+
+    const { id } = request.params;
+
+    const giveaway = await prisma.giveaway.findFirst({
+      where: { id, ownerUserId: user.id },
+      include: { condition: true },
+    });
+
+    if (!giveaway) {
+      return reply.notFound('Розыгрыш не найден');
+    }
+
+    const editableStatuses: GiveawayStatus[] = [
+      GiveawayStatus.DRAFT,
+      GiveawayStatus.PENDING_CONFIRM,
+      GiveawayStatus.SCHEDULED,
+      GiveawayStatus.ACTIVE,
+    ];
+
+    if (!editableStatuses.includes(giveaway.status as GiveawayStatus)) {
+      return reply.badRequest(`Невозможно редактировать розыгрыш в статусе "${giveaway.status}"`);
+    }
+
+    const parsed = editGiveawaySchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.badRequest('Ошибка валидации', formatZodErrors(parsed.error));
+    }
+
+    const data = parsed.data;
+
+    // Для ACTIVE розыгрышей — только ограниченный набор полей
+    const activeOnlyFields = ['endAt', 'captchaMode', 'livenessEnabled'] as const;
+    if (giveaway.status === GiveawayStatus.ACTIVE) {
+      const providedKeys = Object.keys(data);
+      const disallowedKeys = providedKeys.filter(k => !activeOnlyFields.includes(k as any));
+      if (disallowedKeys.length > 0) {
+        return reply.badRequest(
+          `Для активного розыгрыша можно менять только: ${activeOnlyFields.join(', ')}. ` +
+          `Запрещённые поля: ${disallowedKeys.join(', ')}`
+        );
+      }
+    }
+
+    // Разделяем поля на giveaway и condition
+    const giveawayUpdate: Record<string, unknown> = {};
+    const conditionUpdate: Record<string, unknown> = {};
+
+    if (data.title !== undefined) giveawayUpdate.title = data.title;
+    if (data.winnersCount !== undefined) giveawayUpdate.winnersCount = data.winnersCount;
+    if (data.endAt !== undefined) giveawayUpdate.endAt = data.endAt ? new Date(data.endAt) : null;
+    if (data.startAt !== undefined) giveawayUpdate.startAt = data.startAt ? new Date(data.startAt) : null;
+    if (data.buttonText !== undefined) giveawayUpdate.buttonText = data.buttonText;
+    if (data.postTemplateId !== undefined) giveawayUpdate.postTemplateId = data.postTemplateId;
+    if (data.publishResultsMode !== undefined) giveawayUpdate.publishResultsMode = data.publishResultsMode;
+
+    if (data.captchaMode !== undefined) conditionUpdate.captchaMode = data.captchaMode;
+    if (data.livenessEnabled !== undefined) conditionUpdate.livenessEnabled = data.livenessEnabled;
+    if (data.inviteEnabled !== undefined) conditionUpdate.inviteEnabled = data.inviteEnabled;
+    if (data.inviteMax !== undefined) conditionUpdate.inviteMax = data.inviteMax;
+    if (data.boostEnabled !== undefined) conditionUpdate.boostEnabled = data.boostEnabled;
+    if (data.boostChannelIds !== undefined) conditionUpdate.boostChannelIds = data.boostChannelIds;
+    if (data.storiesEnabled !== undefined) conditionUpdate.storiesEnabled = data.storiesEnabled;
+
+    // Optimistic locking: используем draftVersion
+    const updateResult = await prisma.$transaction(async (tx) => {
+      // Обновляем giveaway с optimistic lock
+      const updated = await tx.giveaway.update({
+        where: { id, draftVersion: giveaway.draftVersion },
+        data: {
+          ...giveawayUpdate,
+          draftVersion: { increment: 1 },
+        },
+      });
+
+      // Обновляем condition если есть что обновлять
+      if (Object.keys(conditionUpdate).length > 0 && giveaway.condition) {
+        await tx.giveawayCondition.update({
+          where: { giveawayId: id },
+          data: conditionUpdate,
+        });
+      }
+
+      // Обновляем каналы если указаны
+      if (data.publishChannelIds !== undefined) {
+        await tx.giveawayPublishChannel.deleteMany({ where: { giveawayId: id } });
+        if (data.publishChannelIds.length > 0) {
+          await tx.giveawayPublishChannel.createMany({
+            data: data.publishChannelIds.map(channelId => ({
+              giveawayId: id,
+              channelId,
+            })),
+          });
+        }
+      }
+
+      if (data.requiredSubscriptionChannelIds !== undefined) {
+        await tx.giveawayRequiredSubscription.deleteMany({ where: { giveawayId: id } });
+        if (data.requiredSubscriptionChannelIds.length > 0) {
+          await tx.giveawayRequiredSubscription.createMany({
+            data: data.requiredSubscriptionChannelIds.map(channelId => ({
+              giveawayId: id,
+              channelId,
+            })),
+          });
+        }
+      }
+
+      if (data.resultsChannelIds !== undefined) {
+        await tx.giveawayResultsChannel.deleteMany({ where: { giveawayId: id } });
+        if (data.resultsChannelIds.length > 0) {
+          await tx.giveawayResultsChannel.createMany({
+            data: data.resultsChannelIds.map(channelId => ({
+              giveawayId: id,
+              channelId,
+            })),
+          });
+        }
+      }
+
+      return updated;
+    });
+
+    await createAuditLog({
+      userId: user.id,
+      action: AuditAction.GIVEAWAY_UPDATED,
+      entityType: AuditEntityType.GIVEAWAY,
+      entityId: id,
+      metadata: { updatedFields: Object.keys(data), previousDraftVersion: giveaway.draftVersion },
+      request,
+    });
+
+    fastify.log.info({ giveawayId: id, updatedFields: Object.keys(data) }, 'Giveaway updated');
+
+    return reply.success({
+      id: updateResult.id,
+      draftVersion: updateResult.draftVersion,
+      updatedFields: Object.keys(data),
+    });
+  });
+
+  /**
+   * GET /giveaways/:id/participants/export
+   * CSV экспорт участников (только owner)
+   */
+  fastify.get<{ Params: { id: string } }>('/giveaways/:id/participants/export', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+
+    const { id } = request.params;
+
+    // Проверяем владельца
+    const giveaway = await prisma.giveaway.findFirst({
+      where: { id, ownerUserId: user.id },
+    });
+
+    if (!giveaway) {
+      return reply.notFound('Розыгрыш не найден');
+    }
+
+    // Получаем всех участников
+    const participations = await prisma.participation.findMany({
+      where: { giveawayId: id },
+      include: {
+        user: {
+          select: {
+            telegramUserId: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            language: true,
+          },
+        },
+      },
+      orderBy: { joinedAt: 'asc' },
+    });
+
+    // Генерируем CSV
+    const csvHeader = 'telegramUserId,username,firstName,lastName,language,ticketsBase,ticketsExtra,ticketsTotal,joinedAt,sourceTag,fraudScore\n';
+    const csvRows = participations.map(p => {
+      const totalTickets = p.ticketsBase + p.ticketsExtra;
+      return [
+        p.user.telegramUserId.toString(),
+        p.user.username || '',
+        (p.user.firstName || '').replace(/,/g, ''),
+        (p.user.lastName || '').replace(/,/g, ''),
+        p.user.language,
+        p.ticketsBase,
+        p.ticketsExtra,
+        totalTickets,
+        p.joinedAt.toISOString(),
+        p.sourceTag || '',
+        p.fraudScore || 0,
+      ].join(',');
+    }).join('\n');
+
+    const csv = csvHeader + csvRows;
+
+    return reply
+      .header('Content-Type', 'text/csv; charset=utf-8')
+      .header('Content-Disposition', `attachment; filename="participants-${id}.csv"`)
+      .send(csv);
+  });
+
+  /**
+   * POST /giveaways/:id/retry
+   * Повторная попытка для розыгрышей в статусе ERROR
+   * Сбрасывает статус обратно на ACTIVE для повторного выполнения
+   */
+  fastify.post<{ Params: { id: string } }>('/giveaways/:id/retry', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+
+    const { id } = request.params;
+
+    const giveaway = await prisma.giveaway.findFirst({
+      where: { id, ownerUserId: user.id },
+    });
+
+    if (!giveaway) {
+      return reply.notFound('Розыгрыш не найден');
+    }
+
+    if (giveaway.status !== GiveawayStatus.ERROR) {
+      return reply.badRequest(`Retry возможен только для розыгрышей в статусе "ERROR". Текущий: "${giveaway.status}"`);
+    }
+
+    // Сбрасываем на ACTIVE для повторной обработки scheduler-ом
+    await prisma.giveaway.update({
+      where: { id },
+      data: { status: GiveawayStatus.ACTIVE },
+    });
+
+    await createAuditLog({
+      userId: user.id,
+      action: AuditAction.GIVEAWAY_UPDATED,
+      entityType: AuditEntityType.GIVEAWAY,
+      entityId: id,
+      metadata: { action: 'retry', previousStatus: 'ERROR' },
+      request,
+    });
+
+    fastify.log.info({ giveawayId: id, userId: user.id }, 'Giveaway retry requested');
+
+    return reply.success({ id, status: GiveawayStatus.ACTIVE, message: 'Розыгрыш перезапущен' });
+  });
+
+  /**
+   * POST /giveaways/sandbox
+   * Создание тестового (sandbox) розыгрыша
+   * Автоматически удаляется через 24 часа
+   */
+  fastify.post('/giveaways/sandbox', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+
+    const body = z.object({
+      title: z.string().min(1).max(200).optional().default('Тестовый розыгрыш'),
+      winnersCount: z.number().min(1).max(10).optional().default(1),
+    }).parse(request.body || {});
+
+    // Проверяем лимит sandbox розыгрышей (максимум 3 одновременно)
+    const existingSandbox = await prisma.giveaway.count({
+      where: {
+        ownerUserId: user.id,
+        isSandbox: true,
+        status: { in: [GiveawayStatus.ACTIVE, GiveawayStatus.DRAFT] },
+      },
+    });
+
+    if (existingSandbox >= 3) {
+      return reply.badRequest('Максимум 3 активных sandbox розыгрыша');
+    }
+
+    // Создаём sandbox розыгрыш
+    const sandbox = await prisma.giveaway.create({
+      data: {
+        ownerUserId: user.id,
+        title: `[SANDBOX] ${body.title}`,
+        status: GiveawayStatus.ACTIVE,
+        type: 'STANDARD',
+        language: 'RU',
+        winnersCount: body.winnersCount,
+        isSandbox: true,
+        // Sandbox розыгрыш заканчивается через 24 часа
+        endAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        startAt: new Date(),
+        buttonText: 'Участвовать (тест)',
+      },
+    });
+
+    // Создаём GiveawayCondition
+    await prisma.giveawayCondition.create({
+      data: {
+        giveawayId: sandbox.id,
+        captchaMode: 'OFF',
+        livenessEnabled: false,
+        inviteEnabled: false,
+        boostEnabled: false,
+        storiesEnabled: false,
+      },
+    });
+
+    fastify.log.info({ giveawayId: sandbox.id, userId: user.id }, 'Sandbox giveaway created');
+
+    return reply.success({
+      id: sandbox.id,
+      title: sandbox.title,
+      status: sandbox.status,
+      endAt: sandbox.endAt?.toISOString(),
+      isSandbox: true,
+      message: 'Тестовый розыгрыш создан. Будет удалён через 24 часа.',
+    });
+  });
+
+  /**
+   * GET /giveaways/:id/participant-count
+   * Быстрое получение количества участников (для polling)
+   * С Redis-кешем на 5 секунд
+   */
+  fastify.get<{ Params: { id: string } }>('/giveaways/:id/participant-count', async (request, reply) => {
+    const { id } = request.params;
+
+    // Redis кеш (5 секунд)
+    const cacheKey = `giveaway:${id}:participant-count`;
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      return reply.success(cached);
+    }
+
+    const giveaway = await prisma.giveaway.findUnique({
+      where: { id },
+      select: { totalParticipants: true },
+    });
+
+    if (!giveaway) {
+      return reply.notFound('Розыгрыш не найден');
+    }
+
+    const data = { count: giveaway.totalParticipants };
+    await setCache(cacheKey, data, 5);
+
+    return reply.success(data);
   });
 };

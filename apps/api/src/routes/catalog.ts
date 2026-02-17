@@ -56,11 +56,12 @@ export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.success(cached);
     }
 
-    // Считаем активные розыгрыши в каталоге
+    // Считаем активные, одобренные розыгрыши в каталоге
     const count = await prisma.giveaway.count({
       where: {
         status: GiveawayStatus.ACTIVE,
         isPublicInCatalog: true,
+        catalogApproved: true,
       },
     });
 
@@ -80,11 +81,15 @@ export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
     Querystring: {
       limit?: string;
-      cursor?: string; // ID последнего элемента предыдущей страницы
+      cursor?: string;
+      type?: string;
+      sortBy?: string;
+      order?: string;
+      minParticipants?: string;
     };
   }>('/catalog', async (request, reply) => {
     const user = await getUser(request);
-    const { limit: limitStr, cursor } = request.query;
+    const { limit: limitStr, cursor, type, sortBy, order, minParticipants } = request.query;
     const limitNum = Math.min(parseInt(limitStr || '20', 10), 100);
 
     // Проверяем доступ (если авторизован)
@@ -97,19 +102,49 @@ export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
     // Если нет доступа — показываем только PREVIEW_COUNT
     const effectiveLimit = hasAccess ? limitNum : PREVIEW_COUNT;
 
-    // 🔒 Cursor-based pagination: WHERE id > cursor
+    // Базовое условие: активные, публичные, одобренные модерацией
+    const whereBase: Record<string, unknown> = {
+      status: GiveawayStatus.ACTIVE,
+      isPublicInCatalog: true,
+      catalogApproved: true,
+    };
+
+    // Фильтр по типу розыгрыша
+    if (type && ['STANDARD', 'BOOST_REQUIRED', 'INVITE_REQUIRED', 'CUSTOM'].includes(type)) {
+      whereBase.type = type;
+    }
+
+    // Фильтр по минимальному количеству участников
+    if (minParticipants) {
+      const minP = parseInt(minParticipants, 10);
+      if (!isNaN(minP) && minP > 0) {
+        whereBase.totalParticipants = { gte: minP };
+      }
+    }
+
+    // Cursor-based pagination
+    if (cursor) {
+      whereBase.id = { gt: cursor };
+    }
+
+    // Определяем сортировку
+    type OrderByField = 'totalParticipants' | 'createdAt' | 'endAt';
+    const allowedSortFields: OrderByField[] = ['totalParticipants', 'createdAt', 'endAt'];
+    const sortField: OrderByField = (sortBy && allowedSortFields.includes(sortBy as OrderByField))
+      ? sortBy as OrderByField
+      : 'totalParticipants';
+    const sortOrder = (order === 'asc') ? 'asc' as const : 'desc' as const;
+
     const giveaways = await prisma.giveaway.findMany({
-      where: {
-        status: GiveawayStatus.ACTIVE,
-        isPublicInCatalog: true,
-        ...(cursor ? { id: { gt: cursor } } : {}), // Курсор: ID > последний элемент
-      },
+      where: whereBase,
       select: {
         id: true,
         title: true,
+        type: true,
         winnersCount: true,
         endAt: true,
         totalParticipants: true,
+        prizeDescription: true,
         _count: {
           select: { participations: true },
         },
@@ -122,16 +157,17 @@ export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
                 title: true,
                 username: true,
                 memberCount: true,
+                avatarFileId: true,
               },
             },
           },
         },
       },
       orderBy: [
-        { totalParticipants: 'desc' },
-        { id: 'asc' }, // Для стабильности курсора
+        { [sortField]: sortOrder },
+        { id: 'asc' },
       ],
-      take: effectiveLimit + 1, // +1 для определения hasMore
+      take: effectiveLimit + 1,
     });
 
     // Проверяем есть ли ещё элементы
@@ -146,6 +182,7 @@ export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
       where: {
         status: GiveawayStatus.ACTIVE,
         isPublicInCatalog: true,
+        catalogApproved: true,
       },
     });
 
@@ -155,15 +192,18 @@ export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
       return {
         id: g.id,
         title: g.title || 'Без названия',
+        type: g.type,
         participantsCount: g._count.participations,
         winnersCount: g.winnersCount,
         endAt: g.endAt?.toISOString() || null,
+        prizeDescription: g.prizeDescription,
         channel: channel
           ? {
               id: channel.id,
               title: channel.title,
               username: channel.username ? `@${channel.username}` : null,
               subscribersCount: channel.memberCount || 0,
+              avatarFileId: channel.avatarFileId,
             }
           : null,
       };
@@ -232,10 +272,7 @@ export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     if (!giveaway) {
-      return reply.status(404).send({
-        ok: false,
-        error: 'Giveaway not found',
-      });
+      return reply.notFound('Giveaway not found');
     }
 
     // Обновляем флаг

@@ -29,6 +29,10 @@ import { customTasksRoutes } from './routes/custom-tasks.js';
 import { storiesRoutes } from './routes/stories.js';
 import { reportsRoutes } from './routes/reports.js';
 import { webhooksRoutes } from './routes/webhooks.js';
+import { trackingLinksRoutes } from './routes/tracking-links.js';
+import { productsRoutes } from './routes/products.js';
+import { banListRoutes } from './routes/ban-list.js';
+import { remindersRoutes } from './routes/reminders.js';
 import { startGiveawayScheduler } from './scheduler/giveaway-lifecycle.js';
 import { RATE_LIMITS } from './config/rate-limits.js';
 
@@ -150,6 +154,10 @@ async function main() {
         await instance.register(customTasksRoutes);
         await instance.register(storiesRoutes);
         await instance.register(reportsRoutes);
+        await instance.register(trackingLinksRoutes);
+        await instance.register(productsRoutes);
+        await instance.register(banListRoutes);
+        await instance.register(remindersRoutes);
       },
       { prefix: '/api/v1' }
     );

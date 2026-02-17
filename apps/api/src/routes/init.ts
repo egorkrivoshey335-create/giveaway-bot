@@ -1,12 +1,43 @@
 import { FastifyInstance } from 'fastify';
 import { prisma } from '@randombeast/database';
-import { ErrorCode } from '@randombeast/shared';
+import { ErrorCode, TIER_LIMITS } from '@randombeast/shared';
 import { requireUser } from '../plugins/auth.js';
+
+type TierKey = 'FREE' | 'PLUS' | 'PRO' | 'BUSINESS';
+
+/**
+ * Определяем tier пользователя по entitlements
+ */
+async function getUserTier(userId: string): Promise<TierKey> {
+  const entitlements = await prisma.entitlement.findMany({
+    where: {
+      userId,
+      revokedAt: null,
+      cancelledAt: null,
+      OR: [
+        { expiresAt: null },
+        { expiresAt: { gt: new Date() } },
+      ],
+    },
+    select: { code: true },
+  });
+
+  const codes = entitlements.map(e => e.code);
+
+  if (codes.includes('tier.business')) return 'BUSINESS';
+  if (codes.includes('tier.pro')) return 'PRO';
+  if (codes.includes('tier.plus')) return 'PLUS';
+  return 'FREE';
+}
 
 /**
  * GET /api/v1/init
- * Получить все начальные данные для Mini App (user, draft, stats, config)
- * Один запрос вместо множества отдельных
+ * Единый endpoint при открытии Mini App:
+ * - user (profile, language, subscription, badges)
+ * - draft (текущий черновик)
+ * - participantStats (active, won)
+ * - creatorStats (active, channels, posts)
+ * - config (limits, features по подписке)
  */
 export async function initRoutes(server: FastifyInstance) {
   server.get('/init', async (request, reply) => {
@@ -17,112 +48,118 @@ export async function initRoutes(server: FastifyInstance) {
     }
 
     try {
-      // Получить черновик (если есть)
-      const draft = await prisma.giveaway.findFirst({
-        where: {
-          ownerUserId: user.id,
-          status: 'DRAFT',
-        },
-        select: {
-          id: true,
-          wizardStep: true,
-          draftPayload: true,
-          updatedAt: true,
-        },
-        orderBy: {
-          updatedAt: 'desc',
-        },
-      });
-
-      // Статистика участника
-      const participantStats = await prisma.participation.aggregate({
-        where: {
-          userId: user.id,
-        },
-        _count: {
-          id: true,
-        },
-      });
-
-      const wonCount = await prisma.winner.count({
-        where: {
-          userId: user.id,
-        },
-      });
-
-      const activeParticipations = await prisma.participation.count({
-        where: {
-          userId: user.id,
-          giveaway: {
-            status: 'ACTIVE',
+      // Параллельно запрашиваем все данные
+      const [
+        fullUser,
+        draft,
+        participantTotal,
+        wonCount,
+        activeParticipations,
+        creatorTotal,
+        activeGiveaways,
+        channelCount,
+        postCount,
+        tier,
+        badges,
+      ] = await Promise.all([
+        // Полные данные пользователя (включая notification settings)
+        prisma.user.findUnique({
+          where: { id: user.id },
+          select: {
+            notificationsEnabled: true,
+            creatorNotificationMode: true,
           },
-        },
-      });
-
-      // Статистика создателя
-      const creatorStats = await prisma.giveaway.aggregate({
-        where: {
-          ownerUserId: user.id,
-        },
-        _count: {
-          id: true,
-        },
-      });
-
-      const activeGiveaways = await prisma.giveaway.count({
-        where: {
-          ownerUserId: user.id,
-          status: {
-            in: ['ACTIVE', 'SCHEDULED', 'PENDING_CONFIRM'],
+        }),
+        // Текущий черновик
+        prisma.giveaway.findFirst({
+          where: { ownerUserId: user.id, status: 'DRAFT' },
+          select: {
+            id: true,
+            wizardStep: true,
+            draftPayload: true,
+            draftVersion: true,
+            updatedAt: true,
           },
-        },
-      });
+          orderBy: { updatedAt: 'desc' },
+        }),
+        // Общее количество участий
+        prisma.participation.count({
+          where: { userId: user.id },
+        }),
+        // Количество побед
+        prisma.winner.count({
+          where: { userId: user.id, rerolled: false },
+        }),
+        // Активные участия
+        prisma.participation.count({
+          where: { userId: user.id, giveaway: { status: 'ACTIVE' } },
+        }),
+        // Всего розыгрышей создателя
+        prisma.giveaway.count({
+          where: { ownerUserId: user.id },
+        }),
+        // Активные розыгрыши создателя
+        prisma.giveaway.count({
+          where: {
+            ownerUserId: user.id,
+            status: { in: ['ACTIVE', 'SCHEDULED', 'PENDING_CONFIRM'] },
+          },
+        }),
+        // Количество каналов
+        prisma.channel.count({
+          where: { addedByUserId: user.id },
+        }),
+        // Количество шаблонов постов
+        prisma.postTemplate.count({
+          where: { ownerUserId: user.id, deletedAt: null },
+        }),
+        // Тир подписки
+        getUserTier(user.id),
+        // Бейджи пользователя
+        prisma.userBadge.findMany({
+          where: { userId: user.id },
+          select: { badgeCode: true, earnedAt: true },
+        }),
+      ]);
 
-      const channelCount = await prisma.channel.count({
-        where: {
-          addedByUserId: user.id,
-        },
-      });
-
-      const postCount = await prisma.postTemplate.count({
-        where: {
-          ownerUserId: user.id,
-          deletedAt: null,
-        },
-      });
-
-      // Config & Limits (на основе подписки пользователя)
-      const subscriptionTier = 'FREE' as const; // TODO: получать из User.subscriptionTier когда будет реализовано
-      const isPremium = false; // subscriptionTier !== 'FREE'
-
+      // Лимиты на основе тира
       const limits = {
-        maxActiveGiveaways: isPremium ? 10 : 3,
-        maxChannels: isPremium ? 20 : 5,
-        maxPostTemplates: isPremium ? 50 : 10,
-        maxWinners: isPremium ? 100 : 10,
-        maxInvites: isPremium ? 500 : 10,
-        maxCustomTasks: isPremium ? 5 : 1,
-        maxTrackingLinks: isPremium ? 50 : 3,
-        postCharLimit: isPremium ? 4096 : 1024,
+        maxActiveGiveaways: TIER_LIMITS.maxActiveGiveaways[tier],
+        maxChannels: TIER_LIMITS.maxChannels[tier],
+        maxPostTemplates: TIER_LIMITS.maxPostTemplates[tier],
+        maxCustomTasks: TIER_LIMITS.maxCustomTasks[tier],
+        maxTrackingLinks: TIER_LIMITS.maxTrackingLinks[tier],
+        maxChannelsPerGiveaway: TIER_LIMITS.maxChannelsPerGiveaway[tier],
+        maxWinners: TIER_LIMITS.maxWinners[tier],
+        maxInvites: TIER_LIMITS.maxInvites[tier],
+        postCharLimit: TIER_LIMITS.postCharLimit[tier],
       };
 
+      const isPaid = tier !== 'FREE';
       const features = {
-        captchaRequired: !isPremium,
-        analyticsLevel: isPremium ? 'advanced' : 'basic',
-        catalogAccess: isPremium,
-        livenessCheck: isPremium,
-        customMascot: isPremium,
-        exportParticipants: isPremium,
+        catalogAccess: isPaid,
+        livenessCheck: isPaid,
+        customMascot: isPaid,
+        exportParticipants: isPaid,
+        advancedAnalytics: tier === 'PRO' || tier === 'BUSINESS',
+        prioritySupport: tier === 'BUSINESS',
       };
 
       return reply.success({
         user: {
           id: user.id,
-          telegramUserId: user.telegramUserId,
+          telegramUserId: user.telegramUserId.toString(),
           firstName: user.firstName || '',
           lastName: user.lastName,
           username: user.username,
           language: user.language,
+          isPremium: user.isPremium,
+          notificationsEnabled: fullUser?.notificationsEnabled ?? true,
+          creatorNotificationMode: fullUser?.creatorNotificationMode ?? 'MILESTONE',
+          badges: badges.map(b => ({
+            code: b.badgeCode,
+            earnedAt: b.earnedAt.toISOString(),
+          })),
           createdAt: user.createdAt.toISOString(),
         },
         draft: draft
@@ -130,16 +167,17 @@ export async function initRoutes(server: FastifyInstance) {
               id: draft.id,
               step: draft.wizardStep,
               payload: draft.draftPayload,
+              version: draft.draftVersion,
               updatedAt: draft.updatedAt.toISOString(),
             }
           : null,
         participantStats: {
-          totalCount: participantStats._count.id,
+          totalCount: participantTotal,
           wonCount,
           activeCount: activeParticipations,
         },
         creatorStats: {
-          totalCount: creatorStats._count.id,
+          totalCount: creatorTotal,
           activeCount: activeGiveaways,
           channelCount,
           postCount,
@@ -147,7 +185,7 @@ export async function initRoutes(server: FastifyInstance) {
         config: {
           limits,
           features,
-          subscriptionTier,
+          subscriptionTier: tier,
         },
       });
     } catch (error) {

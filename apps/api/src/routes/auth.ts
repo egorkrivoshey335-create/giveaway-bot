@@ -156,6 +156,53 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   /**
+   * PATCH /users/me
+   * Обновление профиля пользователя (язык, настройки уведомлений)
+   */
+  const updateProfileSchema = z.object({
+    language: z.enum(['RU', 'EN', 'KK']).optional(),
+  });
+
+  fastify.patch('/users/me', async (request, reply) => {
+    const sessionToken = request.cookies[config.auth.cookieName];
+    if (!sessionToken) {
+      return reply.unauthorized('Not authenticated');
+    }
+
+    const userId = verifySessionToken(sessionToken);
+    if (!userId) {
+      reply.clearCookie(config.auth.cookieName, getSessionCookieOptions());
+      return reply.unauthorized('Invalid or expired session');
+    }
+
+    const parsed = updateProfileSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.badRequest('Ошибка валидации');
+    }
+
+    const data = parsed.data;
+    const updateData: Record<string, unknown> = {};
+
+    if (data.language !== undefined) {
+      updateData.language = data.language as LanguageCode;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return reply.badRequest('Нет данных для обновления');
+    }
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+    });
+
+    return reply.success({
+      id: user.id,
+      language: user.language,
+    });
+  });
+
+  /**
    * POST /auth/logout
    * Clears the session cookie
    */

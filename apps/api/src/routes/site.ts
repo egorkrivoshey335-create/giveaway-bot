@@ -694,6 +694,270 @@ export async function siteRoutes(fastify: FastifyInstance) {
   );
 
   /**
+   * POST /site/giveaways/:id/winner-show/reroll
+   * Перевыбор победителя (замена одного победителя новым случайным)
+   */
+  fastify.post<{ Params: { id: string } }>(
+    '/site/giveaways/:id/winner-show/reroll',
+    async (request, reply) => {
+      const userId = getUserIdFromSiteSession(request);
+      if (!userId) {
+        return reply.unauthorized('Not authenticated');
+      }
+
+      const { id } = request.params;
+
+      const body = z.object({
+        place: z.number().int().min(1),
+      }).parse(request.body);
+
+      // Проверяем владение
+      const giveaway = await prisma.giveaway.findFirst({
+        where: { id, ownerUserId: userId },
+        select: { id: true, status: true },
+      });
+
+      if (!giveaway) {
+        return reply.notFound('Розыгрыш не найден');
+      }
+
+      if (giveaway.status !== 'FINISHED') {
+        return reply.badRequest('Reroll возможен только для завершённых розыгрышей');
+      }
+
+      // Находим текущего победителя на этом месте
+      const currentWinner = await prisma.winner.findUnique({
+        where: { giveawayId_place: { giveawayId: id, place: body.place } },
+      });
+
+      if (!currentWinner) {
+        return reply.notFound(`Победитель на месте ${body.place} не найден`);
+      }
+
+      if (currentWinner.rerolled) {
+        return reply.badRequest('Этот победитель уже был перевыбран');
+      }
+
+      // Находим участников, которые НЕ являются победителями
+      const winnerUserIds = (
+        await prisma.winner.findMany({
+          where: { giveawayId: id },
+          select: { userId: true },
+        })
+      ).map(w => w.userId);
+
+      const eligibleParticipants = await prisma.participation.findMany({
+        where: {
+          giveawayId: id,
+          userId: { notIn: winnerUserIds },
+        },
+        select: {
+          userId: true,
+          ticketsBase: true,
+          ticketsExtra: true,
+        },
+      });
+
+      if (eligibleParticipants.length === 0) {
+        return reply.badRequest('Нет доступных участников для перевыбора');
+      }
+
+      // Взвешенный выбор по количеству билетов
+      const totalTickets = eligibleParticipants.reduce(
+        (sum, p) => sum + p.ticketsBase + p.ticketsExtra, 0
+      );
+      let random = Math.random() * totalTickets;
+      let selectedParticipant = eligibleParticipants[0];
+
+      for (const p of eligibleParticipants) {
+        random -= (p.ticketsBase + p.ticketsExtra);
+        if (random <= 0) {
+          selectedParticipant = p;
+          break;
+        }
+      }
+
+      // Обновляем в транзакции
+      await prisma.$transaction([
+        // Помечаем старого победителя как rerolled
+        prisma.winner.update({
+          where: { id: currentWinner.id },
+          data: { rerolled: true, rerolledAt: new Date() },
+        }),
+        // Создаём нового победителя
+        prisma.winner.create({
+          data: {
+            giveawayId: id,
+            userId: selectedParticipant.userId,
+            place: body.place,
+            ticketsUsed: selectedParticipant.ticketsBase + selectedParticipant.ticketsExtra,
+            previousWinnerUserId: currentWinner.userId,
+          },
+        }),
+      ]);
+
+      // Загружаем данные нового победителя
+      const newWinner = await prisma.user.findUnique({
+        where: { id: selectedParticipant.userId },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          username: true,
+          telegramUserId: true,
+        },
+      });
+
+      fastify.log.info(
+        { giveawayId: id, place: body.place, oldUserId: currentWinner.userId, newUserId: selectedParticipant.userId },
+        'Winner rerolled'
+      );
+
+      return reply.success({
+        place: body.place,
+        previousWinnerId: currentWinner.userId,
+        newWinner: newWinner ? {
+          id: newWinner.id,
+          firstName: newWinner.firstName,
+          lastName: newWinner.lastName,
+          username: newWinner.username,
+          telegramUserId: newWinner.telegramUserId.toString(),
+        } : null,
+      });
+    }
+  );
+
+  /**
+   * POST /site/giveaways/:id/winner-show/select
+   * Ручной выбор победителей (когда scheduler не сделал этого)
+   */
+  fastify.post<{ Params: { id: string } }>(
+    '/site/giveaways/:id/winner-show/select',
+    async (request, reply) => {
+      const userId = getUserIdFromSiteSession(request);
+      if (!userId) {
+        return reply.unauthorized('Not authenticated');
+      }
+
+      const { id } = request.params;
+
+      // Проверяем владение
+      const giveaway = await prisma.giveaway.findFirst({
+        where: { id, ownerUserId: userId },
+        select: { id: true, status: true, winnersCount: true },
+      });
+
+      if (!giveaway) {
+        return reply.notFound('Розыгрыш не найден');
+      }
+
+      if (giveaway.status !== 'FINISHED') {
+        return reply.badRequest('Ручной выбор возможен только для завершённых розыгрышей');
+      }
+
+      // Проверяем нет ли уже победителей (не rerolled)
+      const existingWinners = await prisma.winner.count({
+        where: { giveawayId: id, rerolled: false },
+      });
+
+      if (existingWinners > 0) {
+        return reply.conflict('Победители уже выбраны. Используйте reroll для перевыбора.');
+      }
+
+      // Получаем участников
+      const participants = await prisma.participation.findMany({
+        where: { giveawayId: id },
+        select: {
+          userId: true,
+          ticketsBase: true,
+          ticketsExtra: true,
+        },
+      });
+
+      if (participants.length === 0) {
+        return reply.badRequest('Нет участников для выбора победителей');
+      }
+
+      // Взвешенный случайный выбор
+      const selectedWinners: { userId: string; tickets: number; place: number }[] = [];
+      const remainingParticipants = [...participants];
+
+      for (let place = 1; place <= Math.min(giveaway.winnersCount, remainingParticipants.length); place++) {
+        const totalTickets = remainingParticipants.reduce(
+          (sum, p) => sum + p.ticketsBase + p.ticketsExtra, 0
+        );
+
+        let random = Math.random() * totalTickets;
+        let selectedIdx = 0;
+
+        for (let i = 0; i < remainingParticipants.length; i++) {
+          random -= (remainingParticipants[i].ticketsBase + remainingParticipants[i].ticketsExtra);
+          if (random <= 0) {
+            selectedIdx = i;
+            break;
+          }
+        }
+
+        const selected = remainingParticipants[selectedIdx];
+        selectedWinners.push({
+          userId: selected.userId,
+          tickets: selected.ticketsBase + selected.ticketsExtra,
+          place,
+        });
+
+        // Убираем выбранного из списка
+        remainingParticipants.splice(selectedIdx, 1);
+      }
+
+      // Сохраняем победителей
+      await prisma.winner.createMany({
+        data: selectedWinners.map(w => ({
+          giveawayId: id,
+          userId: w.userId,
+          place: w.place,
+          ticketsUsed: w.tickets,
+        })),
+      });
+
+      // Загружаем данные победителей
+      const winnerUsers = await prisma.winner.findMany({
+        where: { giveawayId: id, rerolled: false },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              username: true,
+              telegramUserId: true,
+            },
+          },
+        },
+        orderBy: { place: 'asc' },
+      });
+
+      fastify.log.info(
+        { giveawayId: id, winnersCount: winnerUsers.length },
+        'Winners manually selected'
+      );
+
+      return reply.success({
+        winners: winnerUsers.map(w => ({
+          place: w.place,
+          user: {
+            id: w.user.id,
+            firstName: w.user.firstName,
+            lastName: w.user.lastName,
+            username: w.user.username,
+            telegramUserId: w.user.telegramUserId.toString(),
+          },
+          ticketsUsed: w.ticketsUsed,
+        })),
+      });
+    }
+  );
+
+  /**
    * POST /site/logout
    * Удаляет cookie сессии
    */

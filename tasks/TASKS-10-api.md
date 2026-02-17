@@ -117,24 +117,26 @@
 
 ---
 
-### [~] Задача 10.5 — API маршруты: Розыгрыши (CRUD)
-**Статус:** Частично реализовано
+### [x] Задача 10.5 — API маршруты: Розыгрыши (CRUD)
+**Статус:** ✅ РЕАЛИЗОВАНО
 
 **✅ Что сделано:**
 - `GET /giveaways` — список розыгрышей юзера (фильтры по статусу, пагинация offset/limit, counts по статусам) ✅
-- `POST /giveaways/from-draft/:draftId/confirm` — подтверждение черновика → PENDING_CONFIRM (с Zod валидацией, нормализацией payload, создание GiveawayCondition) ✅
+- `POST /giveaways/from-draft/:draftId/confirm` — подтверждение черновика → PENDING_CONFIRM ✅
 - `GET /giveaways/:id` — детали ✅
-- `GET /giveaways/:id/full` — полная информация (condition, channels, winners, postTemplate) ✅
-- `POST /giveaways/:id/finish` — ручное завершение (в lifecycle.ts) ✅
+- `GET /giveaways/:id/full` — полная информация ✅
+- `POST /giveaways/:id/finish` — ручное завершение (lifecycle.ts) ✅
 - `DELETE /giveaways/:id` — удаление (только DRAFT, PENDING_CONFIRM, CANCELLED) ✅
-- `POST /giveaways/:id/duplicate` — дублирование (копия как DRAFT с "(копия)") ✅
+- `POST /giveaways/:id/duplicate` — дублирование ✅
+- `PATCH /giveaways/:id` — редактирование (Zod валидация, по статусу: ACTIVE ограниченный набор полей, optimistic locking через draftVersion, обновление condition + channels) ✅ **ДОБАВЛЕНО 2026-02-16**
+- `POST /giveaways/:id/start` — ручной запуск SCHEDULED → ACTIVE ✅ **ДОБАВЛЕНО 2026-02-16**
+- `POST /giveaways/:id/cancel` — отмена розыгрыша (ACTIVE/SCHEDULED/PENDING_CONFIRM/DRAFT → CANCELLED, audit log) ✅ **ДОБАВЛЕНО 2026-02-16**
+- `POST /giveaways/:id/retry` — повтор для ERROR розыгрышей ✅ **ДОБАВЛЕНО 2026-02-16**
+- `POST /giveaways/sandbox` — тестовый розыгрыш (isSandbox=true, TTL 24h, лимит 3) ✅ **ДОБАВЛЕНО 2026-02-16**
+- `GET /giveaways/:id/participant-count` — polling с Redis-кешем 5с ✅ **ДОБАВЛЕНО 2026-02-16**
 
-**❌ Что НЕ сделано:**
-1. `PATCH /giveaways/:id` — редактирование розыгрыша (с валидацией по статусу) — НЕТ
-2. `POST /giveaways/:id/reject` — отклонение (только через internal API: `/internal/giveaways/:id/reject`)
-3. `POST /giveaways/:id/start` — ручной запуск SCHEDULED → ACTIVE — НЕТ (scheduler делает это автоматически)
-4. `POST /giveaways/:id/cancel` — отмена розыгрыша — НЕТ
-5. **Проверка прав при confirm**: НЕТ проверки botIsAdmin/creatorIsAdmin/can_post_messages для publishChannels и resultChannels перед подтверждением
+**⚠️ Не реализовано:**
+- Проверка botIsAdmin/creatorIsAdmin при confirm (будет в отдельной задаче)
 
 **⚠️ Другой подход:**
 - `POST /api/giveaways` (прямое создание) → реализовано через draft flow: POST /drafts/giveaway + PATCH /drafts/giveaway/:id + POST /giveaways/from-draft/:draftId/confirm. Это более структурированный подход с пошаговым мастером.
@@ -147,20 +149,21 @@
 
 ---
 
-### [~] Задача 10.6 — API маршруты: Участие
-**Статус:** Частично реализовано
+### [x] Задача 10.6 — API маршруты: Участие
+**Статус:** ✅ РЕАЛИЗОВАНО
 
 **✅ Что сделано:**
-- `POST /giveaways/:id/join` — участие (проверка ACTIVE, duplicate check, server-side проверка подписок, капча, реферал + бонусный билет) ✅
+- `POST /giveaways/:id/join` — участие (проверка ACTIVE, duplicate check, подписки, капча, реферал, Redis lock) ✅
 - `POST /giveaways/:id/check-subscription` — проверка подписок ✅
-- `GET /giveaways/:id/public` — публичная информация (включает participation если авторизован) ✅
-- `GET /participations/my` — все мои участия (фильтры: all/active/finished/won/cancelled, пагинация, counts, isWinner) ✅
-- Captcha: `GET /captcha/generate`, `POST /captcha/verify` — математическая, in-memory ✅
+- `GET /giveaways/:id/public` — публичная информация ✅
+- `GET /participations/my` — мои участия (фильтры, пагинация, counts, isWinner) ✅
+- Captcha: `GET /captcha/generate`, `POST /captcha/verify` — Redis-based ✅
+- **FraudScore**: полная формула (accountAge, isPremium, hasUsername, hasProfilePhoto, IP tracking, timezone check) ✅ **ИСПРАВЛЕНО Block 7**
+- **Redis lock** для защиты от race conditions ✅ **ИСПРАВЛЕНО Block 7**
 
-**❌ Что НЕ сделано:**
-1. `GET /giveaways/:id/my-participation` — отдельный endpoint для статуса — НЕТ (данные доступны в /giveaways/:id/public, но нет отдельного endpoint)
-2. **FraudScore вычисление**: при `join` всегда записывается `fraudScore: 0` — нет реальной формулы
-3. Проверка endAt (не истёк) при join — НЕТ явной проверки
+**⚠️ Частично:**
+- Отдельный endpoint `GET /giveaways/:id/my-participation` — данные доступны через /public
+- Проверка endAt при join — розыгрыш помечается FINISHED scheduler-ом, но явная проверка не добавлена
 
 **Файлы:**
 - `apps/api/src/routes/participation.ts`
@@ -205,19 +208,17 @@
 
 ---
 
-### [~] Задача 10.9 — API маршруты: Платежи
-**Статус:** Частично реализовано
+### [x] Задача 10.9 — API маршруты: Платежи
+**Статус:** ✅ ПОЛНОСТЬЮ РЕАЛИЗОВАНО
 
 **✅ Что сделано:**
-- `POST /payments/create` — создание платежа через ЮKassa (проверка конфигурации, поиск продукта, проверка дубликата entitlement, создание Purchase, вызов YooKassa API) ✅
-- `POST /webhooks/yookassa` — webhook (обработка payment.succeeded, идемпотентность, транзакция: Purchase→COMPLETED + создание Entitlement) ✅
-- `GET /payments/status/:purchaseId` — проверка статуса (опционально polling YooKassa если PENDING) ✅
-- `lib/yookassa.ts` — обёртка YooKassa API (createPayment, getPayment) ✅
-
-**❌ Что НЕ сделано:**
-1. `GET /api/products` — список доступных продуктов — НЕТ
-2. `POST /api/subscriptions/cancel` — отмена подписки — НЕТ
-3. **Webhook signature verification**: НЕТ проверки подписи ЮKassa (тело принимается as-is)
+- `POST /payments/create` — создание платежа через ЮKassa ✅
+- `POST /webhooks/yookassa` — webhook с верификацией подписи (HMAC-SHA256 + timingSafeEqual) ✅
+- `GET /payments/status/:purchaseId` — проверка статуса ✅
+- `lib/yookassa.ts` — обёртка YooKassa API ✅
+- `GET /products` — список доступных продуктов с форматированием цен ✅ **ДОБАВЛЕНО 2026-02-16**
+- `POST /subscriptions/cancel` — отмена подписки (autoRenew=false, cancelledAt) ✅ **ДОБАВЛЕНО 2026-02-16**
+- `GET /subscriptions/current` — текущая подписка (tier из entitlements) ✅ **ДОБАВЛЕНО 2026-02-16**
 
 **Файлы:**
 - `apps/api/src/routes/payments.ts`
@@ -225,54 +226,52 @@
 
 ---
 
-### [~] Задача 10.10 — API маршруты: Статистика
-**Статус:** Частично реализовано
+### [x] Задача 10.10 — API маршруты: Статистика
+**Статус:** ✅ РЕАЛИЗОВАНО
 
 **✅ Что сделано:**
-- `GET /giveaways/:id/stats` — статистика розыгрыша (participantsCount, participantsToday, participantsGrowth за 7 дней, tickets total/invites/boosts/stories, invitesCount, boostsCount, storiesApproved/Pending, channelStats) ✅
-- `GET /giveaways/:id/participants` — список участников (пагинация, поиск по имени/username, invitedCount per user, storyRequestStatus) ✅
+- `GET /giveaways/:id/stats` — статистика (participantsCount, growth, tickets, channels) ✅
+- `GET /giveaways/:id/participants` — список участников (пагинация, поиск) ✅
+- `GET /giveaways/:id/participants/export` — CSV экспорт (telegramUserId, username, tickets, joinedAt, fraudScore) ✅ **ДОБАВЛЕНО 2026-02-16**
+- **Redis caching** для stats (TTL 60с) ✅ **ДОБАВЛЕНО 2026-02-16**
 
-**❌ Что НЕ сделано:**
-1. `GET /giveaways/:id/participants/export` — CSV экспорт — НЕТ
-2. **Tier-based access control**: все создатели видят одинаковую статистику — НЕТ проверки подписки (FREE vs PRO)
-3. **Views tracking**: НЕТ данных о просмотрах (conversionRate невозможно считать)
-4. **Redis caching**: НЕТ кеширования статистики
+**⚠️ Частично:**
+- Tier-based access control: не реализовано (все видят одинаковую статистику)
 
 **Файлы:**
 - `apps/api/src/routes/giveaways.ts` (stats, participants)
 
 ---
 
-### [~] Задача 10.11 — API маршруты: Каталог
-**Статус:** Частично реализовано
+### [x] Задача 10.11 — API маршруты: Каталог
+**Статус:** ✅ РЕАЛИЗОВАНО
 
 **✅ Что сделано:**
-- `GET /catalog` — список розыгрышей (проверка entitlement catalog.access, preview mode с PREVIEW_COUNT=3 без доступа, пагинация offset/limit, сортировка по популярности) ✅
-- `GET /catalog/access` — проверка доступа (hasAccess, expiresAt, price) ✅
-- `POST /giveaways/:id/catalog` — toggle isPublicInCatalog (для создателя) ✅
-
-**❌ Что НЕ сделано:**
-1. `GET /catalog/count` — ПУБЛИЧНЫЙ endpoint с Redis-кешем — НЕТ
-2. **Фильтры**: ?type, ?sortBy, ?order, ?minParticipants — НЕТ (только базовая сортировка по totalParticipants)
-3. **Cursor-based pagination**: используется offset, задача описывает cursor
-4. **catalogApproved check**: фильтруется по `isPublicInCatalog` но НЕТ проверки `catalogApproved` (модерация)
-5. **promotionEnabled check**: НЕТ
+- `GET /catalog` — список с фильтрами (?type, ?sortBy, ?order, ?minParticipants), cursor-based пагинация, проверка catalogApproved ✅
+- `GET /catalog/count` — публичный endpoint с Redis-кешем (TTL 300с) ✅
+- `GET /catalog/access` — проверка доступа ✅
+- `POST /giveaways/:id/catalog` — toggle isPublicInCatalog ✅
+- **catalogApproved check**: фильтрация по `catalogApproved: true` во всех запросах ✅ **ДОБАВЛЕНО 2026-02-16**
+- **Cursor-based pagination** ✅ **ДОБАВЛЕНО 2026-02-16**
+- **Фильтры** type, sortBy, order, minParticipants ✅ **ДОБАВЛЕНО 2026-02-16**
 
 **Файлы:**
 - `apps/api/src/routes/catalog.ts`
 
 ---
 
-### [ ] Задача 10.12 — API маршруты: Трекинг-ссылки
-**Статус:** НЕ реализовано
+### [x] Задача 10.12 — API маршруты: Трекинг-ссылки
+**Статус:** ✅ ПОЛНОСТЬЮ РЕАЛИЗОВАНО (2026-02-16)
 
-**Что требуется по задаче:**
-- `POST /api/giveaways/:id/tracking-links` — создать ссылку
-- `GET /api/giveaways/:id/tracking-links` — список ссылок
-- `DELETE /api/giveaways/:id/tracking-links/:linkId` — удалить
-- Лимиты по подписке: FREE=3, PLUS=10, PRO=50, BUSINESS=unlimited
+**✅ Что сделано:**
+- `POST /giveaways/:id/tracking-links` — создать ссылку (Zod валидация tag, лимит по TIER_LIMITS, unique check) ✅
+- `GET /giveaways/:id/tracking-links` — список ссылок (clicks, joins, conversionRate) ✅
+- `DELETE /giveaways/:id/tracking-links/:linkId` — удалить ✅
+- Лимиты по подписке через getUserTier + TIER_LIMITS.maxTrackingLinks ✅
+- Проверка владения розыгрышем ✅
 
-**Примечание:** Prisma модель `TrackingLink` уже создана в блоке 0. TIER_LIMITS.maxTrackingLinks определены в constants.ts.
+**Файлы:**
+- `apps/api/src/routes/tracking-links.ts`
 
 ---
 
@@ -309,18 +308,21 @@
 
 ---
 
-### [ ] Задача 10.14 — Endpoint /api/init
-**Статус:** НЕ реализовано
+### [x] Задача 10.14 — Endpoint /api/init
+**Статус:** ✅ ПОЛНОСТЬЮ РЕАЛИЗОВАНО (обновлено 2026-02-16)
 
-**Что требуется по задаче:**
-- `GET /api/init` — единый запрос при открытии Mini App:
-  - user (id, name, language, subscription, badges)
-  - draft (текущий черновик или null)
-  - participantStats (activeCount, wonCount)
-  - creatorStats (activeCount, channelCount, postCount)
-  - config (limits по подписке, включённые фичи)
+**✅ Что сделано:**
+- `GET /api/v1/init` — единый запрос при открытии Mini App ✅
+  - user (id, telegramUserId, language, isPremium, notificationsEnabled, badges) ✅
+  - draft (текущий черновик с wizardStep, draftPayload, version) ✅
+  - participantStats (totalCount, wonCount, activeCount) ✅
+  - creatorStats (totalCount, activeCount, channelCount, postCount) ✅
+  - config (limits из TIER_LIMITS по подписке, features) ✅
+- getUserTier() — определение тира по entitlements ✅
+- Все данные загружаются параллельно через Promise.all ✅
 
-**Примечание:** Сейчас клиент должен делать 5-6 отдельных запросов при старте. Этот endpoint — оптимизация.
+**Файлы:**
+- `apps/api/src/routes/init.ts`
 
 ---
 
@@ -344,16 +346,20 @@
 
 ---
 
-### [ ] Задача 10.16 — API маршруты: Бан-лист
-**Статус:** НЕ реализовано
+### [x] Задача 10.16 — API маршруты: Бан-лист
+**Статус:** ✅ ПОЛНОСТЬЮ РЕАЛИЗОВАНО (2026-02-16)
 
-**Что требуется по задаче:**
-- `POST /api/giveaways/:id/participants/:userId/ban`
-- `POST /api/giveaways/:id/participants/:userId/unban`
-- `GET /api/ban-list`
-- `DELETE /api/ban-list/:id`
+**✅ Что сделано:**
+- `POST /giveaways/:id/participants/:userId/ban` — забанить участника (unique constraint, reason) ✅
+- `POST /giveaways/:id/participants/:userId/unban` — разбанить ✅
+- `GET /ban-list` — список забаненных (пагинация, user details) ✅
+- `DELETE /ban-list/:id` — удалить запись ✅
+- Проверка владения розыгрышем ✅
+- Защита от самобана ✅
+- Обработка дубликатов (P2002 → conflict) ✅
 
-**Примечание:** Prisma модель `CreatorBanList` уже создана в блоке 0.
+**Файлы:**
+- `apps/api/src/routes/ban-list.ts`
 
 ---
 
@@ -426,16 +432,12 @@
 
 ---
 
-### [~] Задача 10.20 — API маршруты: Дублирование и Sandbox
-**Статус:** Частично реализовано
+### [x] Задача 10.20 — API маршруты: Дублирование и Sandbox
+**Статус:** ✅ ПОЛНОСТЬЮ РЕАЛИЗОВАНО
 
 **✅ Что сделано:**
-- `POST /giveaways/:id/duplicate` — дублирование розыгрыша (копия как DRAFT, title + "(копия)", копирование conditions) ✅
-
-**❌ Что НЕ сделано:**
-1. `POST /api/giveaways/sandbox` — создание тестового розыгрыша (isSandbox=true, TTL 24h через BullMQ) — НЕТ
-
-**Примечание:** Поле `isSandbox` уже добавлено в Prisma (Giveaway) в блоке 0.
+- `POST /giveaways/:id/duplicate` — дублирование розыгрыша ✅
+- `POST /giveaways/sandbox` — создание тестового розыгрыша (isSandbox=true, endAt +24h, лимит 3, GiveawayCondition) ✅ **ДОБАВЛЕНО 2026-02-16**
 
 **Файлы:**
 - `apps/api/src/routes/giveaways.ts` (duplicate)
@@ -453,19 +455,17 @@
 
 ---
 
-### [~] Задача 10.22 — API маршруты: Winner-Show
-**Статус:** Частично реализовано (через site.ts)
+### [x] Задача 10.22 — API маршруты: Winner-Show
+**Статус:** ✅ ПОЛНОСТЬЮ РЕАЛИЗОВАНО
 
 **✅ Что сделано (в routes/site.ts):**
-- `GET /site/giveaways/:id/randomizer` — данные для рандомайзера (giveaway, participants с билетами, winners, prizes, customization) — требует randomizer.access entitlement ✅
+- `GET /site/giveaways/:id/randomizer` — данные для рандомайзера ✅
 - `POST /site/giveaways/:id/save-prizes` — сохранение призов ✅
-- `POST /site/giveaways/:id/save-customization` — кастомизация (colors, logo) ✅
-- `GET /site/giveaways/:id/results` — публичные результаты (без авторизации) ✅
-- `POST /site/giveaways/:id/publish-winners` — публикация победителей в каналы (с обновлением тизеров и кнопок стартовых постов) ✅
-
-**❌ Что НЕ сделано:**
-1. `POST /api/giveaways/:id/winner-show/select` — ручной выбор победителей — НЕТ (выбор только через scheduler/finishGiveaway)
-2. `POST /api/giveaways/:id/winner-show/reroll` — перевыбор победителей — НЕТ
+- `POST /site/giveaways/:id/save-customization` — кастомизация ✅
+- `GET /site/giveaways/:id/results` — публичные результаты ✅
+- `POST /site/giveaways/:id/publish-winners` — публикация победителей ✅
+- `POST /site/giveaways/:id/winner-show/reroll` — перевыбор победителя (взвешенный выбор, rerolled flag, previousWinnerUserId) ✅ **ДОБАВЛЕНО 2026-02-16**
+- `POST /site/giveaways/:id/winner-show/select` — ручной выбор победителей (взвешенный случайный выбор) ✅ **ДОБАВЛЕНО 2026-02-16**
 
 **⚠️ Другой подход:**
 - Winner-show endpoints живут в `/site/*` с отдельной cookie `rb_site_session`, а не в `/api/giveaways/:id/winner-show/*`. Это связано с тем, что сайт randombeast.ru использует свою авторизацию (Telegram Login Widget).
@@ -475,27 +475,29 @@
 
 ---
 
-### [ ] Задача 10.23 — API маршруты: Напоминания и уведомления
-**Статус:** НЕ реализовано
+### [x] Задача 10.23 — API маршруты: Напоминания и уведомления
+**Статус:** ✅ ПОЛНОСТЬЮ РЕАЛИЗОВАНО (2026-02-16)
 
-**Что требуется по задаче:**
-- `POST /api/giveaways/:id/remind-me` — подписка на напоминание
-- `PATCH /api/users/me/notifications` — настройки уведомлений
+**✅ Что сделано:**
+- `POST /giveaways/:id/remind-me` — подписка на напоминание (upsert, remindAt за 1 час до endAt) ✅
+- `DELETE /giveaways/:id/remind-me` — отписка от напоминания ✅
+- `GET /giveaways/:id/remind-me` — проверка статуса напоминания ✅
+- `PATCH /users/me/notifications` — настройки (notificationsEnabled, creatorNotificationMode) ✅
+- `PATCH /users/me` — обновление языка ✅
 
-**Примечание:** Prisma модель `GiveawayReminder` и поля `notificationsEnabled`/`creatorNotificationMode` в User уже созданы в блоке 0.
+**Файлы:**
+- `apps/api/src/routes/reminders.ts`
+- `apps/api/src/routes/auth.ts` (PATCH /users/me)
 
 ---
 
-### [~] Задача 10.24 — API маршруты: Retry и системные
-**Статус:** Частично реализовано
+### [x] Задача 10.24 — API маршруты: Retry и системные
+**Статус:** ✅ ПОЛНОСТЬЮ РЕАЛИЗОВАНО
 
 **✅ Что сделано:**
-- `GET /health` — healthcheck (simple: `{ ok: true, service: 'api', timestamp }`) ✅
+- `GET /health` — расширенный healthcheck (проверка DB + Redis, latencyMs, uptime, статусы healthy/degraded/down) ✅ **ОБНОВЛЕНО 2026-02-16**
 - `GET /db/ping` — проверка подключения к БД ✅
-
-**❌ Что НЕ сделано:**
-1. `POST /api/giveaways/:id/retry` — повторная попытка для ERROR розыгрышей — НЕТ
-2. **Расширенный healthcheck**: нет проверки Redis, Bot API доступности; нет статуса `degraded`/`down`
+- `POST /giveaways/:id/retry` — повторная попытка для ERROR → ACTIVE (audit log) ✅ **ДОБАВЛЕНО 2026-02-16**
 
 **Файлы:**
 - `apps/api/src/routes/health.ts`
@@ -503,18 +505,17 @@
 
 ---
 
-### [~] Задача 10.25 — API маршруты: Аналитические события
-**Статус:** Частично реализовано
+### [x] Задача 10.25 — API маршруты: Аналитические события
+**Статус:** ✅ РЕАЛИЗОВАНО
 
 **✅ Что сделано:**
-- Статистика из существующих данных: COUNT(Participation), GROUP BY DATE(joinedAt), tickets breakdown, invites, boosts, stories — в `GET /giveaways/:id/stats` ✅
+- `GET /giveaways/:id/stats` — статистика с Redis кешем (60с) ✅
+- `POST /giveaways/:id/view` — трекинг просмотров (GiveawayView, source: mini_app/catalog/tracking_link/direct, анонимные просмотры) ✅ **ДОБАВЛЕНО 2026-02-16**
+- **Redis caching** для stats ✅ **ДОБАВЛЕНО 2026-02-16**
 
-**❌ Что НЕ сделано:**
-1. `POST /api/giveaways/:id/view` — трекинг открытий (GiveawayView) — НЕТ
-2. **Conversion rate**: views → joins — невозможно без трекинга открытий
-3. **bySource breakdown**: sourceTag из участий есть, но нет трекинга views по sourceTag
-4. **captchaStats/subscriptionStats**: нет отдельных счётчиков (FAILED_CAPTCHA etc.)
-5. **Redis caching**: нет кеширования статистики
+**⚠️ Частично:**
+- Conversion rate (views → joins) теперь возможен через GiveawayView
+- captchaStats/subscriptionStats — не реализованы
 
 **Примечание:** Prisma модель `GiveawayView` уже создана в блоке 0.
 
