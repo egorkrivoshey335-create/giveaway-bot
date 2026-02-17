@@ -16,6 +16,8 @@
     "@telegram-apps/sdk": "^3.11.8",
     "canvas-confetti": "^1.9.4",
     "framer-motion": "^11.0.0",
+    "lottie-react": "^2.4.1",
+    "lucide-react": "^0.570.0",
     "nanoid": "^5.1.6",
     "next": "14.1.0",
     "next-intl": "^4.8.2",

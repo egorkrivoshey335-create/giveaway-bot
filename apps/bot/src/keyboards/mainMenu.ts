@@ -49,8 +49,8 @@ export function createWebAppInlineKeyboard(locale: Locale = 'ru'): InlineKeyboar
  * Creates inline keyboard for creating giveaway
  */
 export function createGiveawayMethodKeyboard(locale: Locale = 'ru'): InlineKeyboard {
-  const inAppText = locale === 'ru' ? '📱 В приложении' : locale === 'en' ? '📱 In App' : '📱 Қолданбада';
-  const inBotText = locale === 'ru' ? '🤖 В боте (скоро)' : locale === 'en' ? '🤖 In Bot (soon)' : '🤖 Ботта (жақында)';
+  const inAppText = t(locale, 'menu.inApp');
+  const inBotText = t(locale, 'menu.inBotSoon');
   
   return new InlineKeyboard()
     .webApp(inAppText, config.webappUrl).row()
@@ -62,7 +62,7 @@ export function createGiveawayMethodKeyboard(locale: Locale = 'ru'): InlineKeybo
  */
 export function createContinueDraftKeyboard(draftId: string, locale: Locale = 'ru'): InlineKeyboard {
   const webappUrlWithDraft = `${config.webappUrl}?startapp=draft_${draftId}`;
-  const text = locale === 'ru' ? '📱 Продолжить создание' : locale === 'en' ? '📱 Continue creation' : '📱 Құруды жалғастыру';
+  const text = t(locale, 'menu.continueDraft');
   return new InlineKeyboard()
     .webApp(text, webappUrlWithDraft);
 }
@@ -102,11 +102,7 @@ export function getCreateGiveawayMessage(locale: Locale = 'ru'): string {
  * Message for "Settings" menu item
  */
 export function getSettingsMessage(locale: Locale = 'ru'): string {
-  return t(locale, 'settings.title') + '\n\n' + (
-    locale === 'ru' ? 'Выберите язык интерфейса:' :
-    locale === 'en' ? 'Select interface language:' :
-    'Интерфейс тілін таңдаңыз:'
-  );
+  return t(locale, 'settings.title') + '\n\n' + t(locale, 'menu.selectLanguage');
 }
 
 /**

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { config } from '@/lib/config';
 import { getMe, logout } from '@/lib/api';
 
@@ -50,6 +51,10 @@ function getInitials(user: UserData): string {
 }
 
 export function Header({ isAuthenticated: initialAuth, darkMode = false }: HeaderProps) {
+  const t = useTranslations('header');
+  const tDashboard = useTranslations('dashboard');
+  const tLogin = useTranslations('login');
+  
   const [isAuth, setIsAuth] = useState(initialAuth ?? false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -140,13 +145,13 @@ export function Header({ isAuthenticated: initialAuth, darkMode = false }: Heade
               rel="noopener noreferrer"
               className={navTextClass}
             >
-              Бот
+              {t('bot')}
             </a>
             <Link
               href="/dashboard"
               className={navTextClass}
             >
-              Рандомайзер
+              {t('randomizer')}
             </Link>
           </nav>
 
@@ -174,7 +179,7 @@ export function Header({ isAuthenticated: initialAuth, darkMode = false }: Heade
                     </div>
                   )}
                   <span className={`hidden sm:block text-sm font-medium ${nameTextClass} max-w-[120px] truncate`}>
-                    {userData?.firstName || 'Профиль'}
+                    {userData?.firstName || t('dashboard')}
                   </span>
                   <svg className={`w-4 h-4 ${chevronClass} transition-transform ${showDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -221,7 +226,7 @@ export function Header({ isAuthenticated: initialAuth, darkMode = false }: Heade
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                       >
                         <span>🎰</span>
-                        <span>Мои розыгрыши</span>
+                        <span>{tDashboard('title')}</span>
                       </Link>
                       <a
                         href={`https://t.me/${config.botUsername}`}
@@ -230,7 +235,7 @@ export function Header({ isAuthenticated: initialAuth, darkMode = false }: Heade
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                       >
                         <span>🤖</span>
-                        <span>Открыть бота</span>
+                        <span>{tDashboard('openBot')}</span>
                       </a>
                     </div>
 
@@ -241,7 +246,7 @@ export function Header({ isAuthenticated: initialAuth, darkMode = false }: Heade
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors w-full text-left"
                       >
                         <span>🚪</span>
-                        <span>Выйти</span>
+                        <span>{tDashboard('logout')}</span>
                       </button>
                     </div>
                   </div>
@@ -252,7 +257,7 @@ export function Header({ isAuthenticated: initialAuth, darkMode = false }: Heade
                 href="/login"
                 className="btn-primary text-sm py-2 px-4"
               >
-                Войти
+                {tLogin('title')}
               </Link>
             )}
           </div>

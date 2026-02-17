@@ -83,9 +83,9 @@ export function getRecentTemplate(userId: number): RecentTemplate | null {
  * Create inline keyboard for posts management
  */
 export function createPostsKeyboard(locale: Locale = 'ru'): InlineKeyboard {
-  const createPost = locale === 'ru' ? '📝 Создать пост' : locale === 'en' ? '📝 Create Post' : '📝 Жазба жасау';
-  const back = locale === 'ru' ? '⬅️ Назад' : locale === 'en' ? '⬅️ Back' : '⬅️ Артқа';
-  const toMenu = locale === 'ru' ? '🏠 В меню' : locale === 'en' ? '🏠 Menu' : '🏠 Мәзір';
+  const createPost = t(locale, 'posts.createPostBtn');
+  const back = t(locale, 'posts.backBtn');
+  const toMenu = t(locale, 'posts.toMenuBtn');
   
   return new InlineKeyboard()
     .text(createPost, 'create_post')
@@ -98,7 +98,7 @@ export function createPostsKeyboard(locale: Locale = 'ru'): InlineKeyboard {
  * Create keyboard for cancel action during post creation
  */
 export function createPostCancelKeyboard(locale: Locale = 'ru'): InlineKeyboard {
-  const cancel = locale === 'ru' ? '❌ Отмена' : locale === 'en' ? '❌ Cancel' : '❌ Болдырмау';
+  const cancel = t(locale, 'posts.cancelBtn');
   return new InlineKeyboard()
     .text(cancel, 'cancel_post_creation');
 }
@@ -107,9 +107,9 @@ export function createPostCancelKeyboard(locale: Locale = 'ru'): InlineKeyboard 
  * Create keyboard after successful post creation
  */
 export function createPostCreatedKeyboard(templateId: string, locale: Locale = 'ru'): InlineKeyboard {
-  const openApp = locale === 'ru' ? '📱 Открыть приложение' : locale === 'en' ? '📱 Open App' : '📱 Қолданбаны ашу';
-  const createMore = locale === 'ru' ? '📝 Создать ещё' : locale === 'en' ? '📝 Create More' : '📝 Тағы жасау';
-  const deleteBtn = locale === 'ru' ? '🗑️ Удалить' : locale === 'en' ? '🗑️ Delete' : '🗑️ Жою';
+  const openApp = t(locale, 'posts.openAppBtn');
+  const createMore = t(locale, 'posts.createMoreBtn');
+  const deleteBtn = t(locale, 'posts.deleteBtn');
   
   return new InlineKeyboard()
     .webApp(openApp, config.webappUrl)
@@ -122,7 +122,7 @@ export function createPostCreatedKeyboard(templateId: string, locale: Locale = '
  * Create undo keyboard
  */
 export function createUndoKeyboard(templateId: string, locale: Locale = 'ru'): InlineKeyboard {
-  const undo = locale === 'ru' ? '↩️ Вернуть (20s)' : locale === 'en' ? '↩️ Undo (20s)' : '↩️ Қайтару (20s)';
+  const undo = t(locale, 'posts.undoBtn');
   return new InlineKeyboard()
     .text(undo, `undo_delete:${templateId}`);
 }
@@ -233,9 +233,7 @@ export async function handlePostCreation(ctx: Context) {
     text = ctx.message.text;
     mediaType = 'NONE';
   } else {
-    const msg = locale === 'ru' ? '❌ Неподдерживаемый тип сообщения.\n\nОтправьте текст, фото или видео.' :
-                locale === 'en' ? '❌ Unsupported message type.\n\nSend text, photo, or video.' :
-                '❌ Қолдау көрсетілмейтін хабар түрі.\n\nМәтін, фото немесе бейне жіберіңіз.';
+    const msg = t(locale, 'posts.unsupportedType');
     await ctx.reply(msg, { reply_markup: createPostCancelKeyboard(locale) });
     setUserAwaitingPost(userId);
     return;
@@ -247,18 +245,12 @@ export async function handlePostCreation(ctx: Context) {
     : POST_LIMITS.CAPTION_MAX_LENGTH;
 
   if (text.length > maxLength) {
-    const yourText = locale === 'ru' ? 'Ваш текст' : locale === 'en' ? 'Your text' : 'Сіздің мәтін';
-    const maxLabel = locale === 'ru' ? 'Максимум' : locale === 'en' ? 'Maximum' : 'Максимум';
-    const charsLabel = locale === 'ru' ? 'символов' : locale === 'en' ? 'characters' : 'таңба';
-    const mediaNote = mediaType !== 'NONE' 
-      ? (locale === 'ru' ? 'Для постов с медиа ограничение — 1024 символа.' :
-         locale === 'en' ? 'For posts with media, the limit is 1024 characters.' :
-         'Медиалы жазбалар үшін шек — 1024 таңба.')
-      : '';
-    const shortenMsg = locale === 'ru' ? 'Сократите текст и отправьте снова.' :
-                       locale === 'en' ? 'Shorten the text and try again.' :
-                       'Мәтінді қысқартып, қайта жіберіңіз.';
-    const tooLong = locale === 'ru' ? 'Текст слишком длинный' : locale === 'en' ? 'Text is too long' : 'Мәтін тым ұзын';
+    const yourText = t(locale, 'posts.yourText');
+    const maxLabel = t(locale, 'posts.maximum');
+    const charsLabel = t(locale, 'posts.characters');
+    const mediaNote = mediaType !== 'NONE' ? t(locale, 'posts.mediaNoteWithLimit') : '';
+    const shortenMsg = t(locale, 'posts.shortenText');
+    const tooLong = t(locale, 'posts.textTooLong');
     
     await ctx.reply(
       `❌ <b>${tooLong}</b>\n\n` +
@@ -276,16 +268,14 @@ export async function handlePostCreation(ctx: Context) {
   }
 
   if (!text.trim()) {
-    const msg = locale === 'ru' ? '❌ Текст не может быть пустым.\n\nДобавьте текст или подпись к медиа.' :
-                locale === 'en' ? '❌ Text cannot be empty.\n\nAdd text or caption to media.' :
-                '❌ Мәтін бос болуы мүмкін емес.\n\nМәтін немесе медиаға жазу қосыңыз.';
+    const msg = t(locale, 'posts.textEmpty');
     await ctx.reply(msg, { reply_markup: createPostCancelKeyboard(locale) });
     setUserAwaitingPost(userId);
     return;
   }
 
   // Save to API
-  const savingMsg = locale === 'ru' ? '⏳ Сохраняю шаблон...' : locale === 'en' ? '⏳ Saving template...' : '⏳ Үлгіні сақтаудамын...';
+  const savingMsg = t(locale, 'posts.saving');
   await ctx.reply(savingMsg);
 
   const result = await apiService.createPostTemplate({
@@ -297,7 +287,7 @@ export async function handlePostCreation(ctx: Context) {
   });
 
   if (!result.ok) {
-    const errorPrefix = locale === 'ru' ? '❌ Ошибка сохранения:' : locale === 'en' ? '❌ Save error:' : '❌ Сақтау қатесі:';
+    const errorPrefix = t(locale, 'posts.saveError');
     await ctx.reply(
       `${errorPrefix} ${result.error}`,
       { reply_markup: createPostCancelKeyboard(locale) }
@@ -318,25 +308,25 @@ export async function handlePostCreation(ctx: Context) {
   });
 
   // Send success message
-  const savedMsg = locale === 'ru' ? 'Шаблон сохранён!' : locale === 'en' ? 'Template saved!' : 'Үлгі сақталды!';
-  const typeLabel = locale === 'ru' 
-    ? (mediaType === 'NONE' ? 'Текст' : mediaType === 'PHOTO' ? 'Фото' : 'Видео')
-    : locale === 'en'
-    ? (mediaType === 'NONE' ? 'Text' : mediaType === 'PHOTO' ? 'Photo' : 'Video')
-    : (mediaType === 'NONE' ? 'Мәтін' : mediaType === 'PHOTO' ? 'Фото' : 'Бейне');
-  const typeName = locale === 'ru' ? 'Тип' : locale === 'en' ? 'Type' : 'Түрі';
-  const lengthLabel = locale === 'ru' ? 'Длина текста' : locale === 'en' ? 'Text length' : 'Мәтін ұзындығы';
-  const charsLabel = locale === 'ru' ? 'символов' : locale === 'en' ? 'characters' : 'таңба';
+  const savedMsg = t(locale, 'posts.saved');
+  const typeLabel = mediaType === 'NONE' 
+    ? t(locale, 'posts.typeLabelText') 
+    : mediaType === 'PHOTO' 
+    ? t(locale, 'posts.typeLabelPhoto') 
+    : t(locale, 'posts.typeLabelVideo');
+  const typeName = t(locale, 'posts.typeLabel');
+  const lengthLabel = t(locale, 'posts.textLength');
+  const charsLabel = t(locale, 'posts.characters');
   
   await ctx.reply(
     `✅ <b>${savedMsg}</b>\n\n` +
-    `${typeName}: ${typeLabel}\n` +
-    `${lengthLabel}: ${text.length} ${charsLabel}`,
+      `${typeName}: ${typeLabel}\n` +
+      `${lengthLabel}: ${text.length} ${charsLabel}`,
     { parse_mode: 'HTML' }
   );
 
   // Send preview
-  const previewLabel = locale === 'ru' ? 'Предпросмотр:' : locale === 'en' ? 'Preview:' : 'Алдын ала қарау:';
+  const previewLabel = t(locale, 'posts.previewLabel');
   await ctx.reply(`👁 <b>${previewLabel}</b>`, { parse_mode: 'HTML' });
 
   try {
@@ -349,14 +339,12 @@ export async function handlePostCreation(ctx: Context) {
     }
   } catch (error) {
     log.error({ error }, 'Preview send error');
-    const previewError = locale === 'ru' ? '⚠️ Не удалось показать предпросмотр, но шаблон сохранён.' :
-                         locale === 'en' ? '⚠️ Could not show preview, but template is saved.' :
-                         '⚠️ Алдын ала қарауды көрсету мүмкін болмады, бірақ үлгі сақталды.';
+    const previewError = t(locale, 'posts.previewError');
     await ctx.reply(previewError);
   }
 
   // Send action buttons
-  const whatNext = locale === 'ru' ? 'Что дальше?' : locale === 'en' ? 'What\'s next?' : 'Келесі не?';
+  const whatNext = t(locale, 'posts.whatsNext');
   await ctx.reply(
     whatNext,
     { reply_markup: createPostCreatedKeyboard(templateId, locale) }
@@ -391,8 +379,8 @@ export function registerPostHandlers(bot: import('grammy').Bot) {
       clearUserPostState(userId);
     }
     
-    const cancelledNotif = locale === 'ru' ? 'Отменено' : locale === 'en' ? 'Cancelled' : 'Болдырылмады';
-    const cancelledMsg = locale === 'ru' ? '❌ Создание отменено.' : locale === 'en' ? '❌ Creation cancelled.' : '❌ Жасау болдырылмады.';
+    const cancelledNotif = t(locale, 'posts.cancelledNotif');
+    const cancelledMsg = t(locale, 'posts.cancelledMsg');
     
     await ctx.answerCallbackQuery(cancelledNotif);
     await ctx.reply(cancelledMsg, {
@@ -409,7 +397,7 @@ export function registerPostHandlers(bot: import('grammy').Bot) {
     const result = await apiService.deletePostTemplate(templateId);
     
     if (!result.ok) {
-      const errorPrefix = locale === 'ru' ? 'Ошибка:' : locale === 'en' ? 'Error:' : 'Қате:';
+      const errorPrefix = t(locale, 'posts.deleteError');
       await ctx.answerCallbackQuery({
         text: `${errorPrefix} ${result.error}`,
         show_alert: true,
@@ -417,8 +405,8 @@ export function registerPostHandlers(bot: import('grammy').Bot) {
       return;
     }
 
-    const deletedNotif = locale === 'ru' ? 'Удалено' : locale === 'en' ? 'Deleted' : 'Жойылды';
-    const deletedMsg = locale === 'ru' ? '🗑️ Шаблон удалён.' : locale === 'en' ? '🗑️ Template deleted.' : '🗑️ Үлгі жойылды.';
+    const deletedNotif = t(locale, 'posts.deletedNotif');
+    const deletedMsg = t(locale, 'posts.deletedMsg');
     
     await ctx.answerCallbackQuery(deletedNotif);
     await ctx.editMessageText(
@@ -436,7 +424,7 @@ export function registerPostHandlers(bot: import('grammy').Bot) {
     const result = await apiService.undoDeletePostTemplate(templateId);
     
     if (!result.ok) {
-      const errorMsg = locale === 'ru' ? 'Не удалось восстановить' : locale === 'en' ? 'Could not restore' : 'Қалпына келтіру мүмкін болмады';
+      const errorMsg = t(locale, 'posts.undoRestoreError');
       await ctx.answerCallbackQuery({
         text: result.error || errorMsg,
         show_alert: true,
@@ -444,8 +432,8 @@ export function registerPostHandlers(bot: import('grammy').Bot) {
       return;
     }
 
-    const restoredNotif = locale === 'ru' ? 'Восстановлено!' : locale === 'en' ? 'Restored!' : 'Қалпына келтірілді!';
-    const restoredMsg = locale === 'ru' ? '✅ Шаблон восстановлен.' : locale === 'en' ? '✅ Template restored.' : '✅ Үлгі қалпына келтірілді.';
+    const restoredNotif = t(locale, 'posts.restoredNotif');
+    const restoredMsg = t(locale, 'posts.restoredMsg');
     
     await ctx.answerCallbackQuery(restoredNotif);
     await ctx.editMessageText(

@@ -5,52 +5,28 @@ import { createLogger } from '../lib/logger.js';
 
 const log = createLogger('handlers:giveaways');
 import { buildMiniAppLink } from '@randombeast/shared';
-import { getUserLocale, type Locale } from '../i18n/index.js';
+import { getUserLocale, t, type Locale } from '../i18n/index.js';
 
-// Названия для отображения
-const TYPE_LABELS: Record<Locale, Record<string, string>> = {
-  ru: {
-    STANDARD: '🎁 Стандартный',
-    BOOST_REQUIRED: '🚀 С бустами',
-    INVITE_REQUIRED: '👥 С инвайтами',
-    CUSTOM: '⚙️ Кастомный',
-  },
-  en: {
-    STANDARD: '🎁 Standard',
-    BOOST_REQUIRED: '🚀 With boosts',
-    INVITE_REQUIRED: '👥 With invites',
-    CUSTOM: '⚙️ Custom',
-  },
-  kk: {
-    STANDARD: '🎁 Стандартты',
-    BOOST_REQUIRED: '🚀 Бусттармен',
-    INVITE_REQUIRED: '👥 Шақырулармен',
-    CUSTOM: '⚙️ Арнаулы',
-  },
-};
+// Helper functions for type/captcha labels
+function getTypeLabel(locale: Locale, type: string): string {
+  const key = type === 'STANDARD' ? 'typeStandard' :
+              type === 'BOOST_REQUIRED' ? 'typeBoostRequired' :
+              type === 'INVITE_REQUIRED' ? 'typeInviteRequired' :
+              type === 'CUSTOM' ? 'typeCustom' : 'typeStandard';
+  return t(locale, `giveawayConfirm.${key}`);
+}
+
+function getCaptchaLabel(locale: Locale, mode: string): string {
+  const key = mode === 'OFF' ? 'captchaOff' :
+              mode === 'SUSPICIOUS_ONLY' ? 'captchaSuspicious' :
+              mode === 'ALL' ? 'captchaAll' : 'captchaSuspicious';
+  return t(locale, `giveawayConfirm.${key}`);
+}
 
 const LANGUAGE_LABELS: Record<string, string> = {
   RU: '🇷🇺 Русский',
   EN: '🇬🇧 English',
   KK: '🇰🇿 Қазақша',
-};
-
-const CAPTCHA_MODE_LABELS: Record<Locale, Record<string, string>> = {
-  ru: {
-    OFF: 'Выключена',
-    SUSPICIOUS_ONLY: 'Для подозрительных',
-    ALL: 'Для всех',
-  },
-  en: {
-    OFF: 'Off',
-    SUSPICIOUS_ONLY: 'For suspicious',
-    ALL: 'For all',
-  },
-  kk: {
-    OFF: 'Өшірулі',
-    SUSPICIOUS_ONLY: 'Күдікті үшін',
-    ALL: 'Барлығы үшін',
-  },
 };
 
 /**
@@ -60,9 +36,7 @@ export async function handleConfirmStart(ctx: Context, giveawayId: string): Prom
   const userId = ctx.from?.id;
   if (!userId) {
     const locale = 'ru';
-    const msg = locale === 'ru' ? '❌ Не удалось определить пользователя' : 
-                locale === 'en' ? '❌ Could not identify user' : '❌ Пайдаланушыны анықтау мүмкін болмады';
-    await ctx.reply(msg);
+    await ctx.reply(t(locale, 'giveawayConfirm.userNotIdentified'));
     return;
   }
   
@@ -72,55 +46,31 @@ export async function handleConfirmStart(ctx: Context, giveawayId: string): Prom
   const result = await apiService.getGiveawayFull(giveawayId);
 
   if (!result.ok || !result.giveaway || !result.owner) {
-    const notFound = locale === 'ru' ? 'Розыгрыш не найден' : locale === 'en' ? 'Giveaway not found' : 'Ұтыс ойыны табылмады';
-    await ctx.reply(`❌ ${result.error || notFound}`);
+    await ctx.reply(`❌ ${result.error || t(locale, 'giveawayConfirm.notFound')}`);
     return;
   }
 
   // Verify ownership
   if (result.owner.telegramUserId !== userId.toString()) {
-    const wrongOwner = locale === 'ru' ? 'Этот розыгрыш принадлежит другому пользователю' :
-                       locale === 'en' ? 'This giveaway belongs to another user' :
-                       'Бұл ұтыс ойыны басқа пайдаланушыға тиесілі';
-    await ctx.reply(`❌ ${wrongOwner}`);
+    await ctx.reply(`❌ ${t(locale, 'giveawayConfirm.wrongOwner')}`);
     return;
   }
 
   // Verify status
   if (result.giveaway.status !== 'PENDING_CONFIRM') {
-    const statusMessages: Record<Locale, Record<string, string>> = {
-      ru: {
-        DRAFT: 'Розыгрыш ещё в черновике. Завершите настройку в приложении.',
-        ACTIVE: 'Розыгрыш уже опубликован и активен.',
-        SCHEDULED: 'Розыгрыш уже запланирован.',
-        FINISHED: 'Розыгрыш завершён.',
-        CANCELLED: 'Розыгрыш отменён.',
-      },
-      en: {
-        DRAFT: 'Giveaway is still a draft. Complete setup in the app.',
-        ACTIVE: 'Giveaway is already published and active.',
-        SCHEDULED: 'Giveaway is already scheduled.',
-        FINISHED: 'Giveaway is finished.',
-        CANCELLED: 'Giveaway is cancelled.',
-      },
-      kk: {
-        DRAFT: 'Ұтыс ойыны әлі жоба. Қолданбада баптауды аяқтаңыз.',
-        ACTIVE: 'Ұтыс ойыны жарияланып, белсенді.',
-        SCHEDULED: 'Ұтыс ойыны жоспарланған.',
-        FINISHED: 'Ұтыс ойыны аяқталды.',
-        CANCELLED: 'Ұтыс ойыны болдырылмады.',
-      },
-    };
-    const defaultMsg = locale === 'ru' ? 'Некорректный статус розыгрыша' : 
-                       locale === 'en' ? 'Invalid giveaway status' : 'Ұтыс ойынының жарамсыз мәртебесі';
-    await ctx.reply(`⚠️ ${statusMessages[locale][result.giveaway.status] || defaultMsg}`);
+    const statusKey = result.giveaway.status === 'DRAFT' ? 'statusDraft' :
+                      result.giveaway.status === 'ACTIVE' ? 'statusActive' :
+                      result.giveaway.status === 'SCHEDULED' ? 'statusScheduled' :
+                      result.giveaway.status === 'FINISHED' ? 'statusFinished' :
+                      result.giveaway.status === 'CANCELLED' ? 'statusCancelled' : 'invalidStatus';
+    await ctx.reply(`⚠️ ${t(locale, `giveawayConfirm.${statusKey}`)}`);
     return;
   }
 
   const { giveaway, postTemplate, channels, protection } = result;
 
   // Send post preview
-  const previewLabel = locale === 'ru' ? 'Превью поста:' : locale === 'en' ? 'Post preview:' : 'Жазба алдын ала қарауы:';
+  const previewLabel = t(locale, 'giveawayConfirm.previewLabel');
   if (postTemplate) {
     try {
       if (postTemplate.mediaType === 'PHOTO' && postTemplate.telegramFileId) {
@@ -145,141 +95,64 @@ export async function handleConfirmStart(ctx: Context, giveawayId: string): Prom
       });
     }
   } else {
-    const noTemplate = locale === 'ru' ? '⚠️ Шаблон поста не найден' : 
-                       locale === 'en' ? '⚠️ Post template not found' : '⚠️ Жазба үлгісі табылмады';
-    await ctx.reply(noTemplate);
+    await ctx.reply(t(locale, 'giveawayConfirm.noTemplate'));
   }
 
   // Format channels info
-  const notSelected = locale === 'ru' ? '— не выбрано' : locale === 'en' ? '— not selected' : '— таңдалмаған';
   const formatChannels = (list: Array<{ title: string; username: string | null }>) =>
     list.length > 0
       ? list.map(c => `  • ${c.title}${c.username ? ` (${c.username})` : ''}`).join('\n')
-      : `  ${notSelected}`;
+      : `  ${t(locale, 'giveawayConfirm.notSelected')}`;
 
   // Send giveaway info
-  const captchaModeLabel = CAPTCHA_MODE_LABELS[locale][protection?.captchaMode || 'SUSPICIOUS_ONLY'] || protection?.captchaMode;
+  const captchaModeLabel = getCaptchaLabel(locale, protection?.captchaMode || 'SUSPICIOUS_ONLY');
   const livenessLabel = protection?.livenessEnabled ? '✅' : '❌';
   
   // Дополнительные билеты
-  const maxLabel = locale === 'ru' ? 'макс.' : locale === 'en' ? 'max.' : 'макс.';
+  const maxLabel = t(locale, 'giveawayConfirm.max');
   const inviteLabel = protection?.inviteEnabled 
     ? `✅ (${maxLabel} ${protection.inviteMax || 10})` 
     : '❌';
   const boostLabel = protection?.boostEnabled ? '✅' : '❌';
   const storiesLabel = protection?.storiesEnabled ? '✅' : '❌';
 
-  // Локализованные метки
-  const labels = {
-    ru: {
-      info: 'Информация о розыгрыше:',
-      title: 'Название:',
-      type: 'Тип:',
-      language: 'Язык:',
-      winners: 'Победителей:',
-      start: 'Начало:',
-      end: 'Окончание:',
-      protection: 'Защита:',
-      captcha: 'Капча:',
-      extraTickets: 'Дополнительные билеты:',
-      invites: 'Приглашения:',
-      boosts: 'Бусты:',
-      stories: 'Сторис:',
-      subscribeChannels: 'Каналы для подписки:',
-      publishIn: 'Публикация в:',
-      resultsIn: 'Итоги в:',
-      afterConfirm: 'Сразу после подтверждения',
-      notSpecified: 'Не указано',
-    },
-    en: {
-      info: 'Giveaway Info:',
-      title: 'Title:',
-      type: 'Type:',
-      language: 'Language:',
-      winners: 'Winners:',
-      start: 'Start:',
-      end: 'End:',
-      protection: 'Protection:',
-      captcha: 'Captcha:',
-      extraTickets: 'Extra Tickets:',
-      invites: 'Invites:',
-      boosts: 'Boosts:',
-      stories: 'Stories:',
-      subscribeChannels: 'Required subscriptions:',
-      publishIn: 'Publish in:',
-      resultsIn: 'Results in:',
-      afterConfirm: 'Right after confirmation',
-      notSpecified: 'Not specified',
-    },
-    kk: {
-      info: 'Ұтыс ойыны туралы ақпарат:',
-      title: 'Атауы:',
-      type: 'Түрі:',
-      language: 'Тілі:',
-      winners: 'Жеңімпаздар:',
-      start: 'Басталуы:',
-      end: 'Аяқталуы:',
-      protection: 'Қорғау:',
-      captcha: 'Капча:',
-      extraTickets: 'Қосымша билеттер:',
-      invites: 'Шақырулар:',
-      boosts: 'Бусттар:',
-      stories: 'Сторис:',
-      subscribeChannels: 'Жазылу арналары:',
-      publishIn: 'Жариялау:',
-      resultsIn: 'Нәтижелер:',
-      afterConfirm: 'Растаудан кейін бірден',
-      notSpecified: 'Көрсетілмеген',
-    },
-  };
-  const l = labels[locale];
-
   const dateLocale = locale === 'kk' ? 'kk-KZ' : locale === 'en' ? 'en-US' : 'ru-RU';
 
-  const infoMessage = `📋 <b>${l.info}</b>
+  const infoMessage = `📋 <b>${t(locale, 'giveawayConfirm.info')}</b>
 
-📝 <b>${l.title}</b> ${giveaway.title}
-🎲 <b>${l.type}</b> ${TYPE_LABELS[locale][giveaway.type] || giveaway.type}
-🗣 <b>${l.language}</b> ${LANGUAGE_LABELS[giveaway.language] || giveaway.language}
-🏆 <b>${l.winners}</b> ${giveaway.winnersCount}
-📅 <b>${l.start}</b> ${giveaway.startAt ? new Date(giveaway.startAt).toLocaleString(dateLocale) : l.afterConfirm}
-📅 <b>${l.end}</b> ${giveaway.endAt ? new Date(giveaway.endAt).toLocaleString(dateLocale) : l.notSpecified}
+📝 <b>${t(locale, 'giveawayConfirm.title')}</b> ${giveaway.title}
+🎲 <b>${t(locale, 'giveawayConfirm.type')}</b> ${getTypeLabel(locale, giveaway.type)}
+🗣 <b>${t(locale, 'giveawayConfirm.language')}</b> ${LANGUAGE_LABELS[giveaway.language] || giveaway.language}
+🏆 <b>${t(locale, 'giveawayConfirm.winners')}</b> ${giveaway.winnersCount}
+📅 <b>${t(locale, 'giveawayConfirm.start')}</b> ${giveaway.startAt ? new Date(giveaway.startAt).toLocaleString(dateLocale) : t(locale, 'giveawayConfirm.afterConfirm')}
+📅 <b>${t(locale, 'giveawayConfirm.end')}</b> ${giveaway.endAt ? new Date(giveaway.endAt).toLocaleString(dateLocale) : t(locale, 'giveawayConfirm.notSpecified')}
 
-🔒 <b>${l.protection}</b>
-  ${l.captcha} ${captchaModeLabel}
+🔒 <b>${t(locale, 'giveawayConfirm.protection')}</b>
+  ${t(locale, 'giveawayConfirm.captcha')} ${captchaModeLabel}
   Liveness: ${livenessLabel}
 
-🎫 <b>${l.extraTickets}</b>
-  👥 ${l.invites} ${inviteLabel}
-  ⚡ ${l.boosts} ${boostLabel}
-  📺 ${l.stories} ${storiesLabel}
+🎫 <b>${t(locale, 'giveawayConfirm.extraTickets')}</b>
+  👥 ${t(locale, 'giveawayConfirm.invites')} ${inviteLabel}
+  ⚡ ${t(locale, 'giveawayConfirm.boosts')} ${boostLabel}
+  📺 ${t(locale, 'giveawayConfirm.stories')} ${storiesLabel}
 
-📢 <b>${l.subscribeChannels}</b>
+📢 <b>${t(locale, 'giveawayConfirm.subscribeChannels')}</b>
 ${formatChannels(channels?.requiredSubscriptions || [])}
 
-📣 <b>${l.publishIn}</b>
+📣 <b>${t(locale, 'giveawayConfirm.publishIn')}</b>
 ${formatChannels(channels?.publish || [])}
 
-🏁 <b>${l.resultsIn}</b>
+🏁 <b>${t(locale, 'giveawayConfirm.resultsIn')}</b>
 ${formatChannels(channels?.results || [])}`;
 
   await ctx.reply(infoMessage, { parse_mode: 'HTML' });
 
   // Send confirmation prompt with buttons
-  const acceptBtn = locale === 'ru' ? '✅ Принять' : locale === 'en' ? '✅ Accept' : '✅ Қабылдау';
-  const rejectBtn = locale === 'ru' ? '❌ Отклонить' : locale === 'en' ? '❌ Reject' : '❌ Қабылдамау';
-  
   const confirmKeyboard = new InlineKeyboard()
-    .text(acceptBtn, `giveaway_accept:${giveawayId}`)
-    .text(rejectBtn, `giveaway_reject:${giveawayId}`);
+    .text(t(locale, 'giveawayConfirm.acceptBtn'), `giveaway_accept:${giveawayId}`)
+    .text(t(locale, 'giveawayConfirm.rejectBtn'), `giveaway_reject:${giveawayId}`);
 
-  const confirmMsg = locale === 'ru' 
-    ? '🔔 <b>Всё верно?</b> Нажмите "Принять" для публикации.\n\n⚠️ Убедитесь что бот имеет права на публикацию в выбранных каналах!'
-    : locale === 'en'
-    ? '🔔 <b>Is everything correct?</b> Click "Accept" to publish.\n\n⚠️ Make sure the bot has posting permissions in the selected channels!'
-    : '🔔 <b>Бәрі дұрыс па?</b> Жариялау үшін "Қабылдау" түймесін басыңыз.\n\n⚠️ Боттың таңдалған арналарда жариялау құқықтары бар екеніне көз жеткізіңіз!';
-
-  await ctx.reply(confirmMsg, {
+  await ctx.reply(t(locale, 'giveawayConfirm.confirmMsg'), {
     parse_mode: 'HTML',
     reply_markup: confirmKeyboard,
   });
@@ -305,10 +178,8 @@ export function registerGiveawayHandlers(bot: Bot): void {
     await ctx.answerCallbackQuery();
 
     // Edit message to show progress
-    const publishingMsg = locale === 'ru' ? '⏳ Публикуем розыгрыш...' : 
-                          locale === 'en' ? '⏳ Publishing giveaway...' : '⏳ Ұтыс ойынын жариялаудамыз...';
     try {
-      await ctx.editMessageText(publishingMsg);
+      await ctx.editMessageText(t(locale, 'giveawayConfirm.publishing'));
     } catch {
       // Message might not be editable
     }
@@ -317,52 +188,37 @@ export function registerGiveawayHandlers(bot: Bot): void {
     const result = await apiService.getGiveawayFull(giveawayId);
 
     if (!result.ok || !result.giveaway || !result.channels || !result.owner) {
-      const loadError = locale === 'ru' ? 'Ошибка загрузки розыгрыша' : 
-                        locale === 'en' ? 'Failed to load giveaway' : 'Ұтыс ойынын жүктеу қатесі';
-      await ctx.editMessageText(`❌ ${result.error || loadError}`);
+      await ctx.editMessageText(`❌ ${result.error || t(locale, 'giveawayConfirm.loadError')}`);
       return;
     }
 
     // Verify ownership
     if (result.owner.telegramUserId !== userId.toString()) {
-      const wrongOwner = locale === 'ru' ? '❌ Этот розыгрыш принадлежит другому пользователю' :
-                         locale === 'en' ? '❌ This giveaway belongs to another user' :
-                         '❌ Бұл ұтыс ойыны басқа пайдаланушыға тиесілі';
-      await ctx.editMessageText(wrongOwner);
+      await ctx.editMessageText(`❌ ${t(locale, 'giveawayConfirm.wrongOwner')}`);
       return;
     }
 
     // Verify status
     if (result.giveaway.status !== 'PENDING_CONFIRM') {
-      const alreadyProcessed = locale === 'ru' ? '❌ Розыгрыш уже был обработан' :
-                               locale === 'en' ? '❌ Giveaway has already been processed' :
-                               '❌ Ұтыс ойыны өңделген';
-      await ctx.editMessageText(alreadyProcessed);
+      await ctx.editMessageText(t(locale, 'giveawayConfirm.alreadyProcessed'));
       return;
     }
 
     const { giveaway, postTemplate, channels } = result;
 
     if (!postTemplate) {
-      const noTemplate = locale === 'ru' ? '❌ Шаблон поста не найден' :
-                         locale === 'en' ? '❌ Post template not found' :
-                         '❌ Жазба үлгісі табылмады';
-      await ctx.editMessageText(noTemplate);
+      await ctx.editMessageText(`❌ ${t(locale, 'giveawayConfirm.noTemplate')}`);
       return;
     }
 
     if (channels.publish.length === 0) {
-      const noChannels = locale === 'ru' ? '❌ Не выбраны каналы для публикации' :
-                         locale === 'en' ? '❌ No channels selected for publishing' :
-                         '❌ Жариялау үшін арналар таңдалмаған';
-      await ctx.editMessageText(noChannels);
+      await ctx.editMessageText(t(locale, 'giveawayConfirm.noChannels'));
       return;
     }
 
     // Кнопка участия (используем URL для каналов, web_app там не работает)
     // Прямой Mini App link: https://t.me/BeastRandomBot/participate?startapp=join_<id>
-    const defaultButtonText = locale === 'ru' ? '🎁 Участвовать' : locale === 'en' ? '🎁 Join' : '🎁 Қатысу';
-    const buttonText = giveaway.buttonText || defaultButtonText;
+    const buttonText = giveaway.buttonText || t(locale, 'giveawayConfirm.buttonTextDefault');
     const joinUrl = buildMiniAppLink(`join_${giveawayId}`);
     
     const postKeyboard = new InlineKeyboard()
@@ -372,8 +228,7 @@ export function registerGiveawayHandlers(bot: Bot): void {
     const publishedMessages: Array<{ channelId: string; telegramMessageId: number }> = [];
     const errors: string[] = [];
 
-    const noRightsMsg = locale === 'ru' ? 'нет прав на публикацию' : 
-                        locale === 'en' ? 'no posting rights' : 'жариялау құқықтары жоқ';
+    const noRightsMsg = t(locale, 'giveawayConfirm.noPostingRights');
 
     for (const channel of channels.publish) {
       try {
@@ -415,10 +270,7 @@ export function registerGiveawayHandlers(bot: Bot): void {
 
     // If all failed, don't update status
     if (publishedMessages.length === 0) {
-      const failedPrefix = locale === 'ru' ? 'Не удалось опубликовать ни в один канал:' :
-                           locale === 'en' ? 'Failed to publish to any channel:' :
-                           'Ешбір арнаға жариялау мүмкін болмады:';
-      const errorText = `❌ ${failedPrefix}\n\n${errors.join('\n')}`;
+      const errorText = `❌ ${t(locale, 'giveawayConfirm.failedToPublish')}\n\n${errors.join('\n')}`;
       await ctx.editMessageText(errorText);
       return;
     }
@@ -427,34 +279,21 @@ export function registerGiveawayHandlers(bot: Bot): void {
     const acceptResult = await apiService.acceptGiveaway(giveawayId, publishedMessages);
 
     if (!acceptResult.ok) {
-      const saveError = locale === 'ru' ? 'Ошибка сохранения:' : locale === 'en' ? 'Save error:' : 'Сақтау қатесі:';
-      await ctx.editMessageText(`❌ ${saveError} ${acceptResult.error}`);
+      await ctx.editMessageText(`❌ ${t(locale, 'giveawayConfirm.saveError')} ${acceptResult.error}`);
       return;
     }
 
     // Success message
-    const publishedLabel = locale === 'ru' ? 'Розыгрыш опубликован!' :
-                           locale === 'en' ? 'Giveaway published!' :
-                           'Ұтыс ойыны жарияланды!';
-    const publishedIn = locale === 'ru' ? 'Опубликовано в' : locale === 'en' ? 'Published in' : 'Жарияланды';
-    const ofLabel = locale === 'ru' ? 'из' : locale === 'en' ? 'of' : 'ішінен';
-    const channelsLabel = locale === 'ru' ? 'каналов' : locale === 'en' ? 'channels' : 'арна';
-    const statusLabel = locale === 'ru' ? 'Статус:' : locale === 'en' ? 'Status:' : 'Мәртебесі:';
-    const activeLabel = locale === 'ru' ? 'Активен' : locale === 'en' ? 'Active' : 'Белсенді';
-    const scheduledLabel = locale === 'ru' ? 'Запланирован' : locale === 'en' ? 'Scheduled' : 'Жоспарланған';
-    const errorsLabel = locale === 'ru' ? 'Ошибки:' : locale === 'en' ? 'Errors:' : 'Қателер:';
-    
-    let successText = `✅ <b>${publishedLabel}</b>\n\n`;
-    successText += `📣 ${publishedIn} ${publishedMessages.length} ${ofLabel} ${channels.publish.length} ${channelsLabel}\n`;
-    successText += `📊 ${statusLabel} <b>${acceptResult.status === 'ACTIVE' ? activeLabel : scheduledLabel}</b>`;
+    let successText = `✅ <b>${t(locale, 'giveawayConfirm.published')}</b>\n\n`;
+    successText += `📣 ${t(locale, 'giveawayConfirm.publishedInCount')} ${publishedMessages.length} ${t(locale, 'giveawayConfirm.of')} ${channels.publish.length} ${t(locale, 'giveawayConfirm.channelsCount')}\n`;
+    successText += `📊 ${t(locale, 'giveawayConfirm.status')} <b>${acceptResult.status === 'ACTIVE' ? t(locale, 'giveawayConfirm.statusActiveLabel') : t(locale, 'giveawayConfirm.statusScheduledLabel')}</b>`;
 
     if (errors.length > 0) {
-      successText += `\n\n⚠️ ${errorsLabel}\n${errors.join('\n')}`;
+      successText += `\n\n⚠️ ${t(locale, 'giveawayConfirm.errorsLabel')}\n${errors.join('\n')}`;
     }
 
-    const openAppLabel = locale === 'ru' ? '📱 Открыть приложение' : locale === 'en' ? '📱 Open App' : '📱 Қолданбаны ашу';
     const openAppKeyboard = new InlineKeyboard()
-      .webApp(openAppLabel, config.webappUrl);
+      .webApp(t(locale, 'giveawayConfirm.openApp'), config.webappUrl);
 
     await ctx.editMessageText(successText, {
       parse_mode: 'HTML',
@@ -477,14 +316,12 @@ export function registerGiveawayHandlers(bot: Bot): void {
     // Verify ownership first
     const checkResult = await apiService.getGiveawayFull(giveawayId);
     if (!checkResult.ok || !checkResult.owner) {
-      const notFound = locale === 'ru' ? 'Розыгрыш не найден' : locale === 'en' ? 'Giveaway not found' : 'Ұтыс ойыны табылмады';
-      await ctx.answerCallbackQuery({ text: `❌ ${notFound}`, show_alert: true });
+      await ctx.answerCallbackQuery({ text: `❌ ${t(locale, 'giveawayConfirm.notFound')}`, show_alert: true });
       return;
     }
 
     if (checkResult.owner.telegramUserId !== userId.toString()) {
-      const noAccess = locale === 'ru' ? 'Нет доступа' : locale === 'en' ? 'No access' : 'Қатынас жоқ';
-      await ctx.answerCallbackQuery({ text: `❌ ${noAccess}`, show_alert: true });
+      await ctx.answerCallbackQuery({ text: `❌ ${t(locale, 'giveawayConfirm.noAccess')}`, show_alert: true });
       return;
     }
 
@@ -498,18 +335,10 @@ export function registerGiveawayHandlers(bot: Bot): void {
 
     await ctx.answerCallbackQuery();
 
-    const editInApp = locale === 'ru' ? '📱 Редактировать в приложении' : 
-                      locale === 'en' ? '📱 Edit in app' : '📱 Қолданбада өңдеу';
     const openAppKeyboard = new InlineKeyboard()
-      .webApp(editInApp, `${config.webappUrl}?startapp=edit_${giveawayId}`);
+      .webApp(t(locale, 'giveawayConfirm.editInApp'), `${config.webappUrl}?startapp=edit_${giveawayId}`);
 
-    const cancelledMsg = locale === 'ru' 
-      ? '❌ <b>Публикация отменена</b>\n\nРозыгрыш возвращён в черновики. Вы можете отредактировать его в приложении.'
-      : locale === 'en'
-      ? '❌ <b>Publication cancelled</b>\n\nGiveaway returned to drafts. You can edit it in the app.'
-      : '❌ <b>Жариялау болдырылмады</b>\n\nҰтыс ойыны жобаларға қайтарылды. Оны қолданбада өңдей аласыз.';
-
-    await ctx.editMessageText(cancelledMsg, {
+    await ctx.editMessageText(t(locale, 'giveawayConfirm.publicationCancelled'), {
       parse_mode: 'HTML',
       reply_markup: openAppKeyboard,
     });

@@ -156,6 +156,133 @@ export const mediaRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   /**
+   * POST /media/upload-theme-asset
+   * Загрузка theme asset (логотип или фон) для кастомизации темы
+   * 
+   * Ограничения:
+   * - Только изображения (PNG, JPEG, WebP)
+   * - Макс размер: 2MB
+   * - Авто-ресайз для логотипов: 512x512px
+   * - Авто-оптимизация для фонов: 1920x1080px
+   */
+  fastify.post<{ Querystring: { type?: 'logo' | 'background' } }>(
+    '/media/upload-theme-asset',
+    async (request, reply) => {
+      const user = await requireUser(request, reply);
+      if (!user) return;
+
+      const assetType = request.query.type || 'logo';
+
+      // Получаем файл из multipart
+      const data = await request.file();
+
+      if (!data) {
+        return reply.badRequest('No file uploaded');
+      }
+
+      const { mimetype, file, filename } = data;
+
+      // Проверяем тип файла
+      if (!ALLOWED_IMAGE_TYPES.includes(mimetype)) {
+        return reply.badRequest(`Unsupported file type: ${mimetype}. Allowed: JPEG, PNG, WebP`);
+      }
+
+      // Читаем файл в буфер
+      const chunks: Buffer[] = [];
+      for await (const chunk of file) {
+        chunks.push(chunk);
+      }
+      const buffer = Buffer.concat(chunks);
+
+      // Проверяем размер (2MB для theme assets)
+      const maxSize = 2 * 1024 * 1024;
+      if (buffer.length > maxSize) {
+        return reply.badRequest('File too large. Max size: 2MB');
+      }
+
+      // Обрабатываем изображение в зависимости от типа
+      let processedBuffer: Buffer<ArrayBufferLike>;
+      try {
+        const image = sharp(buffer);
+        const metadata = await image.metadata();
+
+        if (assetType === 'logo') {
+          // Логотип: ресайз до 512x512px, preserve aspect ratio
+          processedBuffer = (await image
+            .resize(512, 512, {
+              fit: 'inside',
+              withoutEnlargement: true,
+              background: { r: 0, g: 0, b: 0, alpha: 0 }, // Transparent
+            })
+            .png({ quality: 90, compressionLevel: 9 })
+            .toBuffer()) as Buffer;
+        } else {
+          // Фон: ресайз до 1920x1080px
+          processedBuffer = (await image
+            .resize(1920, 1080, {
+              fit: 'cover',
+              withoutEnlargement: true,
+            })
+            .jpeg({ quality: 85 })
+            .toBuffer()) as Buffer;
+        }
+      } catch (error) {
+        fastify.log.error({ error }, 'Failed to process theme asset');
+        return reply.error(ErrorCode.BOT_API_ERROR, 'Failed to process image');
+      }
+
+      // Загружаем в Telegram через Bot API
+      const botToken = config.botToken;
+      if (!botToken) {
+        return reply.error(ErrorCode.BOT_API_ERROR, 'Bot not configured');
+      }
+
+      try {
+        const formData = new FormData();
+        formData.append(
+          'photo',
+          new Blob([processedBuffer], { type: 'image/jpeg' }),
+          filename || `theme-${assetType}.jpg`
+        );
+        formData.append('chat_id', user.telegramUserId.toString());
+
+        const response = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = (await response.json()) as {
+          ok: boolean;
+          result?: {
+            photo?: Array<{ file_id: string }>;
+          };
+          description?: string;
+        };
+
+        if (!result.ok || !result.result?.photo) {
+          fastify.log.error({ result }, 'Telegram API error');
+          return reply.error(ErrorCode.BOT_API_ERROR, result.description || 'Failed to upload to Telegram');
+        }
+
+        // Берем последний (самый большой) вариант
+        const fileId = result.result.photo[result.result.photo.length - 1].file_id;
+
+        fastify.log.info({ userId: user.id, fileId, assetType }, 'Theme asset uploaded');
+
+        return reply.success({
+          fileId,
+          assetType,
+          originalFilename: filename,
+          size: processedBuffer.length,
+        });
+      } catch (error) {
+        fastify.log.error({ error }, 'Theme asset upload error');
+        return reply.error(ErrorCode.BOT_API_ERROR, 'Failed to upload theme asset');
+      }
+    }
+  );
+
+  /**
    * DELETE /media/:fileId
    * Удаление медиа (опционально - Telegram не поддерживает удаление file_id)
    * Для MVP просто логируем и возвращаем success

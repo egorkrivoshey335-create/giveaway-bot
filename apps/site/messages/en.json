@@ -1,0 +1,162 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "back": "Back",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "share": "Share",
+    "copied": "Copied!",
+    "participants": "participants",
+    "winners": "winners",
+    "place": "place",
+    "saved": "Saved!",
+    "saving": "Saving...",
+    "publishing": "Publishing...",
+    "retry": "Try again"
+  },
+  "landing": {
+    "hero": {
+      "title": "RandomBeast",
+      "subtitle": "Platform for running fair giveaways in Telegram with subscription verification, bot protection, and beautiful winner announcements",
+      "openBot": "Open Bot",
+      "randomizer": "Randomizer"
+    },
+    "features": {
+      "title": "Features",
+      "subtitle": "Everything you need for fair and transparent giveaways",
+      "createGiveaways": {
+        "title": "Create Giveaways",
+        "description": "Easily create giveaways with any participation conditions"
+      },
+      "checkSubscription": {
+        "title": "Subscription Check",
+        "description": "Automatic verification of channel and group subscriptions"
+      },
+      "botProtection": {
+        "title": "Bot Protection",
+        "description": "Filter fake accounts and bots"
+      },
+      "extraChances": {
+        "title": "Extra Chances",
+        "description": "Bonus chances for Premium, boosts, and referrals"
+      },
+      "beautifulRandomizer": {
+        "title": "Beautiful Randomizer",
+        "description": "Spectacular winner announcements with animations"
+      },
+      "statistics": {
+        "title": "Statistics",
+        "description": "Detailed statistics for all giveaways"
+      }
+    },
+    "howItWorks": {
+      "title": "How It Works",
+      "subtitle": "Four simple steps to a fair giveaway",
+      "step1": {
+        "title": "Create",
+        "description": "Set up a giveaway in the bot in minutes"
+      },
+      "step2": {
+        "title": "Publish",
+        "description": "Share the giveaway in your channel"
+      },
+      "step3": {
+        "title": "Gather",
+        "description": "Participants register through the bot"
+      },
+      "step4": {
+        "title": "Select",
+        "description": "Bot fairly selects winners"
+      }
+    },
+    "randomizerPromo": {
+      "title": "Beautiful Randomizer",
+      "description": "Announce winners spectacularly with animations, confetti, and sound effects. Perfect for livestreams!",
+      "tryIt": "Try It"
+    },
+    "cta": {
+      "title": "Start Right Now",
+      "description": "Create your first giveaway in minutes",
+      "startBot": "Launch Bot"
+    }
+  },
+  "winner": {
+    "title": "Winner Randomizer",
+    "settings": "Settings",
+    "prizes": "Prizes",
+    "customization": "Customization",
+    "prizeForPlace": "Prize for {place} place",
+    "savePrizes": "Save Prizes",
+    "saveCustomization": "Save",
+    "background": "Background",
+    "accent": "Accent",
+    "logo": "Logo",
+    "uploadFile": "Upload File",
+    "pasteUrl": "or paste image URL",
+    "removeLogo": "Remove",
+    "logoSize": "Size",
+    "maxFileSize": "Maximum file size — 2 MB",
+    "startGiveaway": "Start Giveaway",
+    "pause": "Pause",
+    "skip": "Skip",
+    "continue": "Continue",
+    "finished": "Giveaway Finished!",
+    "announceWinners": "Announce winners in Telegram channel",
+    "publishWinners": "Publish Winners to Channel",
+    "winnersPublished": "Winners published to channel!",
+    "reset": "Reset",
+    "resultsPage": "Results Page",
+    "existingWinnersWarning": "Winners already determined. Starting the randomizer will select new random winners.",
+    "viewCurrentResults": "View current results",
+    "errorLoading": "Loading error",
+    "giveawayNotFound": "Giveaway not found",
+    "linkCopied": "Link copied!",
+    "errorSavingPrizes": "Error saving prizes:",
+    "errorSavingCustomization": "Error saving customization:",
+    "errorPublishing": "Publishing error:",
+    "unknownError": "Unknown error"
+  },
+  "results": {
+    "title": "Giveaway Results",
+    "winnersTitle": "Winners",
+    "giveawayInfo": "About Giveaway",
+    "participants": "Participants",
+    "winners": "Winners",
+    "startedAt": "Started",
+    "finishedAt": "Finished",
+    "notFound": "Results not found",
+    "notFoundDesc": "Giveaway not found or results not published yet",
+    "goHome": "Go Home"
+  },
+  "dashboard": {
+    "title": "My Giveaways",
+    "noGiveaways": "No giveaways yet",
+    "createFirst": "Create your first giveaway in the bot",
+    "openBot": "Open Bot",
+    "logout": "Logout"
+  },
+  "login": {
+    "title": "Login",
+    "description": "Login via Telegram to manage giveaways",
+    "loginButton": "Login via Telegram",
+    "devLogin": "Dev Login (development only)"
+  },
+  "maintenance": {
+    "title": "Under Maintenance",
+    "description": "We're working on improvements. We'll be back soon!",
+    "backSoon": "Back very soon"
+  },
+  "header": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "randomizer": "Randomizer"
+  },
+  "footer": {
+    "rights": "All rights reserved",
+    "bot": "Bot",
+    "support": "Support",
+    "channel": "Channel"
+  }
+}

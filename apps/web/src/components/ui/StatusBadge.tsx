@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 export type StatusType = 
   | 'DRAFT'
   | 'PENDING_CONFIRM'
@@ -28,66 +30,68 @@ export interface StatusBadgeProps {
  * ```
  */
 export function StatusBadge({ status, label, className = '' }: StatusBadgeProps) {
+  const t = useTranslations('common');
+  
   const statusConfig = {
     DRAFT: {
       icon: '📝',
       bg: 'bg-gray-100',
       text: 'text-gray-700',
-      label: label || 'Черновик',
+      label: label || t('statusDraft'),
     },
     PENDING_CONFIRM: {
       icon: '⏳',
       bg: 'bg-yellow-100',
       text: 'text-yellow-700',
-      label: label || 'Ожидание',
+      label: label || t('statusPendingConfirm'),
     },
     SCHEDULED: {
       icon: '⏰',
       bg: 'bg-blue-100',
       text: 'text-blue-700',
-      label: label || 'Запланирован',
+      label: label || t('statusScheduled'),
     },
     ACTIVE: {
       icon: '🟢',
       bg: 'bg-green-100',
       text: 'text-green-700',
-      label: label || 'Активен',
+      label: label || t('statusActive'),
     },
     FINISHED: {
       icon: '✅',
       bg: 'bg-emerald-100',
       text: 'text-emerald-700',
-      label: label || 'Завершён',
+      label: label || t('statusFinished'),
     },
     CANCELLED: {
       icon: '❌',
       bg: 'bg-red-100',
       text: 'text-red-700',
-      label: label || 'Отменён',
+      label: label || t('statusCancelled'),
     },
     ERROR: {
       icon: '⚠️',
       bg: 'bg-orange-100',
       text: 'text-orange-700',
-      label: label || 'Ошибка',
+      label: label || t('statusError'),
     },
     success: {
       icon: '✓',
       bg: 'bg-green-100',
       text: 'text-green-700',
-      label: label || 'Успешно',
+      label: label || t('statusSuccess'),
     },
     warning: {
       icon: '!',
       bg: 'bg-yellow-100',
       text: 'text-yellow-700',
-      label: label || 'Внимание',
+      label: label || t('statusWarning'),
     },
     info: {
       icon: 'ℹ',
       bg: 'bg-blue-100',
       text: 'text-blue-700',
-      label: label || 'Инфо',
+      label: label || t('statusInfo'),
     },
   };
 

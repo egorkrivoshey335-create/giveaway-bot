@@ -16,6 +16,18 @@ interface TelegramWebApp {
   isFullscreen?: boolean;
   expand?: () => void;
   ready?: () => void;
+  colorScheme?: 'light' | 'dark';
+  themeParams?: {
+    bg_color?: string;
+    text_color?: string;
+    hint_color?: string;
+    link_color?: string;
+    button_color?: string;
+    button_text_color?: string;
+    secondary_bg_color?: string;
+    header_bg_color?: string;
+    section_bg_color?: string;
+  };
   safeAreaInset?: SafeAreaInset;
   contentSafeAreaInset?: SafeAreaInset;
   onEvent?: (event: string, callback: () => void) => void;
@@ -42,6 +54,56 @@ export function FullscreenInit() {
     }).Telegram?.WebApp;
 
     if (!tg) return;
+
+    // Функция для установки темы (dark/light)
+    const updateTheme = () => {
+      const root = document.documentElement;
+      const isDark = tg.colorScheme === 'dark';
+      
+      // Установить data-theme для CSS
+      root.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      
+      // Установить класс dark для Tailwind
+      if (isDark) {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+      
+      // Обновить Telegram theme params как CSS переменные
+      if (tg.themeParams) {
+        const params = tg.themeParams;
+        if (params.bg_color) root.style.setProperty('--tg-theme-bg-color', params.bg_color);
+        if (params.text_color) root.style.setProperty('--tg-theme-text-color', params.text_color);
+        if (params.hint_color) root.style.setProperty('--tg-theme-hint-color', params.hint_color);
+        if (params.link_color) root.style.setProperty('--tg-theme-link-color', params.link_color);
+        if (params.button_color) root.style.setProperty('--tg-theme-button-color', params.button_color);
+        if (params.button_text_color) root.style.setProperty('--tg-theme-button-text-color', params.button_text_color);
+        if (params.secondary_bg_color) root.style.setProperty('--tg-theme-secondary-bg-color', params.secondary_bg_color);
+        if (params.header_bg_color) root.style.setProperty('--tg-theme-header-bg-color', params.header_bg_color);
+        if (params.section_bg_color) root.style.setProperty('--tg-theme-section-bg-color', params.section_bg_color);
+      }
+      
+      // Установить headerColor и backgroundColor в зависимости от темы
+      const headerColor = isDark ? '#e89999' : '#f2b6b6'; // Ярче для dark mode
+      const bgColor = isDark ? '#17212b' : '#ffffff';
+      
+      try {
+        if (tg.setHeaderColor) {
+          tg.setHeaderColor(headerColor);
+        } else if (tg.headerColor !== undefined) {
+          tg.headerColor = headerColor;
+        }
+
+        if (tg.setBackgroundColor) {
+          tg.setBackgroundColor(bgColor);
+        } else if (tg.backgroundColor !== undefined) {
+          tg.backgroundColor = bgColor;
+        }
+      } catch (err) {
+        console.debug('Color setting not supported:', err);
+      }
+    };
 
     // Функция для обновления CSS переменных Safe Area
     const updateSafeAreaVariables = () => {
@@ -80,22 +142,8 @@ export function FullscreenInit() {
       }
     }
 
-    // Установить брендовые цвета
-    try {
-      if (tg.setHeaderColor) {
-        tg.setHeaderColor('#f2b6b6');
-      } else if (tg.headerColor !== undefined) {
-        tg.headerColor = '#f2b6b6';
-      }
-
-      if (tg.setBackgroundColor) {
-        tg.setBackgroundColor('#ffffff');
-      } else if (tg.backgroundColor !== undefined) {
-        tg.backgroundColor = '#ffffff';
-      }
-    } catch (err) {
-      console.debug('Color setting not supported:', err);
-    }
+    // Установить тему на основе Telegram colorScheme
+    updateTheme();
 
     // Сигнал готовности
     if (tg.ready) {
@@ -105,11 +153,12 @@ export function FullscreenInit() {
     // Установить начальные значения Safe Area
     updateSafeAreaVariables();
 
-    // Подписаться на события изменения Safe Area
+    // Подписаться на события изменения Safe Area и темы
     if (tg.onEvent) {
       tg.onEvent('safeAreaChanged', updateSafeAreaVariables);
       tg.onEvent('contentSafeAreaChanged', updateSafeAreaVariables);
       tg.onEvent('fullscreenChanged', updateSafeAreaVariables);
+      tg.onEvent('themeChanged', updateTheme);
     }
 
     // Отписаться при размонтировании
@@ -118,6 +167,7 @@ export function FullscreenInit() {
         tg.offEvent('safeAreaChanged', updateSafeAreaVariables);
         tg.offEvent('contentSafeAreaChanged', updateSafeAreaVariables);
         tg.offEvent('fullscreenChanged', updateSafeAreaVariables);
+        tg.offEvent('themeChanged', updateTheme);
       }
     };
   }, []);

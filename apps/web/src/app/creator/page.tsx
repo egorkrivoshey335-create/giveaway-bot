@@ -58,12 +58,12 @@ function getStatusBadgeClass(status: string): string {
 }
 
 // Форматирование оставшегося времени
-function formatTimeLeft(endAt: string): string {
+function formatTimeLeft(endAt: string, finishingText: string): string {
   const end = new Date(endAt);
   const now = new Date();
   const diff = end.getTime() - now.getTime();
 
-  if (diff <= 0) return 'Завершается...';
+  if (diff <= 0) return finishingText;
 
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -111,7 +111,7 @@ function GiveawayCard({
     switch (giveaway.status) {
       case 'ACTIVE':
         return giveaway.endAt 
-          ? { text: `⏰ ${tCard('timeLeft')}: ${formatTimeLeft(giveaway.endAt)}`, className: 'text-orange-500' }
+          ? { text: `⏰ ${tCard('timeLeft')}: ${formatTimeLeft(giveaway.endAt, tCommon('finishing'))}`, className: 'text-orange-500' }
           : { text: tCard('noEndDate'), className: 'text-tg-hint' };
       case 'FINISHED':
         return { text: `${tCard('finished')} ${giveaway.endAt ? formatDate(giveaway.endAt) : ''}`, className: 'text-tg-hint' };
@@ -431,6 +431,17 @@ export default function CreatorDashboardPage() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">{t('title')}</h1>
           <div className="flex items-center gap-2">
+            {/* Кнопка профиля */}
+            <button
+              onClick={() => router.push('/creator/profile')}
+              className="bg-tg-secondary text-tg-text rounded-full p-2 font-medium flex items-center justify-center hover:bg-tg-secondary/80 transition-colors"
+              title={t('profile')}
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </button>
+
             <button
               onClick={() => router.push('/creator/channels')}
               className="bg-tg-secondary text-tg-text rounded-lg px-3 py-2 font-medium flex items-center gap-2 hover:bg-tg-secondary/80 transition-colors"
@@ -471,6 +482,48 @@ export default function CreatorDashboardPage() {
               )}
             </button>
           ))}
+        </div>
+
+        {/* Быстрые блоки: Каналы и Посты */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          {/* Блок каналов */}
+          <button
+            onClick={() => router.push('/creator/channels')}
+            className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-2xl">📣</span>
+              <svg className="w-5 h-5 text-tg-hint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+            <div className="text-lg font-semibold mb-1">{t('blocks.channels.title')}</div>
+            <div className="text-sm text-tg-hint">{t('blocks.channels.subtitle')}</div>
+          </button>
+
+          {/* Блок постов */}
+          <button
+            onClick={() => {
+              // TODO: TASKS-4.4 - открыть управление постами
+              const tg = window.Telegram?.WebApp;
+              const link = `https://t.me/${BOT_USERNAME}?start=posts`;
+              if (tg) {
+                tg.openTelegramLink(link);
+              } else {
+                window.open(link, '_blank');
+              }
+            }}
+            className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-2xl">📝</span>
+              <svg className="w-5 h-5 text-tg-hint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+            <div className="text-lg font-semibold mb-1">{t('blocks.posts.title')}</div>
+            <div className="text-sm text-tg-hint">{t('blocks.posts.subtitle')}</div>
+          </button>
         </div>
 
         {/* Список розыгрышей */}

@@ -16,12 +16,17 @@ import {
   GiveawayDraftPayload,
 } from '@/lib/api';
 import { DateTimePicker } from '@/components/DateTimePicker';
+import { PostsManager } from '@/components/PostsManager';
+import { Mascot } from '@/components/Mascot';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { ValidationMessage, useURLValidation } from '@/components/ui/ValidationMessage';
+import { hapticNavigation, hapticSuccess, hapticError, hapticToggle, hapticSelect } from '@/lib/haptic';
 
 // Bot deep link for confirmation
 const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
 
 // Шаги wizard'а
-const WIZARD_STEPS = ['TYPE', 'BASICS', 'SUBSCRIPTIONS', 'PUBLISH', 'RESULTS', 'DATES', 'WINNERS', 'PROTECTION', 'EXTRAS', 'REVIEW'] as const;
+const WIZARD_STEPS = ['TYPE', 'BASICS', 'SUBSCRIPTIONS', 'PUBLISH', 'RESULTS', 'DATES', 'WINNERS', 'PROTECTION', 'EXTRAS', 'MASCOT', 'CUSTOM_TASKS', 'REVIEW'] as const;
 type WizardStep = (typeof WIZARD_STEPS)[number];
 
 // Лимиты для победителей (бесплатный аккаунт)
@@ -111,6 +116,22 @@ export default function GiveawayWizardPage() {
   
   const [channels, setChannels] = useState<Channel[]>([]);
   const [postTemplates, setPostTemplates] = useState<PostTemplate[]>([]);
+  const [showPostsManager, setShowPostsManager] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  
+  // TODO: TASKS-6 - проверка подписки пользователя
+  const userHasPremium = false;
+
+  // Helper: валидация URL
+  const isValidURL = (url: string): boolean => {
+    if (!url) return true; // empty is valid
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
   
   // Debounce save
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -147,7 +168,7 @@ export default function GiveawayWizardPage() {
           // Set defaults for required fields if not present
           const payloadWithDefaults: GiveawayDraftPayload = {
             language: 'ru',
-            buttonText: '🎁 Участвовать',
+            buttonText: tCommon('participate'),
             winnersCount: 1,
             publishResultsMode: 'SEPARATE_POSTS',
             captchaMode: 'SUSPICIOUS_ONLY',
@@ -237,15 +258,35 @@ export default function GiveawayWizardPage() {
   
   const goNext = useCallback(async () => {
     if (currentStepIndex < WIZARD_STEPS.length - 1) {
-      await goToStep(WIZARD_STEPS[currentStepIndex + 1]);
+      let nextIndex = currentStepIndex + 1;
+      let nextStep = WIZARD_STEPS[nextIndex];
+      
+      // Пропустить CUSTOM_TASKS если тип не CUSTOM
+      if (nextStep === 'CUSTOM_TASKS' && payload.type !== 'CUSTOM') {
+        nextIndex++;
+        nextStep = WIZARD_STEPS[nextIndex];
+      }
+      
+      hapticNavigation(); // Haptic feedback при переходе
+      await goToStep(nextStep);
     }
-  }, [currentStepIndex, goToStep]);
+  }, [currentStepIndex, goToStep, payload.type]);
 
   const goPrev = useCallback(async () => {
     if (currentStepIndex > 0) {
-      await goToStep(WIZARD_STEPS[currentStepIndex - 1]);
+      let prevIndex = currentStepIndex - 1;
+      let prevStep = WIZARD_STEPS[prevIndex];
+      
+      // Пропустить CUSTOM_TASKS если тип не CUSTOM
+      if (prevStep === 'CUSTOM_TASKS' && payload.type !== 'CUSTOM') {
+        prevIndex--;
+        prevStep = WIZARD_STEPS[prevIndex];
+      }
+      
+      hapticNavigation(); // Haptic feedback при переходе назад
+      await goToStep(prevStep);
     }
-  }, [currentStepIndex, goToStep]);
+  }, [currentStepIndex, goToStep, payload.type]);
 
   // Confirm giveaway
   const handleConfirm = useCallback(async () => {
@@ -259,9 +300,11 @@ export default function GiveawayWizardPage() {
       
       if (result.ok && result.giveawayId) {
         // Store confirmed giveaway ID to show success screen
+        hapticSuccess(); // Haptic feedback при успехе
         setConfirmedGiveawayId(result.giveawayId);
       } else {
         // Build error message with details if available
+        hapticError(); // Haptic feedback при ошибке
         let errorMsg = result.error || tErrors('confirmFailed');
         if (result.details && result.details.length > 0) {
           errorMsg = result.details.map(d => `• ${d.message}`).join('\n');
@@ -269,6 +312,7 @@ export default function GiveawayWizardPage() {
         setError(errorMsg);
       }
     } catch (err) {
+      hapticError(); // Haptic feedback при ошибке
       setError(err instanceof Error ? err.message : tErrors('confirmError'));
     } finally {
       setConfirming(false);
@@ -378,7 +422,13 @@ export default function GiveawayWizardPage() {
         <div className="bg-tg-secondary rounded-xl p-4 mb-6">
           {/* Step 1: Type */}
           {currentStep === 'TYPE' && (
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* Mascot */}
+              <div className="flex justify-center mb-4">
+                <Mascot type="wizard-type" size={160} loop={true} autoplay={true} />
+              </div>
+
+              <div className="space-y-3">
               {(['STANDARD', 'BOOST_REQUIRED', 'INVITE_REQUIRED', 'CUSTOM'] as const).map((typeValue) => (
                 <button
                   key={typeValue}
@@ -393,12 +443,18 @@ export default function GiveawayWizardPage() {
                   <div className="text-sm text-tg-hint mt-1">{t(`types.${typeValue}.desc`)}</div>
                 </button>
               ))}
+              </div>
             </div>
           )}
 
           {/* Step 2: Basics */}
           {currentStep === 'BASICS' && (
             <div className="space-y-4">
+              {/* Mascot */}
+              <div className="flex justify-center mb-4">
+                <Mascot type="wizard-settings" size={160} loop={true} autoplay={true} />
+              </div>
+
               <div>
                 <label className="block text-sm text-tg-hint mb-1">{t('basics.title')} *</label>
                 <input
@@ -425,19 +481,30 @@ export default function GiveawayWizardPage() {
 
               <div>
                 <label className="block text-sm text-tg-hint mb-1">{t('basics.postTemplate')} *</label>
-                <select
-                  value={payload.postTemplateId || ''}
-                  onChange={(e) => updatePayload({ postTemplateId: e.target.value || null })}
-                  className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text"
+                <button
+                  type="button"
+                  onClick={() => setShowPostsManager(true)}
+                  className="w-full bg-tg-bg rounded-lg px-4 py-3 text-left flex items-center justify-between hover:bg-tg-secondary/50 transition-colors"
                 >
-                  <option value="">{t('basics.selectTemplate')}</option>
-                  {postTemplates.map((tpl) => (
-                    <option key={tpl.id} value={tpl.id}>
-                      {tpl.mediaType !== 'NONE' ? (tpl.mediaType === 'PHOTO' ? '🖼️ ' : '🎬 ') : '📄 '}
-                      {tpl.text.slice(0, 50)}...
-                    </option>
-                  ))}
-                </select>
+                  <span className="text-tg-text">
+                    {payload.postTemplateId ? (
+                      (() => {
+                        const selectedPost = postTemplates.find(p => p.id === payload.postTemplateId);
+                        return selectedPost ? (
+                          <>
+                            {selectedPost.mediaType !== 'NONE' ? (selectedPost.mediaType === 'PHOTO' ? '🖼️ ' : '🎬 ') : '📄 '}
+                            {selectedPost.text.slice(0, 50)}...
+                          </>
+                        ) : t('basics.selectTemplate');
+                      })()
+                    ) : (
+                      <span className="text-tg-hint/70">{t('basics.selectTemplate')}</span>
+                    )}
+                  </span>
+                  <svg className="w-5 h-5 text-tg-hint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
                 {postTemplates.length === 0 && (
                   <p className="text-xs text-tg-hint mt-1">
                     {t('basics.noTemplates')}
@@ -455,12 +522,59 @@ export default function GiveawayWizardPage() {
                   className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text placeholder:text-tg-hint/50"
                 />
               </div>
+
+              {/* Описание приза (опционально) */}
+              <div>
+                <label className="block text-sm text-tg-hint mb-1">{t('basics.prizeDescription')}</label>
+                <textarea
+                  value={payload.prizeDescription || ''}
+                  onChange={(e) => updatePayload({ prizeDescription: e.target.value })}
+                  placeholder={t('basics.prizeDescriptionPlaceholder')}
+                  maxLength={500}
+                  rows={3}
+                  className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text placeholder:text-tg-hint/50 resize-none"
+                />
+                <p className="text-xs text-tg-hint mt-1">
+                  {(payload.prizeDescription || '').length} / 500 {t('basics.characters')}
+                </p>
+              </div>
+
+              {/* Способ получения приза */}
+              <div>
+                <label className="block text-sm text-tg-hint mb-1">{t('basics.prizeDeliveryMethod')}</label>
+                <select
+                  value={payload.prizeDeliveryMethod || 'CONTACT_ORGANIZER'}
+                  onChange={(e) => updatePayload({ prizeDeliveryMethod: e.target.value as 'CONTACT_ORGANIZER' | 'INSTRUCTION' | 'FORM' })}
+                  className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text"
+                >
+                  <option value="CONTACT_ORGANIZER">{t('basics.deliveryContact')}</option>
+                  <option value="INSTRUCTION">{t('basics.deliveryInstruction')}</option>
+                  <option value="FORM">{t('basics.deliveryForm')}</option>
+                </select>
+
+                {/* Если выбрана инструкция — добавить поле для текста инструкции */}
+                {payload.prizeDeliveryMethod === 'INSTRUCTION' && (
+                  <textarea
+                    value={payload.prizeInstruction || ''}
+                    onChange={(e) => updatePayload({ prizeInstruction: e.target.value })}
+                    placeholder={t('basics.prizeInstructionPlaceholder')}
+                    maxLength={1000}
+                    rows={4}
+                    className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text placeholder:text-tg-hint/50 resize-none mt-2"
+                  />
+                )}
+              </div>
             </div>
           )}
 
           {/* Step 3: Subscriptions */}
           {currentStep === 'SUBSCRIPTIONS' && (
             <div>
+              {/* Mascot */}
+              <div className="flex justify-center mb-4">
+                <Mascot type="wizard-channels" size={160} loop={true} autoplay={true} />
+              </div>
+
               <p className="text-sm text-tg-hint mb-4">
                 {t('subscriptions.description')}
               </p>
@@ -510,6 +624,11 @@ export default function GiveawayWizardPage() {
           {/* Step 4: Publish Channels */}
           {currentStep === 'PUBLISH' && (
             <div>
+              {/* Mascot */}
+              <div className="flex justify-center mb-4">
+                <Mascot type="wizard-publish" size={160} loop={true} autoplay={true} />
+              </div>
+
               <p className="text-sm text-tg-hint mb-4">
                 {t('publish.description')}
               </p>
@@ -564,6 +683,11 @@ export default function GiveawayWizardPage() {
           {/* Step 5: Results */}
           {currentStep === 'RESULTS' && (
             <div>
+              {/* Mascot */}
+              <div className="flex justify-center mb-4">
+                <Mascot type="wizard-results" size={160} loop={true} autoplay={true} />
+              </div>
+
               <p className="text-sm text-tg-hint mb-4">
                 {t('resultsStep.description')}
               </p>
@@ -671,6 +795,11 @@ export default function GiveawayWizardPage() {
           {/* Шаг 6: Даты */}
           {currentStep === 'DATES' && (
             <div className="space-y-4">
+              {/* Mascot */}
+              <div className="flex justify-center mb-4">
+                <Mascot type="wizard-calendar" size={160} loop={true} autoplay={true} />
+              </div>
+
               {/* Тумблер "Начать сразу" */}
               <div className="flex items-center justify-between p-3 bg-tg-bg rounded-lg">
                 <div>
@@ -742,9 +871,9 @@ export default function GiveawayWizardPage() {
           {/* Шаг 7: Победители */}
           {currentStep === 'WINNERS' && (
             <div className="space-y-4">
-              <div className="text-center mb-4">
-                <span className="text-4xl">🏆</span>
-                <h3 className="text-lg font-semibold mt-2">{t('winners.title')}</h3>
+              {/* Mascot */}
+              <div className="flex justify-center mb-4">
+                <Mascot type="wizard-winners" size={160} loop={true} autoplay={true} />
               </div>
 
               <div>
@@ -783,12 +912,84 @@ export default function GiveawayWizardPage() {
                 <p className="mb-1">🎲 {t('winners.randomHint')}</p>
                 <p>📊 {t('winners.maxFree', { max: MAX_WINNERS_FREE })}</p>
               </div>
+
+              {/* Минимальное количество участников */}
+              <div className="border-t border-tg-bg pt-4 mt-4">
+                <label className="block text-sm text-tg-hint mb-2">{t('winners.minParticipants')}</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={10000}
+                  value={payload.minParticipants || 0}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 0;
+                    updatePayload({ minParticipants: Math.max(0, val) });
+                  }}
+                  placeholder="0"
+                  className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text text-center"
+                />
+                <p className="text-xs text-tg-hint mt-2">
+                  {t('winners.minParticipantsHint')}
+                </p>
+
+                {/* Если указан минимум — показать дополнительные настройки */}
+                {(payload.minParticipants || 0) > 0 && (
+                  <div className="mt-4 space-y-3">
+                    {/* Отменить если не набралось */}
+                    <div className="flex items-center justify-between p-3 bg-tg-bg rounded-lg">
+                      <div>
+                        <div className="font-medium text-sm">{t('winners.cancelIfNotEnough')}</div>
+                        <div className="text-xs text-tg-hint">{t('winners.cancelIfNotEnoughHint')}</div>
+                      </div>
+                      <button
+                        onClick={() => updatePayload({ cancelIfNotEnough: !payload.cancelIfNotEnough })}
+                        className={`w-12 h-6 rounded-full transition-colors relative ${
+                          payload.cancelIfNotEnough ? 'bg-red-500' : 'bg-tg-secondary'
+                        }`}
+                      >
+                        <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                          payload.cancelIfNotEnough ? 'left-7' : 'left-1'
+                        }`} />
+                      </button>
+                    </div>
+
+                    {/* Автопродление если не отменяется */}
+                    {!payload.cancelIfNotEnough && (
+                      <div>
+                        <label className="block text-sm text-tg-hint mb-2">{t('winners.autoExtendDays')}</label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="number"
+                            min={0}
+                            max={30}
+                            value={payload.autoExtendDays || 0}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || 0;
+                              updatePayload({ autoExtendDays: Math.min(Math.max(0, val), 30) });
+                            }}
+                            className="w-24 bg-tg-bg rounded-lg px-3 py-2 text-tg-text text-center"
+                          />
+                          <span className="text-sm text-tg-hint">{t('winners.daysLabel')}</span>
+                        </div>
+                        <p className="text-xs text-tg-hint mt-2">
+                          {t('winners.autoExtendHint')}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
           {/* Шаг 8: Защита */}
           {currentStep === 'PROTECTION' && (
             <div className="space-y-6">
+              {/* Mascot */}
+              <div className="flex justify-center mb-4">
+                <Mascot type="wizard-protection" size={160} loop={true} autoplay={true} />
+              </div>
+
               {/* Блок Капча */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
@@ -874,12 +1075,9 @@ export default function GiveawayWizardPage() {
           {/* Шаг 9: Дополнительные билеты */}
           {currentStep === 'EXTRAS' && (
             <div className="space-y-6">
-              <div className="text-center mb-4">
-                <span className="text-4xl">🎫</span>
-                <h3 className="text-lg font-semibold mt-2">{t('extras.title')}</h3>
-                <p className="text-xs text-tg-hint mt-1">
-                  {t('extras.subtitle')}
-                </p>
+              {/* Mascot */}
+              <div className="flex justify-center mb-4">
+                <Mascot type="wizard-invite" size={160} loop={true} autoplay={true} />
               </div>
 
               {/* Блок: Приглашение друзей */}
@@ -1074,12 +1272,218 @@ export default function GiveawayWizardPage() {
             </div>
           )}
 
-          {/* Шаг 10: Проверка */}
+          {/* Шаг 10: Маскот розыгрыша */}
+          {currentStep === 'MASCOT' && (
+            <div className="space-y-4">
+              {/* Mascot */}
+              <div className="flex justify-center mb-4">
+                <Mascot type="wizard-mascot" size={160} loop={true} autoplay={true} />
+              </div>
+
+              <p className="text-sm text-tg-hint mb-4 text-center">
+                {t('mascot.description')}
+              </p>
+
+              {/* Сетка выбора маскотов */}
+              <div className="grid grid-cols-3 gap-3">
+                {/* Бесплатный маскот */}
+                <button
+                  onClick={() => updatePayload({ mascotId: 'mascot-free-default' })}
+                  className={`p-3 rounded-lg transition-all ${
+                    payload.mascotId === 'mascot-free-default'
+                      ? 'bg-tg-button ring-2 ring-tg-button scale-105'
+                      : 'bg-tg-bg hover:bg-tg-secondary'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <Mascot type="mascot-free-default" size={80} loop={false} autoplay={false} />
+                    <span className="text-xs">🎁 {t('mascot.free')}</span>
+                  </div>
+                </button>
+
+                {/* Премиум маскоты */}
+                {[1, 2, 3, 4, 5].map((num) => {
+                  const mascotId = `mascot-paid-${num}` as const;
+                  const isLocked = !userHasPremium; // TODO: check user subscription
+                  
+                  return (
+                    <button
+                      key={mascotId}
+                      onClick={() => !isLocked && updatePayload({ mascotId })}
+                      disabled={isLocked}
+                      className={`p-3 rounded-lg transition-all relative ${
+                        payload.mascotId === mascotId
+                          ? 'bg-tg-button ring-2 ring-tg-button scale-105'
+                          : isLocked
+                          ? 'bg-tg-bg opacity-50'
+                          : 'bg-tg-bg hover:bg-tg-secondary'
+                      }`}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <Mascot type={mascotId} size={80} loop={false} autoplay={false} />
+                        <span className="text-xs">
+                          {isLocked ? '🔒' : '✨'} #{num}
+                        </span>
+                      </div>
+                      {isLocked && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
+                          <span className="text-2xl">🔒</span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Превью выбранного маскота */}
+              {payload.mascotId && (
+                <div className="bg-tg-bg rounded-lg p-4">
+                  <div className="flex flex-col items-center gap-3">
+                    <Mascot 
+                      type={payload.mascotId as any} 
+                      size={200} 
+                      loop={true} 
+                      autoplay={true} 
+                    />
+                    <p className="text-sm text-tg-hint text-center">
+                      {t('mascot.preview')}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Уведомление для бесплатных пользователей */}
+              {!userHasPremium && (
+                <div className="bg-yellow-500/10 rounded-lg p-3">
+                  <p className="text-sm text-yellow-600">
+                    ⭐ {t('mascot.premiumHint')}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Шаг 11: Свои задания (только для CUSTOM) */}
+          {currentStep === 'CUSTOM_TASKS' && payload.type === 'CUSTOM' && (
+            <div className="space-y-4">
+              {/* Mascot */}
+              <div className="flex justify-center mb-4">
+                <Mascot type="wizard-tasks" size={160} loop={true} autoplay={true} />
+              </div>
+
+              <p className="text-sm text-tg-hint mb-4 text-center">
+                {t('customTasks.description')}
+              </p>
+
+              {/* Список заданий */}
+              <div className="space-y-3">
+                {(payload.customTasks || []).map((task, idx) => (
+                  <div key={idx} className="bg-tg-bg rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">
+                        {t('customTasks.task')} #{idx + 1}
+                      </span>
+                      <button
+                        onClick={() => {
+                          const tasks = [...(payload.customTasks || [])];
+                          tasks.splice(idx, 1);
+                          updatePayload({ customTasks: tasks });
+                        }}
+                        className="text-red-500 text-xs"
+                      >
+                        🗑️ {t('customTasks.remove')}
+                      </button>
+                    </div>
+
+                    {/* Описание задания */}
+                    <textarea
+                      value={task.description || ''}
+                      onChange={(e) => {
+                        const tasks = [...(payload.customTasks || [])];
+                        tasks[idx] = { ...task, description: e.target.value };
+                        updatePayload({ customTasks: tasks });
+                      }}
+                      placeholder={t('customTasks.descriptionPlaceholder')}
+                      maxLength={300}
+                      rows={2}
+                      className="w-full bg-tg-secondary rounded-lg px-3 py-2 text-sm text-tg-text placeholder:text-tg-hint/50 resize-none"
+                    />
+
+                    {/* URL (опционально) */}
+                    <div>
+                      <input
+                        type="url"
+                        value={task.url || ''}
+                        onChange={(e) => {
+                          const tasks = [...(payload.customTasks || [])];
+                          tasks[idx] = { ...task, url: e.target.value };
+                          updatePayload({ customTasks: tasks });
+                        }}
+                        placeholder={t('customTasks.urlPlaceholder')}
+                        className={`w-full bg-tg-secondary rounded-lg px-3 py-2 text-sm text-tg-text placeholder:text-tg-hint/50 ${
+                          task.url && task.url.length > 0 && !isValidURL(task.url)
+                            ? 'border-2 border-red-500'
+                            : ''
+                        }`}
+                      />
+                      {task.url && task.url.length > 0 && !isValidURL(task.url) && (
+                        <ValidationMessage 
+                          message="Введите корректный URL (например: https://example.com)" 
+                          type="error"
+                        />
+                      )}
+                    </div>
+
+                    {/* Дополнительные билеты за задание */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-tg-hint">{t('customTasks.extraTickets')}:</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={task.tickets || 1}
+                        onChange={(e) => {
+                          const tasks = [...(payload.customTasks || [])];
+                          tasks[idx] = { ...task, tickets: Math.max(0, parseInt(e.target.value) || 1) };
+                          updatePayload({ customTasks: tasks });
+                        }}
+                        className="w-20 bg-tg-secondary rounded-lg px-3 py-1 text-sm text-tg-text text-center"
+                      />
+                      <span className="text-xs text-tg-hint">🎫</span>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Добавить задание */}
+                {(payload.customTasks || []).length < 10 && (
+                  <button
+                    onClick={() => {
+                      const tasks = [...(payload.customTasks || [])];
+                      tasks.push({ description: '', url: '', tickets: 1 });
+                      updatePayload({ customTasks: tasks });
+                    }}
+                    className="w-full py-3 border-2 border-dashed border-tg-hint/30 rounded-lg text-tg-hint hover:border-tg-button hover:text-tg-button transition-colors"
+                  >
+                    ➕ {t('customTasks.addTask')}
+                  </button>
+                )}
+              </div>
+
+              {/* Подсказка */}
+              <div className="bg-tg-bg rounded-lg p-3">
+                <p className="text-xs text-tg-hint">
+                  💡 {t('customTasks.hint')}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Шаг 12: Проверка */}
           {currentStep === 'REVIEW' && (
             <div className="space-y-4">
-              <div className="text-center mb-4">
-                <span className="text-4xl">🎉</span>
-                <h3 className="text-lg font-semibold mt-2">{t('review.title')}</h3>
+              {/* Mascot */}
+              <div className="flex justify-center mb-4">
+                <Mascot type="wizard-review" size={160} loop={true} autoplay={true} />
               </div>
 
               <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
@@ -1237,6 +1641,37 @@ export default function GiveawayWizardPage() {
             </button>
           )}
         </div>
+
+        {/* PostsManager BottomSheet */}
+        <PostsManager
+          isOpen={showPostsManager}
+          onClose={() => setShowPostsManager(false)}
+          mode="select"
+          selectedId={payload.postTemplateId}
+          onSelect={(post) => {
+            updatePayload({ postTemplateId: post.id });
+            setPostTemplates(prev => {
+              const exists = prev.find(p => p.id === post.id);
+              return exists ? prev : [...prev, post];
+            });
+            setShowPostsManager(false);
+          }}
+        />
+
+        {/* Exit Confirmation Dialog */}
+        <ConfirmDialog
+          isOpen={showExitConfirm}
+          onClose={() => setShowExitConfirm(false)}
+          onConfirm={() => {
+            setShowExitConfirm(false);
+            router.back();
+          }}
+          title={t('exitConfirm.title')}
+          description={t('exitConfirm.description')}
+          confirmText={t('exitConfirm.confirm')}
+          cancelText={t('exitConfirm.cancel')}
+          variant="warning"
+        />
       </div>
     </main>
   );

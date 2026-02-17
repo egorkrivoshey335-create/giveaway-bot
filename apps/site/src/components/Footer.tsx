@@ -1,7 +1,9 @@
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { config } from '@/lib/config';
 
 export function Footer() {
+  const t = useTranslations('footer');
   return (
     <footer className="bg-gray-900 text-gray-400 py-12">
       <div className="container mx-auto px-4">
@@ -15,15 +17,13 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-sm">
-              Платформа для проведения честных розыгрышей в Telegram
-              с проверкой подписок, защитой от ботов и красивым
-              объявлением победителей.
+              {useTranslations('landing')('hero.subtitle')}
             </p>
           </div>
 
           {/* Ссылки */}
           <div>
-            <h3 className="text-white font-semibold mb-4">Ссылки</h3>
+            <h3 className="text-white font-semibold mb-4">{useTranslations('header')('home')}</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <a
@@ -32,17 +32,12 @@ export function Footer() {
                   rel="noopener noreferrer"
                   className="hover:text-white transition-colors"
                 >
-                  Telegram бот
+                  {t('bot')}
                 </a>
               </li>
               <li>
                 <Link href="/dashboard" className="hover:text-white transition-colors">
-                  Рандомайзер
-                </Link>
-              </li>
-              <li>
-                <Link href="/login" className="hover:text-white transition-colors">
-                  Войти
+                  {t('randomizer')}
                 </Link>
               </li>
             </ul>
@@ -50,7 +45,7 @@ export function Footer() {
 
           {/* Контакты */}
           <div>
-            <h3 className="text-white font-semibold mb-4">Контакты</h3>
+            <h3 className="text-white font-semibold mb-4">{t('support')}</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <a
@@ -59,7 +54,7 @@ export function Footer() {
                   rel="noopener noreferrer"
                   className="hover:text-white transition-colors"
                 >
-                  Поддержка
+                  {t('channel')}
                 </a>
               </li>
             </ul>
@@ -68,7 +63,7 @@ export function Footer() {
 
         {/* Copyright */}
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
-          <p>© {new Date().getFullYear()} RandomBeast. Все права защищены.</p>
+          <p>© {new Date().getFullYear()} RandomBeast. {t('rights')}.</p>
         </div>
       </div>
     </footer>

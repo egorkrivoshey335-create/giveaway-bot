@@ -70,11 +70,8 @@ bot.use(async (ctx, next) => {
   // Проверяем whitelist
   if (!isUserAllowed(userId)) {
     // Отправляем сообщение о режиме разработки
-    const maintenanceMessage = 
-      '🔧 <b>Бот на доработке</b>\n\n' +
-      'Мы работаем над улучшениями.\n' +
-      'Скоро вернёмся!\n\n' +
-      '📧 Вопросы: ' + config.supportBot;
+    const locale = getUserLocale(userId);
+    const maintenanceMessage = t(locale, 'maintenance.message', { supportBot: config.supportBot });
     
     await ctx.reply(maintenanceMessage, { parse_mode: 'HTML' });
     return; // Не продолжаем обработку
@@ -111,7 +108,7 @@ function clearAllUserStates(userId: number) {
 bot.command('start', async (ctx) => {
   const userId = ctx.from?.id;
   const locale = userId ? getUserLocale(userId) : 'ru';
-  const firstName = ctx.from?.first_name || (locale === 'ru' ? 'друг' : locale === 'en' ? 'friend' : 'дос');
+  const firstName = ctx.from?.first_name || t(locale, 'bot.friendFallback');
 
   // Check for deep link parameters
   const startParam = ctx.match;
@@ -129,11 +126,8 @@ bot.command('start', async (ctx) => {
       const giveawayId = startParam.replace('join_', '');
       const webAppUrl = `${config.webappUrl}?startapp=join_${giveawayId}`;
       
-      const buttonText = locale === 'ru' ? '🎁 Участвовать в розыгрыше' : 
-                         locale === 'en' ? '🎁 Join Giveaway' : '🎁 Ұтыс ойынына қатысу';
-      const messageText = locale === 'ru' ? '🎉 <b>Отлично!</b>\n\nНажмите кнопку ниже, чтобы принять участие в розыгрыше:' :
-                          locale === 'en' ? '🎉 <b>Great!</b>\n\nTap the button below to participate in the giveaway:' :
-                          '🎉 <b>Керемет!</b>\n\nҰтыс ойынына қатысу үшін төмендегі түймені басыңыз:';
+      const buttonText = t(locale, 'bot.joinGiveawayBtn');
+      const messageText = t(locale, 'bot.joinGiveawayMsg');
       
       const keyboard = new InlineKeyboard()
         .webApp(buttonText, webAppUrl);
@@ -147,9 +141,9 @@ bot.command('start', async (ctx) => {
 
     // Handle add_channel - открыть меню добавления канала
     if (startParam === 'add_channel') {
-      const addChannel = locale === 'ru' ? '➕ Добавить канал' : locale === 'en' ? '➕ Add Channel' : '➕ Арна қосу';
-      const addGroup = locale === 'ru' ? '➕ Добавить группу' : locale === 'en' ? '➕ Add Group' : '➕ Топ қосу';
-      const openApp = locale === 'ru' ? '📱 Открыть приложение' : locale === 'en' ? '📱 Open App' : '📱 Қолданбаны ашу';
+      const addChannel = t(locale, 'bot.addChannel');
+      const addGroup = t(locale, 'bot.addGroup');
+      const openApp = t(locale, 'bot.openAppBtn');
       
       const keyboard = new InlineKeyboard()
         .text(addChannel, 'menu_add_channel')
@@ -227,8 +221,7 @@ bot.command('cancel', async (ctx) => {
     clearAllUserStates(userId);
   }
   
-  const cancelText = locale === 'ru' ? '❌ Операция отменена.' : 
-                     locale === 'en' ? '❌ Operation cancelled.' : '❌ Операция болдырылмады.';
+  const cancelText = t(locale, 'bot.operationCancelled');
   
   await ctx.reply(cancelText, {
     reply_markup: createMainMenuKeyboard(locale),
@@ -505,8 +498,7 @@ bot.on('message:web_app_data', async (ctx) => {
   const userId = ctx.from?.id;
   const locale = userId ? getUserLocale(userId) : 'ru';
   
-  const receivedText = locale === 'ru' ? 'Данные получены!' : 
-                       locale === 'en' ? 'Data received!' : 'Деректер алынды!';
+  const receivedText = t(locale, 'bot.dataReceived');
   
   await ctx.reply(receivedText, {
     reply_markup: createMainMenuKeyboard(locale),

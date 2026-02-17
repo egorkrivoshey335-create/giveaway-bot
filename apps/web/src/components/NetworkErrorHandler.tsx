@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 import { useNetworkState } from '@/hooks/useNetworkState';
 
 export interface NetworkErrorHandlerProps {
@@ -20,6 +21,7 @@ export interface NetworkErrorHandlerProps {
  * ```
  */
 export function NetworkErrorHandler({ children }: NetworkErrorHandlerProps) {
+  const t = useTranslations('errors');
   const { isOnline, wasOffline } = useNetworkState();
   const [showOnlineToast, setShowOnlineToast] = useState(false);
 
@@ -47,8 +49,8 @@ export function NetworkErrorHandler({ children }: NetworkErrorHandlerProps) {
             <div className="flex items-center gap-2">
               <span className="text-xl">📡</span>
               <div>
-                <p className="font-semibold text-sm">Нет подключения к интернету</p>
-                <p className="text-xs opacity-90">Проверьте соединение</p>
+                <p className="font-semibold text-sm">{t('noInternet')}</p>
+                <p className="text-xs opacity-90">{t('checkConnection')}</p>
               </div>
             </div>
           </motion.div>
@@ -66,7 +68,7 @@ export function NetworkErrorHandler({ children }: NetworkErrorHandlerProps) {
           >
             <div className="flex items-center gap-2">
               <span className="text-xl">✓</span>
-              <p className="font-semibold text-sm">Подключение восстановлено</p>
+              <p className="font-semibold text-sm">{t('connectionRestored')}</p>
             </div>
           </motion.div>
         )}

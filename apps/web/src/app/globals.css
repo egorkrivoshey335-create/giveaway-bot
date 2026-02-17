@@ -51,3 +51,32 @@ body {
   padding-left: var(--tg-safe-area-left);
   padding-right: var(--tg-safe-area-right);
 }
+
+/* Floating Icons Animation */
+@keyframes floatingMotion {
+  0%, 100% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-20px) translateX(10px) rotate(90deg);
+  }
+  50% {
+    transform: translateY(-40px) translateX(-10px) rotate(180deg);
+  }
+  75% {
+    transform: translateY(-20px) translateX(5px) rotate(270deg);
+  }
+}
+
+.floating-icon {
+  animation: floatingMotion var(--float-duration, 30s) ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+/* Отключаем анимацию для accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .floating-icon {
+    animation: none !important;
+    display: none;
+  }
+}

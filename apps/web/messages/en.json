@@ -12,7 +12,19 @@
     "close": "Close",
     "refresh": "Refresh",
     "tryAgain": "Try again",
-    "goHome": "Go home"
+    "goHome": "Go home",
+    "statusDraft": "Draft",
+    "statusPendingConfirm": "Pending",
+    "statusScheduled": "Scheduled",
+    "statusActive": "Active",
+    "statusFinished": "Finished",
+    "statusCancelled": "Cancelled",
+    "statusError": "Error",
+    "statusSuccess": "Success",
+    "statusWarning": "Warning",
+    "statusInfo": "Info",
+    "finishing": "Finishing...",
+    "participate": "🎁 Participate"
   },
   "nav": {
     "participant": "🎫 Participant",
@@ -107,6 +119,8 @@
       "WINNERS": "Winners",
       "PROTECTION": "Protection",
       "EXTRAS": "Extra tickets",
+      "MASCOT": "Mascot",
+      "CUSTOM_TASKS": "Tasks",
       "REVIEW": "Review"
     },
     "header": {
@@ -151,7 +165,15 @@
       "selectTemplate": "Select template...",
       "noTemplates": "No templates. Create a post in bot → 📝 Posts",
       "buttonText": "Button Text",
-      "buttonPlaceholder": "🎁 Participate"
+      "buttonPlaceholder": "🎁 Participate",
+      "prizeDescription": "🎁 Prize Description (optional)",
+      "prizeDescriptionPlaceholder": "iPhone 16 Pro Max 256GB Titanium",
+      "characters": "characters",
+      "prizeDeliveryMethod": "📦 Prize Delivery Method",
+      "deliveryContact": "Contact organizer",
+      "deliveryInstruction": "Instruction via bot",
+      "deliveryForm": "Fill form",
+      "prizeInstructionPlaceholder": "Write instructions how winner will receive the prize..."
     },
     "subscriptions": {
       "description": "Select channels participants must subscribe to:",
@@ -184,7 +206,14 @@
       "title": "Number of Winners",
       "count": "Winners",
       "randomHint": "Winners will be selected randomly",
-      "maxFree": "Maximum for free account: {max}"
+      "maxFree": "Maximum for free account: {max}",
+      "minParticipants": "👥 Minimum Participants",
+      "minParticipantsHint": "Giveaway won't finish until minimum number of participants is reached. Leave 0 for no minimum.",
+      "cancelIfNotEnough": "Cancel if not enough",
+      "cancelIfNotEnoughHint": "Giveaway will be cancelled if minimum participants not reached by end date",
+      "autoExtendDays": "Auto-extend for N days",
+      "daysLabel": "days",
+      "autoExtendHint": "If minimum not reached by end date, giveaway will be automatically extended for specified number of days"
     },
     "protection": {
       "botProtection": "Bot Protection",
@@ -229,6 +258,28 @@
       "catalogPromotion": "Catalog Promotion",
       "catalogDescription": "Your giveaway will be shown in RandomBeast catalog and available to all users.",
       "comingSoon": "Paid feature. Coming soon."
+    },
+    "mascot": {
+      "description": "Choose an animated mascot for your giveaway",
+      "free": "Free",
+      "preview": "This is how the mascot will animate in the giveaway",
+      "premiumHint": "More mascots available in premium subscription"
+    },
+    "customTasks": {
+      "description": "Create your own unique tasks for participants",
+      "task": "Task",
+      "remove": "Remove",
+      "descriptionPlaceholder": "Describe the task (e.g.: subscribe to Instagram @username)",
+      "urlPlaceholder": "https://... (optional)",
+      "extraTickets": "Tickets per task",
+      "addTask": "Add Task",
+      "hint": "Participants will mark tasks as completed. Verification is your responsibility."
+    },
+    "exitConfirm": {
+      "title": "Exit wizard?",
+      "description": "Draft is saved. You can return to it later.",
+      "confirm": "Exit",
+      "cancel": "Continue"
     },
     "review": {
       "title": "Review Data",
@@ -431,8 +482,19 @@
     "title": "My Giveaways",
     "channels": "Manage Channels",
     "channelsShort": "Channels",
+    "profile": "Profile",
     "create": "Create",
     "createGiveaway": "Create Giveaway",
+    "blocks": {
+      "channels": {
+        "title": "My Channels",
+        "subtitle": "Manage channels"
+      },
+      "posts": {
+        "title": "My Posts",
+        "subtitle": "Post templates"
+      }
+    },
     "filters": {
       "all": "All",
       "draft": "Drafts",
@@ -619,6 +681,9 @@
     "notFound": "Not found",
     "unauthorized": "Authorization required",
     "giveawayNotFound": "Giveaway not found",
+    "noInternet": "No internet connection",
+    "checkConnection": "Check your connection",
+    "connectionRestored": "Connection restored",
     "alreadyParticipating": "You're already participating",
     "giveawayEnded": "Giveaway has ended",
     "subscriptionRequired": "Subscription to channels required",
@@ -628,6 +693,56 @@
     "authFailed": "Authentication failed",
     "authError": "Authentication error",
     "devLoginFailed": "Dev login failed",
-    "devLoginError": "Dev login error"
+    "devLoginError": "Dev login error",
+    "deleteFailed": "Failed to delete"
+  },
+  "creatorProfile": {
+    "title": "Creator Profile",
+    "member": "Member for {days} days",
+    "upgradePremium": "Premium",
+    "settings": "Settings",
+    "stats": {
+      "overall": "Overall Statistics",
+      "totalGiveaways": "Total Giveaways",
+      "activeGiveaways": "Active",
+      "totalParticipants": "Participants",
+      "totalWinners": "Winners",
+      "thisMonth": "This Month",
+      "lastMonth": "last month",
+      "giveaways": "Giveaways",
+      "participants": "Participants"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "newGiveaway": "New Giveaway",
+      "manageChannels": "Manage Channels",
+      "history": "History"
+    },
+    "error": {
+      "title": "Profile Not Found",
+      "description": "Failed to load profile",
+      "backButton": "Go Back"
+    }
+  },
+  "postsManager": {
+    "selectTitle": "Select Post",
+    "manageTitle": "Manage Posts",
+    "createNew": "New Post",
+    "createRedirect": "App will close. Data saved",
+    "view": "View",
+    "delete": "Delete",
+    "select": "Select",
+    "selected": "Selected",
+    "deleted": "✅ Post deleted",
+    "deleteUndo": "Post will be deleted in 20 seconds",
+    "undo": "Undo",
+    "deletingIn20": "Deleting in 20 sec...",
+    "deleteCancelled": "✅ Deletion cancelled",
+    "noText": "No text",
+    "characters": "characters",
+    "empty": {
+      "title": "No Posts Found",
+      "description": "Create your first post template for giveaways"
+    }
   }
 }
