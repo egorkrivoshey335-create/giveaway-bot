@@ -7,6 +7,7 @@ import { config } from '../config.js';
 import { calculateFraudScore, requiresCaptcha } from '../lib/antifraud.js';
 import { createAuditLog, AuditAction, AuditEntityType } from '../lib/audit.js';
 import crypto from 'crypto';
+import { RATE_LIMITS } from '../config/rate-limits.js';
 
 // Схема для проверки подписки
 const checkSubscriptionSchema = z.object({
@@ -29,49 +30,41 @@ interface CaptchaData {
   attempts: number; // 🔒 ЗАДАЧА 7.1: Счетчик попыток
 }
 
-// In-memory хранилище токенов капчи (для MVP)
-// В production использовать Redis
-const captchaTokens = new Map<string, CaptchaData>();
+// 🔒 ИСПРАВЛЕНО (2026-02-16): Миграция с in-memory на Redis
+// Префиксы ключей:
+// captcha:token:{token} - данные капчи (TTL 5 минут)
+// captcha:gen:{userId} - список timestamp генераций (TTL 10 минут)
 
-// 🔒 ЗАДАЧА 7.1: Брутфорс защита - лимит генераций на userId
-// Структура: userId => timestamp[]
-const captchaGenerations = new Map<string, number[]>();
-
-// Очистка просроченных токенов каждые 5 минут
-setInterval(() => {
-  const now = Date.now();
-  for (const [token, data] of captchaTokens.entries()) {
-    if (data.expiresAt < now) {
-      captchaTokens.delete(token);
-    }
-  }
-  
-  // Очистка старых генераций (>10 минут)
-  for (const [userId, timestamps] of captchaGenerations.entries()) {
-    const filtered = timestamps.filter(ts => now - ts < 10 * 60 * 1000);
-    if (filtered.length === 0) {
-      captchaGenerations.delete(userId);
-    } else {
-      captchaGenerations.set(userId, filtered);
-    }
-  }
-}, 5 * 60 * 1000);
+import { redis } from '../lib/redis.js';
 
 /**
- * Генерация токена капчи
+ * Генерация токена капчи (Redis)
  */
-function generateCaptchaToken(data: CaptchaData): string {
+async function generateCaptchaToken(data: CaptchaData): Promise<string> {
   const token = crypto.randomBytes(32).toString('hex');
-  captchaTokens.set(token, data);
+  const key = `captcha:token:${token}`;
+  
+  // Сохраняем в Redis с TTL 5 минут
+  await redis.setex(
+    key,
+    5 * 60, // 5 минут
+    JSON.stringify(data)
+  );
+  
   return token;
 }
 
 /**
  * 🔒 ЗАДАЧА 7.1: Проверка лимита генераций капчи (10 за 10 минут)
+ * ИСПРАВЛЕНО (2026-02-16): Использование Redis вместо in-memory Map
  */
-function checkCaptchaGenerationLimit(userId: string): { allowed: boolean; retryAfter?: number } {
+async function checkCaptchaGenerationLimit(userId: string): Promise<{ allowed: boolean; retryAfter?: number }> {
   const now = Date.now();
-  const timestamps = captchaGenerations.get(userId) || [];
+  const key = `captcha:gen:${userId}`;
+  
+  // Получаем список timestamps из Redis
+  const data = await redis.get(key);
+  let timestamps: number[] = data ? JSON.parse(data) : [];
   
   // Фильтруем только последние 10 минут
   const recentTimestamps = timestamps.filter(ts => now - ts < 10 * 60 * 1000);
@@ -85,34 +78,53 @@ function checkCaptchaGenerationLimit(userId: string): { allowed: boolean; retryA
   
   // Разрешаем и добавляем timestamp
   recentTimestamps.push(now);
-  captchaGenerations.set(userId, recentTimestamps);
+  
+  // Сохраняем обратно в Redis с TTL 10 минут
+  await redis.setex(
+    key,
+    10 * 60, // 10 минут
+    JSON.stringify(recentTimestamps)
+  );
   
   return { allowed: true };
 }
 
 /**
- * Проверка токена капчи
+ * Проверка токена капчи (Redis)
+ * ИСПРАВЛЕНО (2026-02-16): Использование Redis
  */
-function verifyCaptchaToken(token: string, userAnswer: number): boolean {
-  const data = captchaTokens.get(token);
+async function verifyCaptchaToken(token: string, userAnswer: number): Promise<boolean> {
+  const key = `captcha:token:${token}`;
+  const data = await redis.get(key);
+  
   if (!data) return false;
-  if (data.expiresAt < Date.now()) {
-    captchaTokens.delete(token);
+  
+  const captchaData: CaptchaData = JSON.parse(data);
+  
+  if (captchaData.expiresAt < Date.now()) {
+    await redis.del(key);
     return false;
   }
   
   // 🔒 ЗАДАЧА 7.1: Проверка лимита попыток (5 на 1 captchaId)
-  if (data.attempts >= 5) {
-    captchaTokens.delete(token);
+  if (captchaData.attempts >= 5) {
+    await redis.del(key);
     return false;
   }
   
   // Увеличиваем счетчик попыток
-  data.attempts++;
+  captchaData.attempts++;
   
-  const isValid = data.answer === userAnswer;
+  const isValid = captchaData.answer === userAnswer;
   if (isValid) {
-    captchaTokens.delete(token);
+    await redis.del(key);
+  } else {
+    // Обновляем данные в Redis
+    await redis.setex(
+      key,
+      Math.ceil((captchaData.expiresAt - Date.now()) / 1000),
+      JSON.stringify(captchaData)
+    );
   }
   
   return isValid;
@@ -260,8 +272,19 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * POST /giveaways/:id/check-subscription
    * Проверить подписку пользователя на каналы
+   * 🔒 ИСПРАВЛЕНО (2026-02-16): endpoint-specific rate limit
    */
-  fastify.post<{ Params: { id: string } }>('/giveaways/:id/check-subscription', async (request, reply) => {
+  fastify.post<{ Params: { id: string } }>(
+    '/giveaways/:id/check-subscription',
+    {
+      config: {
+        rateLimit: {
+          max: RATE_LIMITS.CHECK_SUBSCRIPTION.max,
+          timeWindow: RATE_LIMITS.CHECK_SUBSCRIPTION.timeWindow,
+        },
+      },
+    },
+    async (request, reply) => {
     const user = await requireUser(request, reply);
     if (!user) return;
 
@@ -361,16 +384,61 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * POST /giveaways/:id/join
    * Финальное участие в розыгрыше
+   * 🔒 ИСПРАВЛЕНО (2026-02-16): Добавлен Redis lock + endpoint-specific rate limit
    */
-  fastify.post<{ Params: { id: string } }>('/giveaways/:id/join', async (request, reply) => {
+  fastify.post<{ Params: { id: string } }>(
+    '/giveaways/:id/join',
+    {
+      config: {
+        rateLimit: {
+          max: RATE_LIMITS.JOIN_GIVEAWAY.max,
+          timeWindow: RATE_LIMITS.JOIN_GIVEAWAY.timeWindow,
+        },
+      },
+    },
+    async (request, reply) => {
     const user = await requireUser(request, reply);
     if (!user) return;
 
     const { id } = request.params;
     const body = joinGiveawaySchema.parse(request.body);
 
-    // Получаем розыгрыш с условиями
-    const giveaway = await prisma.giveaway.findUnique({
+    // 🔒 REDIS LOCK: защита от double-join race condition
+    const lockKey = `lock:participation:${user.id}:${id}`;
+    const lockValue = crypto.randomBytes(16).toString('hex');
+    const lockTTL = 30; // 30 секунд
+    
+    // Пытаемся установить lock (SET NX EX)
+    const lockAcquired = await redis.set(lockKey, lockValue, 'EX', lockTTL, 'NX');
+    
+    if (!lockAcquired) {
+      return reply.status(409).send({
+        ok: false,
+        error: 'Запрос уже обрабатывается. Подождите несколько секунд.',
+        code: 'REQUEST_IN_PROGRESS',
+      });
+    }
+
+    // Функция для освобождения lock
+    const releaseLock = async () => {
+      try {
+        // Удаляем lock только если значение совпадает (защита от удаления чужого lock)
+        const script = `
+          if redis.call("get", KEYS[1]) == ARGV[1] then
+            return redis.call("del", KEYS[1])
+          else
+            return 0
+          end
+        `;
+        await redis.eval(script, 1, lockKey, lockValue);
+      } catch (err) {
+        // Игнорируем ошибки освобождения lock
+      }
+    };
+
+    try {
+      // Получаем розыгрыш с условиями
+      const giveaway = await prisma.giveaway.findUnique({
       where: { id },
       include: {
         condition: true,
@@ -487,6 +555,7 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
         lastName: true,
         createdAt: true,
         telegramUserId: true,
+        language: true, // 🔒 ДОБАВЛЕНО (2026-02-16) для FraudScore
       },
     });
 
@@ -507,12 +576,21 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       },
     });
 
-    // Вычисляем fraud score
-    const fraudScore = calculateFraudScore({
+    // 🔒 ИСПРАВЛЕНО (2026-02-16): Вычисляем fraud score с новыми проверками
+    // Получаем IP адрес
+    const ipAddress = request.headers['x-forwarded-for']?.toString().split(',')[0] || 
+                     request.headers['x-real-ip']?.toString() ||
+                     request.ip;
+
+    const fraudScore = await calculateFraudScore({
       user: fullUser,
       giveaway,
       timeSinceOpen: undefined, // TODO: трекать время открытия розыгрыша в будущем
       previousParticipationsCount: recentParticipations,
+      ipAddress,
+      hasProfilePhoto: undefined, // TODO: получать через Bot API
+      userTimezone: undefined, // TODO: получать из WebApp initData
+      expectedTimezone: undefined, // TODO: определять по IP через GeoIP
     });
 
     // Проверяем требуется ли капча на основе fraud score
@@ -646,29 +724,48 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       request,
     });
 
+    // 🔒 Освобождаем Redis lock перед отправкой ответа
+    await releaseLock();
+
     return reply.send({
       ok: true,
       participation: {
         id: participation.id,
         ticketsBase: participation.ticketsBase,
         ticketsExtra: participation.ticketsExtra,
+        ticketsTotal: participation.ticketsBase + participation.ticketsExtra,
         joinedAt: participation.joinedAt.toISOString(),
-        fraudScore: participation.fraudScore, // Возвращаем для отладки (можно убрать в prod)
       },
     });
+    } catch (error) {
+      // 🔒 Освобождаем lock в случае ошибки
+      await releaseLock();
+      throw error;
+    }
   });
 
   /**
    * GET /captcha/generate
    * Генерирует математическую капчу
-   * 🔒 ЗАДАЧА 7.1: С проверкой брутфорс лимита (10 генераций за 10 минут)
+   * 🔒 ЗАДАЧА 7.1: С проверкой брутфорс лимита + endpoint-specific rate limit
    */
-  fastify.get('/captcha/generate', async (request, reply) => {
+  fastify.get(
+    '/captcha/generate',
+    {
+      config: {
+        rateLimit: {
+          max: RATE_LIMITS.CAPTCHA_GENERATE.max,
+          timeWindow: RATE_LIMITS.CAPTCHA_GENERATE.timeWindow,
+        },
+      },
+    },
+    async (request, reply) => {
     const user = await getUser(request);
     
     // 🔒 Проверка лимита генераций (если пользователь авторизован)
+    // ИСПРАВЛЕНО (2026-02-16): async функция
     if (user) {
-      const limitCheck = checkCaptchaGenerationLimit(user.id);
+      const limitCheck = await checkCaptchaGenerationLimit(user.id);
       if (!limitCheck.allowed) {
         return reply.status(429).send({
           success: false,
@@ -701,7 +798,7 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       question = `${max} - ${min} = ?`;
     }
 
-    const token = generateCaptchaToken({
+    const token = await generateCaptchaToken({
       question,
       answer,
       expiresAt: Date.now() + 5 * 60 * 1000, // 5 минут
@@ -717,36 +814,28 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * POST /captcha/verify
    * Проверяет ответ на капчу
-   * 🔒 ЗАДАЧА 7.1: С проверкой лимита попыток (5 на 1 captchaId)
+   * 🔒 ЗАДАЧА 7.1: С проверкой лимита попыток + endpoint-specific rate limit
    */
-  fastify.post('/captcha/verify', async (request, reply) => {
+  fastify.post(
+    '/captcha/verify',
+    {
+      config: {
+        rateLimit: {
+          max: RATE_LIMITS.CAPTCHA_VERIFY.max,
+          timeWindow: RATE_LIMITS.CAPTCHA_VERIFY.timeWindow,
+        },
+      },
+    },
+    async (request, reply) => {
     const body = z.object({
       token: z.string(),
       answer: z.number(),
     }).parse(request.body);
 
-    const captchaData = captchaTokens.get(body.token);
-    
-    // Проверка лимита попыток перед валидацией
-    if (captchaData && captchaData.attempts >= 5) {
-      captchaTokens.delete(body.token);
-      return reply.send({
-        ok: false,
-        error: 'Превышен лимит попыток. Запросите новую капчу.',
-        code: 'TOO_MANY_ATTEMPTS',
-      });
-    }
+    // ИСПРАВЛЕНО (2026-02-16): проверка через Redis
+    const isValid = await verifyCaptchaToken(body.token, body.answer);
 
-    const isValid = verifyCaptchaToken(body.token, body.answer);
-
-    if (!isValid && captchaData) {
-      return reply.send({
-        ok: false,
-        error: 'Неверный ответ',
-        attemptsLeft: Math.max(0, 5 - captchaData.attempts),
-      });
-    }
-
+    // ИСПРАВЛЕНО (2026-02-16): результат уже через Redis
     return reply.send({
       ok: isValid,
       error: isValid ? undefined : 'Неверный ответ или истекший токен',

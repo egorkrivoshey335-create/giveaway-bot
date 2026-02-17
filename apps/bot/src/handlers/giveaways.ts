@@ -1,6 +1,9 @@
 import { Bot, InlineKeyboard, Context } from 'grammy';
 import { config } from '../config.js';
 import { apiService } from '../services/api.js';
+import { createLogger } from '../lib/logger.js';
+
+const log = createLogger('handlers:giveaways');
 import { buildMiniAppLink } from '@randombeast/shared';
 import { getUserLocale, type Locale } from '../i18n/index.js';
 
@@ -136,7 +139,7 @@ export async function handleConfirmStart(ctx: Context, giveawayId: string): Prom
         });
       }
     } catch (error) {
-      console.error('Error sending preview:', error);
+      log.error({ error }, 'Error sending preview');
       await ctx.reply(`📝 <b>${previewLabel}</b>\n\n${postTemplate.text}`, {
         parse_mode: 'HTML',
       });
@@ -404,7 +407,7 @@ export function registerGiveawayHandlers(bot: Bot): void {
           telegramMessageId: messageId,
         });
       } catch (error) {
-        console.error(`Failed to publish to channel ${channel.title}:`, error);
+        log.error({ error, channel: channel.title }, 'Failed to publish to channel');
         const errMsg = error instanceof Error ? error.message : String(error);
         errors.push(`${channel.title}: ${errMsg.includes('not enough rights') ? noRightsMsg : errMsg}`);
       }

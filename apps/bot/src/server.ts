@@ -3,6 +3,9 @@ import { webhookCallback } from 'grammy';
 import { config } from './config.js';
 import { initSentry, setupErrorHandlers } from './lib/sentry.js';
 import { closeRedis } from './lib/redis.js';
+import { logger, createLogger } from './lib/logger.js';
+
+const log = createLogger('server');
 
 // 🔒 ЗАДАЧА 1.14: Инициализация Sentry
 initSentry();
@@ -16,10 +19,15 @@ if (config.botEnabled) {
   bot = botModule.bot;
   
   // 🔒 ЗАДАЧА 1.11: Запуск BullMQ workers
-  console.log('[BullMQ] Starting workers...');
+  log.info('[BullMQ] Starting workers...');
   await import('./jobs/winner-notifications.js');
   await import('./jobs/reminders.js');
-  console.log('[BullMQ] ✅ Workers started');
+  await import('./jobs/giveaway-start.js');
+  await import('./jobs/giveaway-end.js');
+  await import('./jobs/channel-check-rights.js');
+  await import('./jobs/channel-update-subscribers.js');
+  await import('./jobs/creator-daily-summary.js');
+  log.info('[BullMQ] ✅ Workers started');
 }
 
 /**
@@ -51,12 +59,12 @@ async function main() {
     // Start health check server (always)
     const healthServer = createHealthServer();
     healthServer.listen(config.healthPort, () => {
-      console.log(`🏥 Health server running at http://localhost:${config.healthPort}/health`);
+      log.info(`🏥 Health server running at http://localhost:${config.healthPort}/health`);
     });
 
     // Start bot only if token is available
     if (bot && config.botEnabled) {
-      console.log('🤖 Starting bot...');
+      log.info('🤖 Starting bot...');
       
       // Установить Menu Button для открытия Mini App
       try {
@@ -69,26 +77,40 @@ async function main() {
             },
           },
         });
-        console.log('✅ Menu button установлена');
+        log.info('✅ Menu button установлена');
       } catch (err) {
-        console.error('⚠️ Не удалось установить menu button:', err);
+        log.error({ err }, '⚠️ Не удалось установить menu button');
       }
       
       // 🔒 ЗАДАЧА 1.1: Webhook mode или polling
       if (config.webhook.enabled) {
-        console.log('[Webhook] Mode enabled');
+        log.info('[Webhook] Mode enabled');
         
-        // Настройка webhook
+        // Настройка webhook с secret_token
         const webhookUrl = `${config.webhook.domain}${config.webhook.path}`;
         await bot.api.setWebhook(webhookUrl, {
           drop_pending_updates: true,
+          secret_token: config.webhook.secret, // 🔒 КРИТИЧНО для безопасности
         });
-        console.log(`[Webhook] Set to ${webhookUrl}`);
+        log.info(`[Webhook] Set to ${webhookUrl}`);
         
         // Создаем HTTP сервер для webhook
         const handleWebhook = webhookCallback(bot, 'http');
         const webhookServer = createServer((req, res) => {
           if (req.url === config.webhook.path && req.method === 'POST') {
+            // 🔒 ВАЛИДАЦИЯ SECRET TOKEN
+            const secretToken = req.headers['x-telegram-bot-api-secret-token'];
+            
+            if (secretToken !== config.webhook.secret) {
+              log.warn({ 
+                ip: req.socket.remoteAddress,
+                receivedToken: secretToken ? '***' : 'missing',
+              }, '[Webhook] Invalid secret token');
+              res.writeHead(403, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Invalid secret token' }));
+              return;
+            }
+            
             handleWebhook(req, res);
           } else {
             res.writeHead(404);
@@ -97,10 +119,10 @@ async function main() {
         });
         
         webhookServer.listen(config.webhook.port, () => {
-          console.log(`[Webhook] ✅ Server listening on port ${config.webhook.port}`);
+          log.info(`[Webhook] ✅ Server listening on port ${config.webhook.port}`);
         });
       } else {
-        console.log('[Polling] Mode enabled');
+        log.info('[Polling] Mode enabled');
         
         // Удаляем webhook если был установлен
         await bot.api.deleteWebhook({ drop_pending_updates: true });
@@ -108,16 +130,16 @@ async function main() {
         // Запуск long polling
         await bot.start({
           onStart: (botInfo) => {
-            console.log(`✅ Bot @${botInfo.username} is running!`);
-            console.log(`🔗 WebApp URL: ${config.webappUrl}`);
+            log.info(`✅ Bot @${botInfo.username} is running!`);
+            log.info(`🔗 WebApp URL: ${config.webappUrl}`);
           },
         });
       }
     } else {
-      console.log('ℹ️ Bot disabled (no BOT_TOKEN). Health server only.');
+      log.info('ℹ️ Bot disabled (no BOT_TOKEN). Health server only.');
     }
   } catch (error) {
-    console.error('❌ Failed to start:', error);
+    log.error({ error }, '❌ Failed to start');
     process.exit(1);
   }
 }

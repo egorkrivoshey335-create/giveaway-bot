@@ -11,6 +11,9 @@
 import { Worker, Job } from 'bullmq';
 import { bot } from '../bot.js';
 import { config } from '../config.js';
+import { createLogger } from '../lib/logger.js';
+
+const log = createLogger('reminders');
 
 export interface ReminderData {
   giveawayId: string;
@@ -30,7 +33,7 @@ export const remindersWorker = new Worker<ReminderData>(
   async (job: Job<ReminderData>) => {
     const { giveawayTitle, endAt, participants } = job.data;
 
-    console.log(`[Reminders] Processing job ${job.id} for ${participants.length} participants`);
+    log.info(`Processing job ${job.id} for ${participants.length} participants`);
 
     const endDate = new Date(endAt);
     const hoursLeft = Math.round((endDate.getTime() - Date.now()) / (1000 * 60 * 60));
@@ -58,8 +61,21 @@ export const remindersWorker = new Worker<ReminderData>(
                 parse_mode: 'HTML',
               });
               sentCount++;
-            } catch (error) {
-              console.error(`[Reminders] Failed to send to ${participant.telegramUserId}:`, error);
+            } catch (error: any) {
+              log.error({ error, userId: participant.telegramUserId }, 'Failed to send reminder');
+              
+              // 403 - пользователь заблокировал бота
+              if (error.error_code === 403) {
+                await fetch(`${config.apiUrl}/internal/users/${participant.telegramUserId}/notifications-blocked`, {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-Internal-Secret': config.internalApiToken,
+                  },
+                  body: JSON.stringify({ notificationsBlocked: true }),
+                }).catch(() => {});
+              }
+              
               failedCount++;
             }
           })
@@ -71,11 +87,11 @@ export const remindersWorker = new Worker<ReminderData>(
         }
       }
 
-      console.log(`[Reminders] ✅ Job ${job.id} completed: ${sentCount} sent, ${failedCount} failed`);
+      log.info(`✅ Job ${job.id} completed: ${sentCount} sent, ${failedCount} failed`);
 
       return { success: true, sent: sentCount, failed: failedCount };
     } catch (error) {
-      console.error(`[Reminders] ❌ Job ${job.id} failed:`, error);
+      log.error({ error, jobId: job.id }, 'Job failed');
       throw error;
     }
   },
@@ -89,9 +105,9 @@ export const remindersWorker = new Worker<ReminderData>(
 );
 
 remindersWorker.on('completed', (job) => {
-  console.log(`[Reminders] Job ${job.id} completed`);
+  log.info(`Job ${job.id} completed`);
 });
 
 remindersWorker.on('failed', (job, err) => {
-  console.error(`[Reminders] Job ${job?.id} failed:`, err.message);
+  log.error({ jobId: job?.id, error: err.message }, 'Job failed');
 });

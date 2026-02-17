@@ -11,6 +11,9 @@
 import { Worker, Job } from 'bullmq';
 import { bot } from '../bot.js';
 import { config } from '../config.js';
+import { createLogger } from '../lib/logger.js';
+
+const log = createLogger('winner-notifications');
 
 export interface WinnerNotificationData {
   userId: string;
@@ -30,7 +33,7 @@ export const winnerNotificationsWorker = new Worker<WinnerNotificationData>(
   async (job: Job<WinnerNotificationData>) => {
     const { telegramUserId, giveawayTitle, place, totalWinners, creatorUsername } = job.data;
 
-    console.log(`[WinnerNotifications] Processing job ${job.id} for user ${telegramUserId}`);
+    log.info(`Processing job ${job.id} for user ${telegramUserId}`);
 
     try {
       // Формируем сообщение
@@ -47,11 +50,38 @@ ${creatorUsername ? `Свяжитесь с организатором @${creator
         parse_mode: 'HTML',
       });
 
-      console.log(`[WinnerNotifications] ✅ Notification sent to user ${telegramUserId}`);
+      log.info(`✅ Notification sent to user ${telegramUserId}`);
 
       return { success: true };
-    } catch (error) {
-      console.error(`[WinnerNotifications] ❌ Failed to send notification:`, error);
+    } catch (error: any) {
+      // 🔒 Обработка ошибок доставки
+      
+      // 403 - пользователь заблокировал бота
+      if (error.error_code === 403 && error.description?.includes('blocked')) {
+        log.warn({ telegramUserId }, 'User blocked the bot - updating notificationsBlocked flag');
+        
+        // Обновляем флаг User.notificationsBlocked через API
+        await fetch(`${config.apiUrl}/internal/users/${telegramUserId}/notifications-blocked`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Internal-Secret': config.internalApiToken,
+          },
+          body: JSON.stringify({ notificationsBlocked: true }),
+        }).catch(err => log.error({ err }, 'Failed to update notifications blocked flag'));
+        
+        // НЕ бросаем ошибку - считаем job завершенным
+        return { success: false, reason: 'user_blocked' };
+      }
+      
+      // 400 - некорректный запрос (например, удаленный аккаунт)
+      if (error.error_code === 400) {
+        log.warn({ telegramUserId, errorDescription: error.description }, 'Invalid user or deleted account');
+        return { success: false, reason: 'invalid_user' };
+      }
+      
+      // Остальные ошибки - retry через BullMQ
+      log.error({ error }, '❌ Failed to send notification');
       throw error; // BullMQ will retry
     }
   },
@@ -69,9 +99,9 @@ ${creatorUsername ? `Свяжитесь с организатором @${creator
 );
 
 winnerNotificationsWorker.on('completed', (job) => {
-  console.log(`[WinnerNotifications] Job ${job.id} completed`);
+  log.info(`Job ${job.id} completed`);
 });
 
 winnerNotificationsWorker.on('failed', (job, err) => {
-  console.error(`[WinnerNotifications] Job ${job?.id} failed:`, err.message);
+  log.error({ jobId: job?.id, error: err.message }, 'Job failed');
 });

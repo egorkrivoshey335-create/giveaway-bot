@@ -1,4 +1,7 @@
 import { config } from '../config.js';
+import { createLogger } from '../lib/logger.js';
+
+const log = createLogger('api');
 
 interface Draft {
   id: string;
@@ -179,7 +182,7 @@ export class ApiService {
 
       return { ok: true, draft: data.draft ?? undefined, created: data.created };
     } catch (error) {
-      console.error('API call failed:', error);
+      log.error({ error }, 'API call failed');
       return { ok: false, error: 'Failed to connect to API' };
     }
   }
@@ -213,7 +216,7 @@ export class ApiService {
 
       return { ok: true, channel: data.channel };
     } catch (error) {
-      console.error('API call failed:', error);
+      log.error({ error }, 'API call failed');
       return { ok: false, error: 'Failed to connect to API' };
     }
   }
@@ -248,7 +251,7 @@ export class ApiService {
 
       return { ok: true, template: data.template };
     } catch (error) {
-      console.error('API call failed:', error);
+      log.error({ error }, 'API call failed');
       return { ok: false, error: 'Failed to connect to API' };
     }
   }
@@ -271,7 +274,7 @@ export class ApiService {
 
       return { ok: true, undoUntil: data.undoUntil };
     } catch (error) {
-      console.error('API call failed:', error);
+      log.error({ error }, 'API call failed');
       return { ok: false, error: 'Failed to connect to API' };
     }
   }
@@ -294,7 +297,7 @@ export class ApiService {
 
       return { ok: true };
     } catch (error) {
-      console.error('API call failed:', error);
+      log.error({ error }, 'API call failed');
       return { ok: false, error: 'Failed to connect to API' };
     }
   }
@@ -317,7 +320,7 @@ export class ApiService {
 
       return data;
     } catch (error) {
-      console.error('API call failed:', error);
+      log.error({ error }, 'API call failed');
       return { ok: false, error: 'Failed to connect to API' };
     }
   }
@@ -344,7 +347,7 @@ export class ApiService {
 
       return data;
     } catch (error) {
-      console.error('API call failed:', error);
+      log.error({ error }, 'API call failed');
       return { ok: false, error: 'Failed to connect to API' };
     }
   }
@@ -368,7 +371,7 @@ export class ApiService {
 
       return { ok: true };
     } catch (error) {
-      console.error('API call failed:', error);
+      log.error({ error }, 'API call failed');
       return { ok: false, error: 'Failed to connect to API' };
     }
   }

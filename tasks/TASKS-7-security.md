@@ -44,14 +44,17 @@
   - HTTP 429 при превышении лимитов
   - `attemptsLeft` в ответе
 - ✅ TTL 5 минут для токенов
-- ✅ In-memory storage с автоочисткой
+- ✅ **Redis storage** (миграция с in-memory завершена 2026-02-16):
+  - Используется `redis.setex` для токенов с TTL
+  - Используется `redis.get` для лимитов генерации
+  - Масштабируется для production
 
 **Не реализовано (будущие фичи):**
 - ⏭️ Графическая капча (изображение с буквами) — для будущих версий
 - ⏭️ UI: 5 полей ввода, автофокус (frontend задача Block 2)
 
 **Файлы:**
-- `apps/api/src/routes/participation.ts` (строки 24-115, 657-750)
+- `apps/api/src/routes/participation.ts` — обновлён с Redis
 
 ---
 
@@ -121,31 +124,32 @@
 - Для создателя (в статистике Pro): список подозрительных участников с возможностью бана
 
 **✅ ПОЛНОСТЬЮ РЕАЛИЗОВАНО (2026-02-16):**
-- ✅ `apps/api/src/lib/antifraud.ts` создан с функциями:
-  - `calculateFraudScore()` — вычисление на основе критериев
+- ✅ `apps/api/src/lib/antifraud.ts` с функциями:
+  - `calculateFraudScore()` — вычисление на основе всех критериев
   - `requiresCaptcha()` — автоматическая капча для подозрительных
   - `requiresManualModeration()` — флаг для ручной модерации
-- ✅ Критерии оценки работают:
-  - +20: аккаунт создан менее 30 дней назад (в БД)
+- ✅ **ВСЕ критерии реализованы:**
+  - +20: аккаунт создан менее 30 дней назад
+  - **+15: нет фото профиля** ✅ (2026-02-16)
   - +15: нет username
   - +10: спам-паттерны в имени (цифры, спецсимволы)
+  - **+20: множественные участия с одного IP** ✅ (2026-02-16, Redis tracking)
   - +10: слишком быстрое прохождение (< 5 сек)
-  - +20: множественные участия (>10 за 24ч)
+  - **+10: язык/timezone не совпадает** ✅ (2026-02-16)
 - ✅ Интеграция в `POST /giveaways/:id/join`:
-  - Вычисляется fraudScore при каждом участии
+  - Вычисляется fraudScore с новыми параметрами
   - Автоматическая капча для score 31-60
   - Сохраняется в Participation.fraudScore
-  - Возвращается в response (для отладки)
+  - Async функция для Redis операций
 
 **Не реализовано (будущие фичи):**
-- ⏭️ IP-адрес tracking (требует middleware)
 - ⏭️ UI для создателя: список подозрительных участников (Block 4)
 - ⏭️ Endpoint `GET /giveaways/:id/suspicious-participants` (Block 4, требует PRO подписку)
 - ⏭️ Модерация высокого риска (61-100) в UI (Block 4)
 
 **Файлы:**
-- `apps/api/src/lib/antifraud.ts` — новый файл, 118 строк
-- `apps/api/src/routes/participation.ts` (строки 425-475)
+- `apps/api/src/lib/antifraud.ts` — обновлён с полными проверками
+- `apps/api/src/routes/participation.ts` — интеграция с новыми параметрами
 
 ---
 
@@ -642,6 +646,39 @@ docs/
 - Обязательно реализовать Nginx rate limiting (Block 15 Deploy)
 - Настроить Sentry для security-related errors
 - Регулярный аудит AuditLog таблицы
+
+---
+
+## ДОПОЛНИТЕЛЬНЫЕ ЗАДАЧИ (реализованы 2026-02-16)
+
+### [x] Задача 7.11 — Race Condition Protection (Redis Lock)
+**✅ ПОЛНОСТЬЮ РЕАЛИЗОВАНО (2026-02-16):**
+- ✅ Redis lock в `POST /giveaways/:id/join`
+- ✅ Atomic операции: SET NX EX
+- ✅ Lua скрипт для безопасного освобождения lock
+- ✅ HTTP 409 если запрос уже обрабатывается
+- ✅ TTL 30 секунд
+
+**Файлы:** `apps/api/src/routes/participation.ts`
+
+---
+
+### [x] Задача 7.12 — Endpoint-Specific Rate Limiting
+**✅ ПОЛНОСТЬЮ РЕАЛИЗОВАНО (2026-02-16):**
+- ✅ Файл `apps/api/src/config/rate-limits.ts` создан
+- ✅ Применено к `/join`, `/captcha/*`, `/check-subscription`
+- ✅ Конфигурация для всех критичных endpoints
+
+**Файлы:** `apps/api/src/config/rate-limits.ts`, `apps/api/src/routes/participation.ts`
+
+---
+
+### [x] Задача 7.13 — Post Template Deletion Protection
+**✅ ПОЛНОСТЬЮ РЕАЛИЗОВАНО (2026-02-16):**
+- ✅ Проверка активных розыгрышей перед удалением
+- ✅ HTTP 409 Conflict с информативным сообщением
+
+**Файлы:** `apps/api/src/routes/post-templates.ts`
 
 ---
 

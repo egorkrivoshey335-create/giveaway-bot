@@ -5,6 +5,9 @@ import { config } from '../config.js';
 import { apiService } from '../services/api.js';
 import { createMainMenuKeyboard } from '../keyboards/mainMenu.js';
 import { t, getUserLocale, type Locale } from '../i18n/index.js';
+import { createLogger } from '../lib/logger.js';
+
+const log = createLogger('handlers:posts');
 
 // Simple in-memory state for post creation flow
 interface PostCreateState {
@@ -345,7 +348,7 @@ export async function handlePostCreation(ctx: Context) {
       await ctx.replyWithVideo(telegramFileId, { caption: text });
     }
   } catch (error) {
-    console.error('Preview send error:', error);
+    log.error({ error }, 'Preview send error');
     const previewError = locale === 'ru' ? '⚠️ Не удалось показать предпросмотр, но шаблон сохранён.' :
                          locale === 'en' ? '⚠️ Could not show preview, but template is saved.' :
                          '⚠️ Алдын ала қарауды көрсету мүмкін болмады, бірақ үлгі сақталды.';

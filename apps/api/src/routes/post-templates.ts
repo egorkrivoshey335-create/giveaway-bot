@@ -96,6 +96,7 @@ export const postTemplatesRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * DELETE /post-templates/:id
    * Soft deletes a post template
+   * 🔒 ИСПРАВЛЕНО (2026-02-16): Защита от удаления если используется в активных розыгрышах
    */
   fastify.delete<{ Params: { id: string } }>('/post-templates/:id', async (request, reply) => {
     const user = await requireUser(request, reply);
@@ -115,6 +116,24 @@ export const postTemplatesRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(404).send({
         ok: false,
         error: 'Post template not found',
+      });
+    }
+
+    // 🔒 ЗАЩИТА: Проверяем что шаблон не используется в активных розыгрышах
+    const activeGiveaways = await prisma.giveaway.count({
+      where: {
+        postTemplateId: id,
+        status: {
+          in: ['ACTIVE', 'SCHEDULED', 'PENDING_CONFIRM'],
+        },
+      },
+    });
+
+    if (activeGiveaways > 0) {
+      return reply.status(409).send({
+        ok: false,
+        error: `Невозможно удалить шаблон. Он используется в ${activeGiveaways} активных розыгрышах.`,
+        code: 'TEMPLATE_IN_USE',
       });
     }
 

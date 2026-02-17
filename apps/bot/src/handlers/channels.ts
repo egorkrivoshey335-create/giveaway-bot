@@ -1,6 +1,9 @@
 import type { Context } from 'grammy';
 import type { Chat, ChatMember } from 'grammy/types';
 import { InlineKeyboard } from 'grammy';
+import { createLogger } from '../lib/logger.js';
+
+const log = createLogger('handlers:channels');
 import { config } from '../config.js';
 import { apiService } from '../services/api.js';
 import { createMainMenuKeyboard } from '../keyboards/mainMenu.js';
@@ -380,7 +383,7 @@ export async function handleChannelAddition(ctx: Context, targetType: 'CHANNEL' 
       }
     );
   } catch (error) {
-    console.error('Channel addition error:', error);
+    log.error({ error }, 'Channel addition error');
     const msg = locale === 'ru' 
       ? '❌ Произошла ошибка при добавлении канала/группы.\n\nПопробуйте позже.'
       : locale === 'en'

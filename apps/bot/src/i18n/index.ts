@@ -4,6 +4,9 @@
 
 import { messages, Locale } from './messages.js';
 import { config } from '../config.js';
+import { createLogger } from '../lib/logger.js';
+
+const log = createLogger('i18n');
 
 // Доступные локали
 export const locales: Locale[] = ['ru', 'en', 'kk'];
@@ -77,10 +80,10 @@ export async function updateUserLocale(telegramUserId: number, locale: Locale): 
       return true;
     }
     
-    console.error('Failed to update user locale: API returned', response.status);
+    log.error({ status: response.status }, 'Failed to update user locale: API returned error');
     return false;
   } catch (err) {
-    console.error('Failed to update user locale:', err);
+    log.error({ err }, 'Failed to update user locale');
     // Всё равно обновляем локальный кэш
     setUserLocale(telegramUserId, locale);
     return true; // Возвращаем true, т.к. локально язык установлен
@@ -132,7 +135,7 @@ export function t(
 
   // Если всё ещё не нашли — возвращаем ключ
   if (typeof value !== 'string') {
-    console.warn(`Translation not found: ${key}`);
+    log.warn(`Translation not found: ${key}`);
     return key;
   }
 

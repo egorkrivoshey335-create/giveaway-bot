@@ -1,5 +1,6 @@
 import { Bot, InlineKeyboard } from 'grammy';
 import { config, isUserAllowed } from './config.js';
+import { createLogger } from './lib/logger.js';
 import {
   MENU,
   createMainMenuKeyboard,
@@ -37,6 +38,17 @@ import {
   handleConfirmStart,
 } from './handlers/giveaways.js';
 import { t, updateUserLocale, getUserLocale, localeNames, Locale } from './i18n/index.js';
+import { handleMyChatMember, handleChatMember } from './handlers/chat-member.js';
+import {
+  handleAdminBan,
+  handleAdminUnban,
+  handleAdminStats,
+  handleAdminGiveaway,
+  handleAdminBroadcast,
+} from './handlers/admin.js';
+import { handleInlineQuery } from './handlers/inline.js';
+
+const log = createLogger('bot');
 
 // This module should only be imported when BOT_TOKEN is available
 if (!config.botToken) {
@@ -501,7 +513,21 @@ bot.on('message:web_app_data', async (ctx) => {
   });
 });
 
+// 🔒 ЗАДАЧА: Chat member events
+bot.on('my_chat_member', handleMyChatMember);
+bot.on('chat_member', handleChatMember);
+
+// 🔒 ЗАДАЧА: Admin commands
+bot.command('admin_ban', handleAdminBan);
+bot.command('admin_unban', handleAdminUnban);
+bot.command('admin_stats', handleAdminStats);
+bot.command('admin_giveaway', handleAdminGiveaway);
+bot.command('admin_broadcast', handleAdminBroadcast);
+
+// 🔒 ЗАДАЧА: Inline mode
+bot.on('inline_query', handleInlineQuery);
+
 // Error handler
 bot.catch((err) => {
-  console.error('Bot error:', err);
+  log.error({ err }, 'Bot error');
 });

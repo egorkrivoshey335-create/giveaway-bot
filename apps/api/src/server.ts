@@ -30,6 +30,7 @@ import { storiesRoutes } from './routes/stories.js';
 import { reportsRoutes } from './routes/reports.js';
 import { webhooksRoutes } from './routes/webhooks.js';
 import { startGiveawayScheduler } from './scheduler/giveaway-lifecycle.js';
+import { RATE_LIMITS } from './config/rate-limits.js';
 
 const fastify = Fastify({
   logger: {

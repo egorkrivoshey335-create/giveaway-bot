@@ -1,6 +1,9 @@
 import { config as dotenvConfig } from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { createLogger } from './lib/logger.js';
+
+const log = createLogger('config');
 
 // Get current directory (ESM compatible)
 const __filename = fileURLToPath(import.meta.url);
@@ -14,7 +17,7 @@ dotenvConfig({ path: rootEnvPath });
 const botToken = process.env.BOT_TOKEN;
 
 if (!botToken) {
-  console.warn('⚠️ BOT_TOKEN not set. Bot polling will be disabled, only health server will run.');
+  log.warn('⚠️ BOT_TOKEN not set. Bot polling will be disabled, only health server will run.');
 }
 
 // Whitelist пользователей (если пустой — бот открыт для всех)
@@ -56,6 +59,7 @@ export const config = {
     domain: process.env.WEBHOOK_DOMAIN || '',
     path: process.env.WEBHOOK_PATH || '/webhook/bot',
     port: parseInt(process.env.WEBHOOK_PORT || '8443', 10),
+    secret: process.env.WEBHOOK_SECRET || 'randombeast-webhook-secret',
   },
 } as const;
 

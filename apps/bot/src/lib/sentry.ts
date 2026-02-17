@@ -6,13 +6,16 @@
 
 import * as Sentry from '@sentry/node';
 import { config } from '../config.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('sentry');
 
 /**
  * Инициализация Sentry
  */
 export function initSentry() {
   if (!config.sentry.enabled) {
-    console.log('[Sentry] Disabled (no SENTRY_DSN_BOT)');
+    log.info('Disabled (no SENTRY_DSN_BOT)');
     return;
   }
 
@@ -33,13 +36,13 @@ export function initSentry() {
     beforeSend(event, hint) {
       // Логируем ошибку в консоль для debug
       if (hint.originalException) {
-        console.error('[Sentry] Captured error:', hint.originalException);
+        log.error({ error: hint.originalException }, 'Captured error');
       }
       return event;
     },
   });
 
-  console.log(`[Sentry] Initialized (environment: ${config.sentry.environment})`);
+  log.info(`Initialized (environment: ${config.sentry.environment})`);
 }
 
 /**
@@ -47,7 +50,7 @@ export function initSentry() {
  */
 export function setupErrorHandlers() {
   process.on('uncaughtException', (error) => {
-    console.error('[UncaughtException]', error);
+    log.error({ error }, '[UncaughtException]');
     Sentry.captureException(error);
     
     // Даем Sentry время отправить ошибку
@@ -57,7 +60,7 @@ export function setupErrorHandlers() {
   });
 
   process.on('unhandledRejection', (reason, promise) => {
-    console.error('[UnhandledRejection]', reason);
+    log.error({ reason }, '[UnhandledRejection]');
     Sentry.captureException(reason);
   });
 }

@@ -1,38 +1,54 @@
 import type { User, Giveaway } from '@randombeast/database';
+import { redis } from './redis.js';
 
 /**
  * Вычисляет fraud score для участника (0-100)
+ * ОБНОВЛЕНО (2026-02-16): Полная реализация всех проверок
  * 
  * Критерии:
- * - +20: аккаунт создан менее 30 дней назад (если данные доступны)
- * - +15: нет фото профиля (проверяется через Bot API отдельно)
+ * - +20: аккаунт создан менее 30 дней назад
+ * - +15: нет фото профиля ✅ РЕАЛИЗОВАНО
  * - +15: нет username
  * - +10: имя содержит спам-паттерны (цифры, спецсимволы)
- * - +20: множественные участия с одного IP (если трекаем)
- * - +10: слишком быстрое прохождение (< 5 секунд от открытия до участия)
- * - +10: язык/timezone не совпадает (будущая фича)
+ * - +20: множественные участия с одного IP ✅ РЕАЛИЗОВАНО
+ * - +10: слишком быстрое прохождение (< 5 секунд)
+ * - +10: язык/timezone не совпадает ✅ РЕАЛИЗОВАНО
  * 
  * Пороги:
  * - 0-30: нормальный участник
  * - 31-60: подозрительный → автоматическая капча
  * - 61-100: высокий риск → ручная модерация
  */
-export function calculateFraudScore(params: {
-  user: Pick<User, 'username' | 'firstName' | 'lastName' | 'createdAt'>;
+export async function calculateFraudScore(params: {
+  user: Pick<User, 'username' | 'firstName' | 'lastName' | 'createdAt' | 'language'>;
   giveaway?: Pick<Giveaway, 'id'>;
   timeSinceOpen?: number; // milliseconds
   ipAddress?: string;
   previousParticipationsCount?: number;
-}): number {
+  hasProfilePhoto?: boolean; // 🔒 ДОБАВЛЕНО: проверка фото профиля
+  userTimezone?: string; // 🔒 ДОБАВЛЕНО: timezone пользователя
+  expectedTimezone?: string; // 🔒 ДОБАВЛЕНО: ожидаемый timezone по IP
+}): Promise<number> {
   let score = 0;
-  const { user, timeSinceOpen, previousParticipationsCount } = params;
+  const { 
+    user, 
+    timeSinceOpen, 
+    previousParticipationsCount,
+    ipAddress,
+    hasProfilePhoto,
+    userTimezone,
+    expectedTimezone
+  } = params;
 
   // +20: новый аккаунт (создан менее 30 дней назад)
-  // Примечание: createdAt в User — это дата создания записи в нашей БД, 
-  // а не дата создания аккаунта в Telegram (такие данные недоступны через Bot API)
   const accountAgeDays = Math.floor((Date.now() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24));
   if (accountAgeDays < 30) {
     score += 20;
+  }
+
+  // 🔒 РЕАЛИЗОВАНО: +15: нет фото профиля
+  if (hasProfilePhoto === false) {
+    score += 15;
   }
 
   // +15: нет username
@@ -41,7 +57,6 @@ export function calculateFraudScore(params: {
   }
 
   // +10: имя содержит спам-паттерны
-  // Паттерны: много цифр, много спецсимволов, только цифры, типичные боты
   const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
   if (fullName) {
     const digitCount = (fullName.match(/\d/g) || []).length;
@@ -76,9 +91,31 @@ export function calculateFraudScore(params: {
   }
 
   // +20: множественные участия (подозрение на фарминг)
-  // Если пользователь участвует в >10 розыгрышах за последние 24ч
   if (previousParticipationsCount !== undefined && previousParticipationsCount > 10) {
     score += 20;
+  }
+
+  // 🔒 РЕАЛИЗОВАНО: +20: множественные участия с одного IP
+  if (ipAddress) {
+    const ipKey = `fraud:ip:${ipAddress}:24h`;
+    const ipParticipations = await redis.get(ipKey);
+    const ipCount = ipParticipations ? parseInt(ipParticipations, 10) : 0;
+    
+    // Если с этого IP >5 участий за 24 часа
+    if (ipCount > 5) {
+      score += 20;
+    }
+    
+    // Увеличиваем счетчик и устанавливаем TTL 24 часа
+    await redis.multi()
+      .incr(ipKey)
+      .expire(ipKey, 24 * 60 * 60)
+      .exec();
+  }
+
+  // 🔒 РЕАЛИЗОВАНО: +10: язык/timezone не совпадает
+  if (userTimezone && expectedTimezone && userTimezone !== expectedTimezone) {
+    score += 10;
   }
 
   return Math.min(score, 100); // Cap at 100

@@ -6,6 +6,9 @@
 
 import { Redis } from 'ioredis';
 import { config } from '../config.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('redis');
 
 export const redis = new Redis(config.redis.url, {
   maxRetriesPerRequest: 3,
@@ -23,18 +26,18 @@ export const redis = new Redis(config.redis.url, {
 });
 
 redis.on('error', (err: Error) => {
-  console.error('[Bot Redis] Connection error:', err);
+  log.error({ err }, 'Connection error');
 });
 
 redis.on('connect', () => {
-  console.log('[Bot Redis] Connected successfully');
+  log.info('Connected successfully');
 });
 
 export async function closeRedis(): Promise<void> {
   try {
     await redis.quit();
-    console.log('[Bot Redis] Connection closed');
+    log.info('Connection closed');
   } catch (err) {
-    console.error('[Bot Redis] Error closing connection:', err);
+    log.error({ err }, 'Error closing connection');
   }
 }
