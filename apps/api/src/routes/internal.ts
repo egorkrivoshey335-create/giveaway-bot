@@ -1117,4 +1117,98 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
     }
   });
+
+  /**
+   * POST /internal/stars-payment
+   * Обработать успешную оплату Telegram Stars (вызывается ботом)
+   * Создаёт Purchase + Entitlement для пользователя
+   */
+  fastify.post('/stars-payment', async (request, reply) => {
+    const body = z.object({
+      telegramUserId: z.number(),
+      productCode: z.string().min(1),
+      starsAmount: z.number(),
+      telegramPaymentChargeId: z.string().min(1),
+    }).parse(request.body);
+
+    // Находим пользователя по Telegram ID
+    const user = await prisma.user.findUnique({
+      where: { telegramUserId: BigInt(body.telegramUserId) },
+    });
+
+    if (!user) {
+      fastify.log.warn({ telegramUserId: body.telegramUserId }, 'Stars payment: user not found');
+      return reply.status(404).send({ ok: false, error: 'User not found' });
+    }
+
+    // Находим продукт
+    const product = await prisma.product.findFirst({
+      where: { code: body.productCode, isActive: true },
+    });
+
+    if (!product) {
+      fastify.log.warn({ productCode: body.productCode }, 'Stars payment: product not found');
+      return reply.status(404).send({ ok: false, error: 'Product not found' });
+    }
+
+    // Проверяем идемпотентность по telegramPaymentChargeId
+    const existingPurchase = await prisma.purchase.findFirst({
+      where: { externalId: body.telegramPaymentChargeId },
+    });
+
+    if (existingPurchase) {
+      fastify.log.info({ chargeId: body.telegramPaymentChargeId }, 'Stars payment already processed (idempotent)');
+      return reply.success({ ok: true, alreadyProcessed: true });
+    }
+
+    // Вычисляем срок действия
+    const expiresAt = product.periodDays
+      ? new Date(Date.now() + product.periodDays * 24 * 60 * 60 * 1000)
+      : null;
+
+    // Атомарная транзакция: Purchase + Entitlement
+    await prisma.$transaction(async (tx) => {
+      const purchase = await tx.purchase.create({
+        data: {
+          userId: user.id,
+          productId: product.id,
+          amount: body.starsAmount,
+          currency: 'XTR',
+          status: 'COMPLETED',
+          provider: 'STARS',
+          externalId: body.telegramPaymentChargeId,
+          paidAt: new Date(),
+          metadata: { telegramPaymentChargeId: body.telegramPaymentChargeId },
+        },
+      });
+
+      // Отзываем предыдущие entitlement того же типа
+      await tx.entitlement.updateMany({
+        where: {
+          userId: user.id,
+          code: product.entitlementCode,
+          revokedAt: null,
+        },
+        data: { revokedAt: new Date() },
+      });
+
+      await tx.entitlement.create({
+        data: {
+          userId: user.id,
+          code: product.entitlementCode,
+          sourceType: 'purchase',
+          sourceId: purchase.id,
+          expiresAt,
+          autoRenew: false, // Stars не поддерживает автопродление
+        },
+      });
+    });
+
+    fastify.log.info(
+      { userId: user.id, productCode: body.productCode, chargeId: body.telegramPaymentChargeId },
+      'Stars payment processed, entitlement created'
+    );
+
+    return reply.success({ ok: true });
+  });
 };

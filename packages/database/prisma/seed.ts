@@ -61,9 +61,92 @@ async function main() {
   });
 
   console.log(`✅ Product created/updated: ${randomizerProduct.code}`);
-  console.log(`   - Title: ${randomizerProduct.title}`);
-  console.log(`   - Price: ${randomizerProduct.price / 100} ${randomizerProduct.currency}`);
-  console.log(`   - Period: ${randomizerProduct.periodDays} days`);
+
+  // ── Подписки для создателей ────────────────────────────────────────────────
+
+  const subscriptionPlus = await prisma.product.upsert({
+    where: { code: 'SUBSCRIPTION_PLUS' },
+    update: {
+      title: 'RandomBeast PLUS',
+      price: 19000, // 190 RUB в копейках
+      currency: 'RUB',
+      periodDays: 30,
+      type: ProductType.SUBSCRIPTION,
+      entitlementCode: 'tier.plus',
+      isActive: true,
+      starsPrice: 200, // ~190 RUB в Stars (конвертация ~1 Star ≈ 1 RUB)
+    },
+    create: {
+      code: 'SUBSCRIPTION_PLUS',
+      title: 'RandomBeast PLUS',
+      description: 'Расширенные возможности для создателей и участников на 30 дней',
+      price: 19000,
+      currency: 'RUB',
+      periodDays: 30,
+      type: ProductType.SUBSCRIPTION,
+      entitlementCode: 'tier.plus',
+      isActive: true,
+      starsPrice: 200,
+    },
+  });
+
+  console.log(`✅ Product created/updated: ${subscriptionPlus.code} (${subscriptionPlus.price / 100} RUB / ${subscriptionPlus.starsPrice} Stars)`);
+
+  const subscriptionPro = await prisma.product.upsert({
+    where: { code: 'SUBSCRIPTION_PRO' },
+    update: {
+      title: 'RandomBeast PRO',
+      price: 49000, // 490 RUB
+      currency: 'RUB',
+      periodDays: 30,
+      type: ProductType.SUBSCRIPTION,
+      entitlementCode: 'tier.pro',
+      isActive: true,
+      starsPrice: 500,
+    },
+    create: {
+      code: 'SUBSCRIPTION_PRO',
+      title: 'RandomBeast PRO',
+      description: 'Профессиональные инструменты: расширенная аналитика, liveness check, экспорт CSV на 30 дней',
+      price: 49000,
+      currency: 'RUB',
+      periodDays: 30,
+      type: ProductType.SUBSCRIPTION,
+      entitlementCode: 'tier.pro',
+      isActive: true,
+      starsPrice: 500,
+    },
+  });
+
+  console.log(`✅ Product created/updated: ${subscriptionPro.code} (${subscriptionPro.price / 100} RUB / ${subscriptionPro.starsPrice} Stars)`);
+
+  const subscriptionBusiness = await prisma.product.upsert({
+    where: { code: 'SUBSCRIPTION_BUSINESS' },
+    update: {
+      title: 'RandomBeast BUSINESS',
+      price: 149000, // 1490 RUB
+      currency: 'RUB',
+      periodDays: 30,
+      type: ProductType.SUBSCRIPTION,
+      entitlementCode: 'tier.business',
+      isActive: true,
+      starsPrice: 1500,
+    },
+    create: {
+      code: 'SUBSCRIPTION_BUSINESS',
+      title: 'RandomBeast BUSINESS',
+      description: 'Максимальные возможности: белый лейбл, webhook API, выделенная поддержка на 30 дней',
+      price: 149000,
+      currency: 'RUB',
+      periodDays: 30,
+      type: ProductType.SUBSCRIPTION,
+      entitlementCode: 'tier.business',
+      isActive: true,
+      starsPrice: 1500,
+    },
+  });
+
+  console.log(`✅ Product created/updated: ${subscriptionBusiness.code} (${subscriptionBusiness.price / 100} RUB / ${subscriptionBusiness.starsPrice} Stars)`);
 
   // Task 0.5: Test user (only in development)
   if (process.env.NODE_ENV !== 'production') {

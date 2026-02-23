@@ -572,6 +572,113 @@
     "backToCatalog": "Вернуться в каталог",
     "checkCount": "Проверка {current}/{max}"
   },
+  "subscription": {
+    "title": "⭐ RandomBeast Premium",
+    "subtitle": "Расширьте возможности своих розыгрышей",
+    "tabs": {
+      "creators": "Для создателей",
+      "participants": "Для участников"
+    },
+    "tiers": {
+      "plus": {
+        "name": "PLUS",
+        "price": "190 ₽/мес",
+        "starsPrice": "200 ⭐/мес",
+        "badge": "Популярный"
+      },
+      "pro": {
+        "name": "PRO",
+        "price": "490 ₽/мес",
+        "starsPrice": "500 ⭐/мес",
+        "badge": "Профи"
+      },
+      "business": {
+        "name": "BUSINESS",
+        "price": "1490 ₽/мес",
+        "starsPrice": "1500 ⭐/мес",
+        "badge": "Максимум"
+      }
+    },
+    "creators": {
+      "analytics": {
+        "title": "📊 Расширенная аналитика",
+        "description": "Источники трафика, инвайт-дерево, конверсия, антифрод статистика"
+      },
+      "mascot": {
+        "title": "🐱 Выбор маскота",
+        "description": "Разнообразие персонажей для сопровождения участников"
+      },
+      "export": {
+        "title": "📥 Выгрузка участников CSV",
+        "description": "Полный список участников розыгрыша в формате CSV"
+      },
+      "liveness": {
+        "title": "📸 Liveness Check",
+        "description": "Продвинутая защита от ботов с проверкой через камеру"
+      },
+      "winners": {
+        "title": "🏆 Больше победителей",
+        "description": "До 50 (PLUS), 100 (PRO) или 200 (BUSINESS) победителей"
+      },
+      "tasks": {
+        "title": "🎨 Кастомные задания",
+        "description": "До 5 (PRO) или 10 (BUSINESS) своих заданий участникам"
+      }
+    },
+    "participants": {
+      "bonus": {
+        "title": "🎟️ +100% к шансу",
+        "description": "Дополнительный билет во всех розыгрышах автоматически"
+      },
+      "catalog": {
+        "title": "🗂️ Доступ к каталогу",
+        "description": "Розыгрыши от всех каналов в одном месте"
+      },
+      "noCaptcha": {
+        "title": "🤖 Без капчи",
+        "description": "Участвуйте в розыгрышах без прохождения капчи"
+      },
+      "notifications": {
+        "title": "🔔 Уведомления",
+        "description": "Получайте уведомления о новых розыгрышах первыми"
+      }
+    },
+    "payBtn": "💳 Оплатить {price}",
+    "payStarsBtn": "⭐ Оплатить Stars {stars}",
+    "current": "Текущий план",
+    "perMonth": "/ мес",
+    "secure": "Безопасная оплата через ЮKassa",
+    "alreadySubscribed": "У вас уже есть эта подписка",
+    "loading": "Создание платежа...",
+    "error": "Ошибка создания платежа"
+  },
+  "creatorSubscription": {
+    "title": "⭐ Управление подпиской",
+    "currentPlan": "Текущий план",
+    "free": "Бесплатный",
+    "activeTill": "Активна до {date}",
+    "autoRenew": "Автопродление",
+    "autoRenewOn": "включено",
+    "autoRenewOff": "отключено",
+    "cancelSubscription": "Отменить подписку",
+    "cancelConfirm": "Вы уверены? Доступ сохранится до конца оплаченного периода.",
+    "cancelled": "Подписка отменена",
+    "upgradePlan": "Повысить план",
+    "changePlan": "Сменить план",
+    "history": "История платежей",
+    "noHistory": "Нет платежей",
+    "amount": "{amount} ₽",
+    "statusCompleted": "Оплачено",
+    "statusPending": "Ожидает",
+    "statusFailed": "Не оплачено",
+    "statusRefunded": "Возврат",
+    "tierLimits": {
+      "title": "Лимиты вашего плана",
+      "maxWinners": "Максимум победителей: {count}",
+      "maxInvites": "Максимум приглашений: {count}",
+      "maxGiveaways": "Активных розыгрышей: {count}"
+    }
+  },
   "settings": {
     "title": "⚙️ Настройки",
     "language": "🌐 Язык / Language",

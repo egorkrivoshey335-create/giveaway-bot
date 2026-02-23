@@ -47,6 +47,7 @@ import {
   handleAdminBroadcast,
 } from './handlers/admin.js';
 import { handleInlineQuery } from './handlers/inline.js';
+import { registerPaymentHandlers } from './handlers/payments.js';
 
 const log = createLogger('bot');
 
@@ -518,6 +519,9 @@ bot.command('admin_broadcast', handleAdminBroadcast);
 
 // 🔒 ЗАДАЧА: Inline mode
 bot.on('inline_query', handleInlineQuery);
+
+// 🔒 ЗАДАЧА 6.4: Telegram Stars payments
+registerPaymentHandlers(bot);
 
 // Error handler
 bot.catch((err) => {

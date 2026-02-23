@@ -549,6 +549,65 @@
     "backToCatalog": "Back to catalog",
     "checkCount": "Check {current}/{max}"
   },
+  "subscription": {
+    "title": "⭐ RandomBeast Premium",
+    "subtitle": "Expand your giveaway capabilities",
+    "tabs": { "creators": "For creators", "participants": "For participants" },
+    "tiers": {
+      "plus": { "name": "PLUS", "price": "190 ₽/mo", "starsPrice": "200 ⭐/mo", "badge": "Popular" },
+      "pro": { "name": "PRO", "price": "490 ₽/mo", "starsPrice": "500 ⭐/mo", "badge": "Professional" },
+      "business": { "name": "BUSINESS", "price": "1490 ₽/mo", "starsPrice": "1500 ⭐/mo", "badge": "Maximum" }
+    },
+    "creators": {
+      "analytics": { "title": "📊 Advanced Analytics", "description": "Traffic sources, invite tree, conversion, anti-fraud statistics" },
+      "mascot": { "title": "🐱 Mascot Selection", "description": "Various characters to accompany participants" },
+      "export": { "title": "📥 Export Participants CSV", "description": "Full participant list in CSV format" },
+      "liveness": { "title": "📸 Liveness Check", "description": "Advanced bot protection with camera verification" },
+      "winners": { "title": "🏆 More Winners", "description": "Up to 50 (PLUS), 100 (PRO) or 200 (BUSINESS) winners" },
+      "tasks": { "title": "🎨 Custom Tasks", "description": "Up to 5 (PRO) or 10 (BUSINESS) custom participant tasks" }
+    },
+    "participants": {
+      "bonus": { "title": "🎟️ +100% chance", "description": "Extra ticket in all giveaways automatically" },
+      "catalog": { "title": "🗂️ Catalog access", "description": "Giveaways from all channels in one place" },
+      "noCaptcha": { "title": "🤖 No captcha", "description": "Participate without captcha verification" },
+      "notifications": { "title": "🔔 Notifications", "description": "Be first to know about new giveaways" }
+    },
+    "payBtn": "💳 Pay {price}",
+    "payStarsBtn": "⭐ Pay with Stars {stars}",
+    "current": "Current plan",
+    "perMonth": "/ mo",
+    "secure": "Secure payment via YooKassa",
+    "alreadySubscribed": "You already have this subscription",
+    "loading": "Creating payment...",
+    "error": "Payment creation error"
+  },
+  "creatorSubscription": {
+    "title": "⭐ Subscription Management",
+    "currentPlan": "Current plan",
+    "free": "Free",
+    "activeTill": "Active until {date}",
+    "autoRenew": "Auto-renewal",
+    "autoRenewOn": "on",
+    "autoRenewOff": "off",
+    "cancelSubscription": "Cancel subscription",
+    "cancelConfirm": "Are you sure? Access will remain until the end of the paid period.",
+    "cancelled": "Subscription cancelled",
+    "upgradePlan": "Upgrade plan",
+    "changePlan": "Change plan",
+    "history": "Payment history",
+    "noHistory": "No payments",
+    "amount": "{amount} ₽",
+    "statusCompleted": "Paid",
+    "statusPending": "Pending",
+    "statusFailed": "Failed",
+    "statusRefunded": "Refunded",
+    "tierLimits": {
+      "title": "Your plan limits",
+      "maxWinners": "Max winners: {count}",
+      "maxInvites": "Max invites: {count}",
+      "maxGiveaways": "Active giveaways: {count}"
+    }
+  },
   "settings": {
     "title": "⚙️ Settings",
     "language": "🌐 Language",

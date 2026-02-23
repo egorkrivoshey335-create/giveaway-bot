@@ -34,6 +34,7 @@ import { productsRoutes } from './routes/products.js';
 import { banListRoutes } from './routes/ban-list.js';
 import { remindersRoutes } from './routes/reminders.js';
 import { startGiveawayScheduler } from './scheduler/giveaway-lifecycle.js';
+import { processSubscriptionLifecycle } from './scheduler/subscription-lifecycle.js';
 import { RATE_LIMITS } from './config/rate-limits.js';
 
 const fastify = Fastify({
@@ -183,6 +184,12 @@ async function main() {
     // Start giveaway lifecycle scheduler
     // Checks every minute: SCHEDULED → ACTIVE, ACTIVE → FINISHED
     startGiveawayScheduler(60_000);
+
+    // Subscription lifecycle: каждые 60 минут
+    processSubscriptionLifecycle().catch(console.error);
+    setInterval(() => {
+      processSubscriptionLifecycle().catch(console.error);
+    }, 60 * 60 * 1000);
   } catch (error) {
     fastify.log.error(error);
     process.exit(1);

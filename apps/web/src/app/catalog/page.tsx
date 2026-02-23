@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { getCatalog, CatalogGiveaway, createPayment } from '@/lib/api';
+import { getCatalog, CatalogGiveaway } from '@/lib/api';
+import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
 
 // Тип для функции перевода (упрощённый для передачи как пропс)
 type TranslateFunc = (key: string, values?: Record<string, string | number | Date>) => string;
@@ -195,104 +196,37 @@ function PaywallFullOverlay({
   );
 }
 
-// Модалка подписки
-function SubscriptionModal({ 
-  price, 
-  onClose, 
-  t, 
-  tErrors 
-}: { 
-  price: number; 
-  onClose: () => void; 
-  t: TranslateFunc;
-  tErrors: (key: string) => string;
+// Фильтры каталога
+type SortKey = 'totalParticipants' | 'endAt' | 'createdAt';
+
+function CatalogFilters({
+  sortBy,
+  onSortChange,
+}: {
+  sortBy: SortKey;
+  onSortChange: (s: SortKey) => void;
 }) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handlePay = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await createPayment({ productCode: 'CATALOG_MONTHLY_1000' });
-
-      if (response.ok && response.paymentUrl) {
-        // Редирект на страницу оплаты ЮKassa
-        window.location.href = response.paymentUrl;
-      } else {
-        setError(response.error || t('paywall.paymentError'));
-      }
-    } catch {
-      setError(tErrors('connectionError'));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const options: { key: SortKey; label: string }[] = [
+    { key: 'totalParticipants', label: '👥 Участники' },
+    { key: 'endAt', label: '⏰ Срок' },
+    { key: 'createdAt', label: '🆕 Новые' },
+  ];
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-tg-bg rounded-2xl p-6 max-w-sm w-full"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Заголовок */}
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">🎁 {t('paywall.modalTitle')}</h2>
-          <button
-            onClick={onClose}
-            className="text-tg-hint hover:text-tg-text text-xl"
-            disabled={loading}
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Преимущества */}
-        <div className="space-y-3 mb-6">
-          <div className="flex items-center gap-3">
-            <span className="text-green-500">✅</span>
-            <span className="text-sm">{t('paywall.features.access')}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-green-500">✅</span>
-            <span className="text-sm">{t('paywall.features.noCaptcha')}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-green-500">✅</span>
-            <span className="text-sm">{t('paywall.features.notifications')}</span>
-          </div>
-        </div>
-
-        {/* Цена */}
-        <div className="bg-tg-secondary rounded-xl p-4 text-center mb-4">
-          <span className="text-3xl font-bold">{price} ₽</span>
-          <span className="text-tg-hint"> {t('paywall.perMonth')}</span>
-        </div>
-
-        {/* Ошибка */}
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4 text-center">
-            <p className="text-sm text-red-500">{error}</p>
-          </div>
-        )}
-
-        {/* Кнопка оплаты */}
+    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+      {options.map(o => (
         <button
-          onClick={handlePay}
-          disabled={loading}
-          className="w-full bg-tg-button text-tg-button-text rounded-xl py-3 px-4 font-medium mb-3 disabled:opacity-50"
+          key={o.key}
+          onClick={() => onSortChange(o.key)}
+          className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            sortBy === o.key
+              ? 'bg-tg-button text-tg-button-text'
+              : 'bg-tg-secondary text-tg-hint'
+          }`}
         >
-          {loading ? t('paywall.loading') : t('paywall.pay')}
+          {o.label}
         </button>
-
-        <p className="text-xs text-tg-hint text-center">
-          {t('paywall.secure')}
-        </p>
-      </div>
+      ))}
     </div>
   );
 }
@@ -313,13 +247,15 @@ export default function CatalogPage() {
   const [showModal, setShowModal] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [sortBy, setSortBy] = useState<SortKey>('totalParticipants');
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
 
-  const loadCatalog = useCallback(async (append = false, offset = 0) => {
+  const loadCatalog = useCallback(async (append = false, newCursor?: string) => {
     if (!append) setLoading(true);
     else setLoadingMore(true);
 
     try {
-      const res = await getCatalog({ limit: 20, offset });
+      const res = await getCatalog({ limit: 20, cursor: newCursor, sortBy });
       if (res.ok) {
         if (append) {
           setGiveaways((prev) => [...prev, ...(res.giveaways || [])]);
@@ -331,23 +267,35 @@ export default function CatalogPage() {
         setPreviewCount(res.previewCount || 3);
         setPrice(res.subscriptionPrice || 1000);
         setHasMore(res.hasMore || false);
+        if (res.nextCursor) setCursor(res.nextCursor);
       } else {
         setError(res.error || tErrors('loadFailed'));
       }
-    } catch (err) {
+    } catch {
       setError(tErrors('connectionError'));
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [tErrors]);
+  }, [tErrors, sortBy]);
+
+  useEffect(() => {
+    setCursor(undefined);
+    loadCatalog(false, undefined);
+  }, [sortBy]);
 
   useEffect(() => {
     loadCatalog();
-  }, [loadCatalog]);
+  }, []);
 
   const handleLoadMore = () => {
-    loadCatalog(true, giveaways.length);
+    loadCatalog(true, cursor);
+  };
+
+  const handleSortChange = (newSort: SortKey) => {
+    if (newSort !== sortBy) {
+      setSortBy(newSort);
+    }
   };
 
   const goBack = () => {
@@ -358,13 +306,27 @@ export default function CatalogPage() {
     <div className="min-h-screen bg-tg-bg">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-tg-bg border-b border-tg-secondary">
-        <div className="max-w-xl mx-auto px-4 py-3 flex items-center gap-3">
-          <button onClick={goBack} className="text-tg-link text-sm hover:opacity-70">
-            ← {tCommon('back')}
-          </button>
-          <h1 className="text-lg font-semibold text-tg-text flex-1">
-            {t('title')}
-          </h1>
+        <div className="max-w-xl mx-auto px-4 py-3">
+          <div className="flex items-center gap-3 mb-2">
+            <button onClick={goBack} className="text-tg-link text-sm hover:opacity-70">
+              ← {tCommon('back')}
+            </button>
+            <h1 className="text-lg font-semibold text-tg-text flex-1">
+              {t('title')}
+            </h1>
+            {!hasAccess && (
+              <button
+                onClick={() => setShowModal(true)}
+                className="text-xs text-tg-button font-medium"
+              >
+                {t('paywall.unlock')} ⭐
+              </button>
+            )}
+          </div>
+          {/* Фильтры сортировки */}
+          {hasAccess && (
+            <CatalogFilters sortBy={sortBy} onSortChange={handleSortChange} />
+          )}
         </div>
       </header>
 
@@ -449,6 +411,7 @@ export default function CatalogPage() {
           )}
         </div>
       ) : (
+
         /* Без подписки — всё заблокировано overlay'ем */
         <div className="relative flex-1">
           {/* Контент за overlay — виден, но не кликабелен */}
@@ -475,10 +438,12 @@ export default function CatalogPage() {
         </div>
       )}
 
-      {/* Модалка подписки */}
-      {showModal && (
-        <SubscriptionModal price={price} onClose={() => setShowModal(false)} t={t} tErrors={tErrors} />
-      )}
+      {/* SubscriptionBottomSheet */}
+      <SubscriptionBottomSheet
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        defaultTab="participants"
+      />
     </div>
   );
 }

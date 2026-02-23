@@ -81,6 +81,8 @@ enum PurchaseStatus {
 
 enum PurchaseProvider {
   YOOKASSA
+  STARS
+  MANUAL
 }
 
 enum GiveawayMessageKind {
@@ -484,12 +486,15 @@ model Entitlement {
   revokedAt  DateTime?
 
   // Task 0.5: auto-renew & cancellation
-  autoRenew   Boolean   @default(false)
-  cancelledAt DateTime?
+  autoRenew     Boolean   @default(false)
+  cancelledAt   DateTime?
+  // Task 6.5: уведомление об истечении подписки
+  warningSentAt DateTime?
 
   @@index([userId])
   @@index([userId, code])
   @@index([expiresAt])
+  @@index([warningSentAt, expiresAt])
 }
 
 // =============================================================================

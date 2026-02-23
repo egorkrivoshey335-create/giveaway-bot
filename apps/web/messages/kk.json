@@ -549,6 +549,65 @@
     "backToCatalog": "Каталогқа оралу",
     "checkCount": "Тексеру {current}/{max}"
   },
+  "subscription": {
+    "title": "⭐ RandomBeast Premium",
+    "subtitle": "Ұтыс ойындарының мүмкіндіктерін кеңейтіңіз",
+    "tabs": { "creators": "Жасаушылар үшін", "participants": "Қатысушылар үшін" },
+    "tiers": {
+      "plus": { "name": "PLUS", "price": "190 ₽/ай", "starsPrice": "200 ⭐/ай", "badge": "Танымал" },
+      "pro": { "name": "PRO", "price": "490 ₽/ай", "starsPrice": "500 ⭐/ай", "badge": "Кәсіби" },
+      "business": { "name": "BUSINESS", "price": "1490 ₽/ай", "starsPrice": "1500 ⭐/ай", "badge": "Максималды" }
+    },
+    "creators": {
+      "analytics": { "title": "📊 Кеңейтілген аналитика", "description": "Трафик көздері, шақыру ағашы, конверсия" },
+      "mascot": { "title": "🐱 Маскот таңдау", "description": "Қатысушыларға арналған әртүрлі кейіпкерлер" },
+      "export": { "title": "📥 Қатысушыларды CSV экспорттау", "description": "Барлық қатысушылар тізімі CSV форматында" },
+      "liveness": { "title": "📸 Liveness Check", "description": "Камера арқылы боттардан қорғау" },
+      "winners": { "title": "🏆 Көбірек жеңімпаздар", "description": "50 (PLUS), 100 (PRO) немесе 200 (BUSINESS) жеңімпазға дейін" },
+      "tasks": { "title": "🎨 Арнайы тапсырмалар", "description": "5 (PRO) немесе 10 (BUSINESS) тапсырмаға дейін" }
+    },
+    "participants": {
+      "bonus": { "title": "🎟️ +100% мүмкіндік", "description": "Барлық ұтыс ойындарында қосымша билет автоматты түрде" },
+      "catalog": { "title": "🗂️ Каталогқа рұқсат", "description": "Барлық арналардың ұтыс ойындары бір жерде" },
+      "noCaptcha": { "title": "🤖 Капчасыз", "description": "Капчасыз ұтыс ойындарына қатысыңыз" },
+      "notifications": { "title": "🔔 Хабарландырулар", "description": "Жаңа ұтыс ойындары туралы бірінші болып біліңіз" }
+    },
+    "payBtn": "💳 Төлеу {price}",
+    "payStarsBtn": "⭐ Stars арқылы төлеу {stars}",
+    "current": "Ағымдағы жоспар",
+    "perMonth": "/ ай",
+    "secure": "YooKassa арқылы қауіпсіз төлем",
+    "alreadySubscribed": "Сізде бұл жазылым бар",
+    "loading": "Төлем жасалуда...",
+    "error": "Төлем жасау қатесі"
+  },
+  "creatorSubscription": {
+    "title": "⭐ Жазылымды басқару",
+    "currentPlan": "Ағымдағы жоспар",
+    "free": "Тегін",
+    "activeTill": "{date} дейін белсенді",
+    "autoRenew": "Автоматты жаңарту",
+    "autoRenewOn": "қосулы",
+    "autoRenewOff": "өшірулі",
+    "cancelSubscription": "Жазылымды болдырмау",
+    "cancelConfirm": "Сенімдісіз бе? Төленген кезең аяқталғанға дейін рұқсат сақталады.",
+    "cancelled": "Жазылым болдырылмады",
+    "upgradePlan": "Жоспарды жоғарылату",
+    "changePlan": "Жоспарды өзгерту",
+    "history": "Төлем тарихы",
+    "noHistory": "Төлем жоқ",
+    "amount": "{amount} ₽",
+    "statusCompleted": "Төленді",
+    "statusPending": "Күтуде",
+    "statusFailed": "Төленбеді",
+    "statusRefunded": "Қайтарылды",
+    "tierLimits": {
+      "title": "Жоспарыңыздың шектеулері",
+      "maxWinners": "Ең көп жеңімпаздар: {count}",
+      "maxInvites": "Ең көп шақырулар: {count}",
+      "maxGiveaways": "Белсенді ұтыс ойындары: {count}"
+    }
+  },
   "settings": {
     "title": "⚙️ Баптаулар",
     "language": "🌐 Тіл",

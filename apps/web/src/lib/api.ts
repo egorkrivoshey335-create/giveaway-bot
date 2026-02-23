@@ -1364,6 +1364,7 @@ interface CatalogResponse {
   previewCount?: number;
   subscriptionPrice?: number;
   hasMore?: boolean;
+  nextCursor?: string;
   error?: string;
 }
 
@@ -1373,10 +1374,14 @@ interface CatalogResponse {
 export async function getCatalog(params?: {
   limit?: number;
   offset?: number;
+  cursor?: string;
+  sortBy?: string;
 }): Promise<CatalogResponse> {
   const searchParams = new URLSearchParams();
   if (params?.limit) searchParams.set('limit', params.limit.toString());
   if (params?.offset) searchParams.set('offset', params.offset.toString());
+  if (params?.cursor) searchParams.set('cursor', params.cursor);
+  if (params?.sortBy) searchParams.set('sortBy', params.sortBy);
 
   const url = `${API_URL}/catalog${searchParams.toString() ? `?${searchParams}` : ''}`;
   const response = await fetch(url, {
@@ -1479,6 +1484,120 @@ export async function checkPaymentStatus(
 
   return response.json();
 }
+
+interface PaymentHistoryItem {
+  id: string;
+  productCode: string;
+  productTitle: string;
+  amount: number;
+  currency: string;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
+  paidAt: string | null;
+  createdAt: string;
+}
+
+interface PaymentHistoryResponse {
+  ok: boolean;
+  items?: PaymentHistoryItem[];
+  error?: string;
+}
+
+/**
+ * История покупок
+ */
+export async function getPaymentHistory(): Promise<PaymentHistoryResponse> {
+  const response = await fetch(`${API_URL}/payments/history`, {
+    credentials: 'include',
+  });
+  return response.json();
+}
+
+interface EntitlementItem {
+  id: string;
+  code: string;
+  expiresAt: string | null;
+  autoRenew: boolean;
+  cancelledAt: string | null;
+  sourceType: string;
+}
+
+interface EntitlementsResponse {
+  ok: boolean;
+  items?: EntitlementItem[];
+  error?: string;
+}
+
+/**
+ * Получить все активные права доступа
+ */
+export async function getMyEntitlements(): Promise<EntitlementsResponse> {
+  const response = await fetch(`${API_URL}/users/me/entitlements`, {
+    credentials: 'include',
+  });
+  return response.json();
+}
+
+interface SubscriptionChangeResponse {
+  ok: boolean;
+  paymentUrl?: string;
+  purchaseId?: string;
+  action?: 'upgrade' | 'downgrade';
+  error?: string;
+}
+
+/**
+ * Сменить тарифный план
+ */
+export async function changeSubscription(
+  newProductCode: string
+): Promise<SubscriptionChangeResponse> {
+  const response = await fetch(`${API_URL}/subscriptions/change`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ newProductCode }),
+    credentials: 'include',
+  });
+  return response.json();
+}
+
+interface CurrentSubscriptionResponse {
+  ok: boolean;
+  tier?: string;
+  entitlementId?: string;
+  expiresAt?: string | null;
+  autoRenew?: boolean;
+  cancelledAt?: string | null;
+  sourceType?: string;
+  error?: string;
+}
+
+/**
+ * Получить текущую активную подписку
+ */
+export async function getCurrentSubscription(): Promise<CurrentSubscriptionResponse> {
+  const response = await fetch(`${API_URL}/subscriptions/current`, {
+    credentials: 'include',
+  });
+  return response.json();
+}
+
+interface CancelSubscriptionResponse {
+  ok: boolean;
+  error?: string;
+}
+
+/**
+ * Отменить подписку (autoRenew=false, cancelledAt=now)
+ */
+export async function cancelSubscription(): Promise<CancelSubscriptionResponse> {
+  const response = await fetch(`${API_URL}/subscriptions/cancel`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  return response.json();
+}
+
+export type { PaymentHistoryItem, EntitlementItem };
 
 // =============================================================================
 // Custom Tasks API

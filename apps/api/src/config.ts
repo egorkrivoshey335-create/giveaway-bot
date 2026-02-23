@@ -27,6 +27,7 @@ const envSchema = z.object({
   // YooKassa
   YOOKASSA_SHOP_ID: z.string().optional(),
   YOOKASSA_SECRET_KEY: z.string().optional(),
+  YOOKASSA_WEBHOOK_SECRET: z.string().optional(),
   YOOKASSA_RETURN_URL: z.string().optional(),
   WEBAPP_URL: z.string().optional(),
 });
@@ -91,8 +92,9 @@ export const config = {
   yookassa: {
     shopId: env.YOOKASSA_SHOP_ID,
     secretKey: env.YOOKASSA_SECRET_KEY,
-    webhookSecret: env.YOOKASSA_SECRET_KEY, // Use the same secret for webhooks
-    returnUrl: env.YOOKASSA_RETURN_URL || env.WEBAPP_URL + '/payments/return' || 'http://localhost:3000/payments/return',
+    // Отдельный секрет для верификации подписи webhook (настраивается в ЮKassa dashboard)
+    webhookSecret: env.YOOKASSA_WEBHOOK_SECRET,
+    returnUrl: env.YOOKASSA_RETURN_URL || (env.WEBAPP_URL ? env.WEBAPP_URL + '/payments/return' : 'http://localhost:3000/payments/return'),
   },
   
   // Web App URL

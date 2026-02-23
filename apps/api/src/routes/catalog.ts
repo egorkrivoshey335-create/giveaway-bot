@@ -56,12 +56,13 @@ export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.success(cached);
     }
 
-    // Считаем активные, одобренные розыгрыши в каталоге
+    // Считаем активные, одобренные розыгрыши в каталоге (>= 100 участников)
     const count = await prisma.giveaway.count({
       where: {
         status: GiveawayStatus.ACTIVE,
         isPublicInCatalog: true,
         catalogApproved: true,
+        totalParticipants: { gte: 100 },
       },
     });
 
@@ -102,11 +103,12 @@ export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
     // Если нет доступа — показываем только PREVIEW_COUNT
     const effectiveLimit = hasAccess ? limitNum : PREVIEW_COUNT;
 
-    // Базовое условие: активные, публичные, одобренные модерацией
+    // Базовое условие: активные, публичные, одобренные модерацией, >=100 участников
     const whereBase: Record<string, unknown> = {
       status: GiveawayStatus.ACTIVE,
       isPublicInCatalog: true,
       catalogApproved: true,
+      totalParticipants: { gte: 100 }, // Только розыгрыши с >= 100 участниками
     };
 
     // Фильтр по типу розыгрыша
@@ -114,10 +116,10 @@ export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
       whereBase.type = type;
     }
 
-    // Фильтр по минимальному количеству участников
+    // Фильтр по минимальному количеству участников (поверх базового >= 100)
     if (minParticipants) {
       const minP = parseInt(minParticipants, 10);
-      if (!isNaN(minP) && minP > 0) {
+      if (!isNaN(minP) && minP > 100) {
         whereBase.totalParticipants = { gte: minP };
       }
     }
