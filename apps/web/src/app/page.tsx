@@ -12,6 +12,7 @@ import {
   getCurrentUser,
   devLogin,
   logout,
+  resolveReferralCode,
 } from '@/lib/api';
 
 interface TelegramWebApp {
@@ -132,15 +133,33 @@ export default function HomePage() {
   useEffect(() => {
     const tg = (window as unknown as { Telegram?: { WebApp?: TelegramWebApp & { initDataUnsafe?: { start_param?: string } } } }).Telegram?.WebApp;
     
-    // Проверяем start_param из Telegram Mini App
     const startParam = tg?.initDataUnsafe?.start_param;
     
-    // Проверяем, обрабатывали ли мы уже этот deep link (чтобы кнопка "На главную" работала)
     const deepLinkKey = `deep_link_handled_${startParam}`;
     if (startParam && sessionStorage.getItem(deepLinkKey)) {
       // Уже обработали этот deep link, не перенаправляем
     } else if (startParam) {
-      // join_<giveawayId> или join_<giveawayId>_ref_<referrerId>
+      // r_<shortCode> — короткая реферальная ссылка (новый формат)
+      if (startParam.startsWith('r_')) {
+        const code = startParam.slice(2);
+        if (code) {
+          sessionStorage.setItem(deepLinkKey, '1');
+          setRedirecting(true);
+          resolveReferralCode(code).then(res => {
+            if (res.ok && res.giveawayId && res.referrerUserId) {
+              router.push(`/join/${res.giveawayId}?ref=${res.referrerUserId}`);
+            } else if (res.ok && res.giveawayId) {
+              router.push(`/join/${res.giveawayId}`);
+            } else {
+              // Код не найден — идём на главную
+              setRedirecting(false);
+            }
+          }).catch(() => setRedirecting(false));
+          return;
+        }
+      }
+
+      // join_<giveawayId> или join_<giveawayId>_ref_<referrerId> (обратная совместимость)
       if (startParam.startsWith('join_')) {
         const parts = startParam.replace('join_', '').split('_ref_');
         const giveawayId = parts[0];

@@ -226,6 +226,9 @@ model Giveaway {
   randomizerCustom Json? // { backgroundColor: string, accentColor: string, logoUrl?: string }
   winnersPublished Boolean @default(false) // Победители опубликованы в канал (для RANDOMIZER режима)
 
+  // Draw audit trail
+  drawSeed String? // SHA256(giveawayId|endAt|sortedParticipants) — для верификации честности выбора
+
   // Task 0.5: additional fields
   mascotId              String? // FK → Mascot (nullable)
   mascot                Mascot?   @relation(fields: [mascotId], references: [id])

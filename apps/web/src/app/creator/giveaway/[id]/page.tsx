@@ -12,9 +12,11 @@ import {
   cancelGiveaway,
   retryGiveaway,
   getParticipantCount,
+  getTopInviters,
   GiveawayFull,
   GiveawayStats,
   GiveawayParticipant,
+  TopInviter,
 } from '@/lib/api';
 import { InlineToast } from '@/components/Toast';
 import { ShareBottomSheet } from '@/components/ShareBottomSheet';
@@ -85,6 +87,7 @@ export default function GiveawayDetailsPage() {
   const [stats, setStats] = useState<GiveawayStats | null>(null);
   const [participants, setParticipants] = useState<GiveawayParticipant[]>([]);
   const [participantsTotal, setParticipantsTotal] = useState(0);
+  const [topInviters, setTopInviters] = useState<TopInviter[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [message, setMessage] = useState<string | null>(null);
@@ -117,6 +120,15 @@ export default function GiveawayDetailsPage() {
       setGiveaway(giveawayRes.giveaway);
       if (statsRes.ok && statsRes.stats) {
         setStats(statsRes.stats);
+      }
+
+      // Загружаем топ инвайтеров если приглашения включены
+      if (giveawayRes.giveaway.condition?.inviteEnabled) {
+        getTopInviters(giveawayId).then(res => {
+          if (res.ok && res.topInviters) {
+            setTopInviters(res.topInviters);
+          }
+        }).catch(() => {});
       }
     } catch (err) {
       console.error('Failed to load giveaway:', err);
@@ -524,6 +536,37 @@ export default function GiveawayDetailsPage() {
                     );
                   })}
                 </div>
+              </div>
+            )}
+
+            {/* Топ инвайтеров */}
+            {giveaway.condition?.inviteEnabled && (
+              <div className="bg-tg-secondary rounded-xl p-4">
+                <h3 className="font-medium mb-3">🏆 {t('topInviters.title')}</h3>
+                {topInviters.length === 0 ? (
+                  <p className="text-sm text-tg-hint text-center py-2">{t('topInviters.empty')}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {topInviters.map((inv) => (
+                      <div key={inv.userId} className="flex items-center gap-3">
+                        <span className="text-lg font-bold text-tg-hint w-6 text-center">
+                          {inv.rank === 1 ? '🥇' : inv.rank === 2 ? '🥈' : inv.rank === 3 ? '🥉' : `${inv.rank}.`}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm font-medium truncate block">
+                            {inv.firstName}{inv.lastName ? ` ${inv.lastName}` : ''}
+                          </span>
+                          {inv.username && (
+                            <span className="text-xs text-tg-hint">@{inv.username}</span>
+                          )}
+                        </div>
+                        <span className="text-sm font-semibold text-tg-button">
+                          {inv.inviteCount} {t('topInviters.invites')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

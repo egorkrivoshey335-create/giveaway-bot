@@ -6,6 +6,7 @@ import { ErrorCode, generateShortCode } from '@randombeast/shared';
 import { requireUser, getUser } from '../plugins/auth.js';
 import { createAuditLog, AuditAction, AuditEntityType } from '../lib/audit.js';
 import { getCache, setCache } from '../lib/redis.js';
+import { notifyCancelToAll } from '../scheduler/giveaway-lifecycle.js';
 
 // UUID validation regex
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -730,6 +731,71 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   /**
+   * GET /giveaways/:id/top-inviters
+   * Топ-10 пользователей по количеству приглашённых участников
+   */
+  fastify.get<{ Params: { id: string } }>('/giveaways/:id/top-inviters', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+
+    const { id } = request.params;
+
+    // Только владелец может видеть топ приглашающих
+    const giveaway = await prisma.giveaway.findFirst({
+      where: { id, ownerUserId: user.id },
+      select: { id: true },
+    });
+
+    if (!giveaway) {
+      return reply.notFound('Розыгрыш не найден');
+    }
+
+    // Группируем по referrerUserId и считаем
+    const inviteCounts = await prisma.participation.groupBy({
+      by: ['referrerUserId'],
+      where: {
+        giveawayId: id,
+        referrerUserId: { not: null },
+      },
+      _count: { referrerUserId: true },
+      orderBy: { _count: { referrerUserId: 'desc' } },
+      take: 10,
+    });
+
+    if (inviteCounts.length === 0) {
+      return reply.success({ topInviters: [] });
+    }
+
+    const referrerIds = inviteCounts
+      .map(ic => ic.referrerUserId)
+      .filter((id): id is string => id !== null);
+
+    const users = await prisma.user.findMany({
+      where: { id: { in: referrerIds } },
+      select: { id: true, firstName: true, lastName: true, username: true },
+    });
+
+    const userMap: Record<string, typeof users[0]> = {};
+    for (const u of users) {
+      userMap[u.id] = u;
+    }
+
+    const topInviters = inviteCounts.map((ic, index) => {
+      const u = userMap[ic.referrerUserId!];
+      return {
+        rank: index + 1,
+        userId: ic.referrerUserId!,
+        firstName: u?.firstName || 'Пользователь',
+        lastName: u?.lastName || null,
+        username: u?.username || null,
+        inviteCount: ic._count.referrerUserId,
+      };
+    });
+
+    return reply.success({ topInviters });
+  });
+
+  /**
    * POST /giveaways/:id/duplicate
    * Дублировать розыгрыш (создать копию как DRAFT)
    */
@@ -1018,6 +1084,13 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     fastify.log.info({ giveawayId: id, userId: user.id }, 'Giveaway cancelled');
+
+    // Уведомляем создателя и участников об отмене (fire-and-forget)
+    if (giveaway.status === GiveawayStatus.ACTIVE || giveaway.status === GiveawayStatus.SCHEDULED) {
+      notifyCancelToAll(id, giveaway.title, user.id).catch(err =>
+        fastify.log.error({ err, giveawayId: id }, 'Error sending cancel notifications')
+      );
+    }
 
     return reply.success({ id, status: GiveawayStatus.CANCELLED });
   });

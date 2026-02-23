@@ -30,6 +30,7 @@ const envSchema = z.object({
   YOOKASSA_WEBHOOK_SECRET: z.string().optional(),
   YOOKASSA_RETURN_URL: z.string().optional(),
   WEBAPP_URL: z.string().optional(),
+  SITE_URL: z.string().optional(),
 });
 
 const env = envSchema.parse(process.env);
@@ -99,6 +100,9 @@ export const config = {
   
   // Web App URL
   webappUrl: env.WEBAPP_URL || 'http://localhost:3000',
+
+  // Marketing site URL (for randomizer page)
+  siteUrl: env.SITE_URL || 'http://localhost:3002',
   
   // Whitelist: если пустой — доступ для всех
   allowedUsers,

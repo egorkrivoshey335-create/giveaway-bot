@@ -797,10 +797,12 @@ export interface InvitedFriend {
   joinedAt: string;
 }
 
-interface MyReferralResponse {
+export interface MyReferralResponse {
   ok: boolean;
   referralLink?: string;
   referralCode?: string;
+  clicks?: number;
+  conversions?: number;
   invitedCount?: number;
   inviteMax?: number;
   inviteEnabled?: boolean;
@@ -808,11 +810,33 @@ interface MyReferralResponse {
   error?: string;
 }
 
-interface MyInvitesResponse {
+export interface MyInvitesResponse {
   ok: boolean;
   invites?: InvitedFriend[];
   count?: number;
   max?: number;
+  error?: string;
+}
+
+export interface ResolveReferralResponse {
+  ok: boolean;
+  giveawayId?: string;
+  referrerUserId?: string;
+  error?: string;
+}
+
+export interface TopInviter {
+  rank: number;
+  userId: string;
+  firstName: string;
+  lastName: string | null;
+  username: string | null;
+  inviteCount: number;
+}
+
+export interface TopInvitersResponse {
+  ok: boolean;
+  topInviters?: TopInviter[];
   error?: string;
 }
 
@@ -824,7 +848,39 @@ export async function getMyReferral(giveawayId: string): Promise<MyReferralRespo
     method: 'GET',
     credentials: 'include',
   });
+  return response.json();
+}
 
+/**
+ * Сгенерировать (или получить) реферальную ссылку с коротким кодом
+ */
+export async function generateInvite(giveawayId: string): Promise<MyReferralResponse> {
+  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/generate-invite`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  return response.json();
+}
+
+/**
+ * Разрешить короткий реферальный код → giveawayId + referrerUserId
+ */
+export async function resolveReferralCode(code: string): Promise<ResolveReferralResponse> {
+  const response = await fetch(`${API_URL}/referral/resolve/${encodeURIComponent(code)}`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+  return response.json();
+}
+
+/**
+ * Получить топ-10 инвайтеров для розыгрыша (только для создателя)
+ */
+export async function getTopInviters(giveawayId: string): Promise<TopInvitersResponse> {
+  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/top-inviters`, {
+    method: 'GET',
+    credentials: 'include',
+  });
   return response.json();
 }
 
@@ -836,7 +892,6 @@ export async function getMyInvites(giveawayId: string): Promise<MyInvitesRespons
     method: 'GET',
     credentials: 'include',
   });
-
   return response.json();
 }
 

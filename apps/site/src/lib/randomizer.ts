@@ -43,12 +43,37 @@ export interface RandomizerControl {
 // ============================================================================
 
 /**
+ * Криптографически безопасный целочисленный random в [0, max) через Web Crypto API.
+ * Использует rejection sampling для устранения bias (не допускает mod bias).
+ */
+function secureRandomInt(max: number): number {
+  if (max <= 0) return 0;
+  // Определяем маску для диапазона
+  let mask = max - 1;
+  mask |= mask >> 1;
+  mask |= mask >> 2;
+  mask |= mask >> 4;
+  mask |= mask >> 8;
+  mask |= mask >> 16;
+
+  const buf = new Uint32Array(1);
+  let result: number;
+  // Rejection sampling: откидываем значения вне [0, max)
+  do {
+    crypto.getRandomValues(buf);
+    result = buf[0] & mask;
+  } while (result >= max);
+  return result;
+}
+
+/**
  * Fisher-Yates shuffle — честное перемешивание массива
+ * с криптографически безопасным ГСЧ (Web Crypto API).
  */
 function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = secureRandomInt(i + 1);
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
@@ -82,35 +107,58 @@ function getPostRevealDelay(place: number): number {
 }
 
 /**
- * Выбрать победителей с учётом веса (билетов)
+ * Cumulative-sum entry for weighted random selection
+ */
+interface WeightedEntry {
+  participant: Participant;
+  weight: number;
+  cumulativeWeight: number;
+}
+
+/**
+ * Выбрать победителей с учётом веса (билетов).
+ * Алгоритм: cumulative sum + binary search + crypto.getRandomValues().
+ * Соответствует серверному алгоритму в giveaway-lifecycle.ts.
  */
 function selectWeightedWinners(participants: Participant[], count: number): Participant[] {
-  // Создаём массив "билетов" — каждый участник представлен столько раз, сколько у него билетов
-  const tickets: { participant: Participant }[] = [];
-  
-  for (const p of participants) {
-    const totalTickets = p.ticketsTotal || 1;
-    for (let i = 0; i < totalTickets; i++) {
-      tickets.push({ participant: p });
-    }
-  }
-  
-  // Перемешиваем билеты
-  const shuffledTickets = shuffleArray(tickets);
-  
+  if (participants.length === 0 || count <= 0) return [];
+
+  let remaining = participants.map(p => p);
   const winners: Participant[] = [];
-  const usedIds = new Set<string>();
-  
-  // Выбираем уникальных победителей
-  for (const ticket of shuffledTickets) {
-    if (winners.length >= count) break;
-    
-    if (!usedIds.has(ticket.participant.id)) {
-      usedIds.add(ticket.participant.id);
-      winners.push(ticket.participant);
+
+  for (let i = 0; i < count && remaining.length > 0; i++) {
+    // Строим cumulative pool
+    const pool: WeightedEntry[] = [];
+    let cumulative = 0;
+    for (const p of remaining) {
+      const weight = Math.max(p.ticketsTotal || 1, 1);
+      cumulative += weight;
+      pool.push({ participant: p, weight, cumulativeWeight: cumulative });
     }
+
+    // crypto.getRandomValues() — [1, totalWeight]
+    const totalWeight = cumulative;
+    const buf = new Uint32Array(1);
+    let target: number;
+    // Rejection sampling to avoid mod bias
+    const maxValid = Math.floor(0x100000000 / totalWeight) * totalWeight;
+    do {
+      crypto.getRandomValues(buf);
+    } while (buf[0] >= maxValid);
+    target = (buf[0] % totalWeight) + 1;
+
+    // Binary search
+    let lo = 0, hi = pool.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (pool[mid].cumulativeWeight < target) lo = mid + 1;
+      else hi = mid;
+    }
+
+    winners.push(pool[lo].participant);
+    remaining = remaining.filter(p => p.id !== pool[lo].participant.id);
   }
-  
+
   return winners;
 }
 

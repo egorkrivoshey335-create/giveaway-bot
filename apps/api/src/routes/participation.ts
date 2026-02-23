@@ -37,6 +37,72 @@ interface CaptchaData {
 
 import { redis } from '../lib/redis.js';
 
+// =========================================================================
+// Генерация уникального короткого реферального кода (URL-безопасный, без ambiguous chars)
+// =========================================================================
+function generateNanoid(size = 8): string {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const bytes = crypto.randomBytes(size);
+  return Array.from(bytes).map(b => alphabet[b % alphabet.length]).join('');
+}
+
+/**
+ * Уведомить реферера в Telegram о том, что его друг вступил в розыгрыш
+ */
+async function notifyReferrerJoined(
+  referrerUserId: string,
+  newUserId: string,
+  giveawayId: string,
+  log: { warn: (obj: unknown, msg: string) => void }
+): Promise<void> {
+  try {
+    const { config: apiConfig } = await import('../config.js');
+    if (!apiConfig.botToken) return;
+
+    const [referrer, newUser, giveaway] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: referrerUserId },
+        select: { telegramUserId: true, language: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: newUserId },
+        select: { firstName: true, username: true },
+      }),
+      prisma.giveaway.findUnique({
+        where: { id: giveawayId },
+        select: { title: true },
+      }),
+    ]);
+
+    if (!referrer?.telegramUserId) return;
+
+    const friendName = newUser?.username
+      ? `@${newUser.username}`
+      : newUser?.firstName || 'Ваш друг';
+    const lang = (referrer.language || 'ru').toLowerCase();
+
+    const messages: Record<string, string> = {
+      ru: `🎉 <b>${friendName} вступил по вашей реферальной ссылке!</b>\n\n+1 дополнительный билет в розыгрыше «${giveaway?.title ?? ''}».`,
+      en: `🎉 <b>${friendName} joined via your referral link!</b>\n\n+1 extra ticket in the giveaway "${giveaway?.title ?? ''}".`,
+      kk: `🎉 <b>${friendName} сіздің реферал сілтемеңіз арқылы қосылды!</b>\n\n«${giveaway?.title ?? ''}» ұтыс ойынында +1 қосымша билет.`,
+    };
+
+    const text = messages[lang] ?? messages['ru'];
+
+    await fetch(`https://api.telegram.org/bot${apiConfig.botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: Number(referrer.telegramUserId),
+        text,
+        parse_mode: 'HTML',
+      }),
+    });
+  } catch (err) {
+    log.warn({ err }, 'Failed to notify referrer on friend join');
+  }
+}
+
 /**
  * Генерация токена капчи (Redis)
  */
@@ -701,6 +767,15 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
         { referrerUserId: validReferrerUserId, newUserId: user.id, giveawayId: id },
         'Referrer received bonus ticket'
       );
+
+      // Инкрементируем conversions в ReferralLink
+      await prisma.referralLink.updateMany({
+        where: { giveawayId: id, userId: validReferrerUserId },
+        data: { conversions: { increment: 1 } },
+      });
+
+      // Уведомляем реферера в Telegram (fire-and-forget)
+      notifyReferrerJoined(validReferrerUserId, user.id, id, fastify.log).catch(() => {});
     }
 
     fastify.log.info(
@@ -849,6 +924,31 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
   const BOT_USERNAME = process.env.BOT_USERNAME || 'BeastRandomBot';
 
   /**
+   * Вспомогательная функция: получить или создать ReferralLink для участника
+   */
+  async function upsertReferralLink(giveawayId: string, userId: string): Promise<{ code: string; clicks: number; conversions: number }> {
+    const existing = await prisma.referralLink.findUnique({
+      where: { userId_giveawayId: { userId, giveawayId } },
+      select: { code: true, clicks: true, conversions: true },
+    });
+    if (existing) return existing;
+
+    // Генерируем уникальный код (retry при коллизии)
+    let code = generateNanoid(8);
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const collision = await prisma.referralLink.findUnique({ where: { code } });
+      if (!collision) break;
+      code = generateNanoid(8);
+    }
+
+    const created = await prisma.referralLink.create({
+      data: { userId, giveawayId, code },
+      select: { code: true, clicks: true, conversions: true },
+    });
+    return created;
+  }
+
+  /**
    * GET /giveaways/:id/my-referral
    * Получить реферальную ссылку и статистику приглашений
    */
@@ -858,69 +958,128 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
 
     const { id } = request.params;
 
-    // Проверяем что пользователь участвует в розыгрыше
     const participation = await prisma.participation.findUnique({
-      where: {
-        giveawayId_userId: {
-          giveawayId: id,
-          userId: user.id,
-        },
-      },
-      select: {
-        id: true,
-        status: true,
-        ticketsExtra: true,
-      },
+      where: { giveawayId_userId: { giveawayId: id, userId: user.id } },
+      select: { id: true, status: true, ticketsExtra: true },
     });
 
     if (!participation || participation.status !== ParticipationStatus.JOINED) {
-      return reply.status(400).send({
-        ok: false,
-        error: 'Вы не участвуете в этом розыгрыше',
-      });
+      return reply.status(400).send({ ok: false, error: 'Вы не участвуете в этом розыгрыше' });
     }
 
-    // Получаем лимит приглашений
     const giveaway = await prisma.giveaway.findUnique({
       where: { id },
-      include: {
-        condition: {
-          select: {
-            inviteEnabled: true,
-            inviteMax: true,
-          },
-        },
-      },
+      include: { condition: { select: { inviteEnabled: true, inviteMax: true } } },
     });
 
     if (!giveaway) {
-      return reply.status(404).send({
-        ok: false,
-        error: 'Розыгрыш не найден',
-      });
+      return reply.status(404).send({ ok: false, error: 'Розыгрыш не найден' });
     }
 
-    // Считаем количество приглашённых
     const invitedCount = await prisma.participation.count({
-      where: {
-        giveawayId: id,
-        referrerUserId: user.id,
-      },
+      where: { giveawayId: id, referrerUserId: user.id },
     });
 
     const inviteMax = giveaway.condition?.inviteMax || 10;
     const inviteEnabled = giveaway.condition?.inviteEnabled || false;
 
-    // Формируем реферальную ссылку
-    const referralLink = `https://t.me/${BOT_USERNAME}/participate?startapp=join_${id}_ref_${user.id}`;
+    // Upsert ReferralLink — создаём или получаем существующую
+    const refLink = await upsertReferralLink(id, user.id);
+    const shortUrl = `https://t.me/${BOT_USERNAME}/participate?startapp=r_${refLink.code}`;
 
-    return reply.success({ 
-      referralLink,
-      referralCode: user.id,
+    return reply.success({
+      referralLink: shortUrl,
+      referralCode: refLink.code,
+      clicks: refLink.clicks,
+      conversions: refLink.conversions,
       invitedCount,
       inviteMax,
       inviteEnabled,
-      ticketsFromInvites: invitedCount, // 1 билет за каждого приглашённого
+      ticketsFromInvites: invitedCount,
+    });
+  });
+
+  /**
+   * POST /giveaways/:id/generate-invite
+   * Сгенерировать (или получить) реферальную ссылку с коротким кодом
+   */
+  fastify.post<{ Params: { id: string } }>('/giveaways/:id/generate-invite', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+
+    const { id } = request.params;
+
+    const participation = await prisma.participation.findUnique({
+      where: { giveawayId_userId: { giveawayId: id, userId: user.id } },
+      select: { id: true, status: true },
+    });
+
+    if (!participation || participation.status !== ParticipationStatus.JOINED) {
+      return reply.status(400).send({ ok: false, error: 'Вы не участвуете в этом розыгрыше' });
+    }
+
+    const giveaway = await prisma.giveaway.findUnique({
+      where: { id },
+      include: { condition: { select: { inviteEnabled: true, inviteMax: true } } },
+    });
+
+    if (!giveaway) {
+      return reply.status(404).send({ ok: false, error: 'Розыгрыш не найден' });
+    }
+
+    if (!giveaway.condition?.inviteEnabled) {
+      return reply.status(400).send({ ok: false, error: 'Приглашения отключены для этого розыгрыша' });
+    }
+
+    const refLink = await upsertReferralLink(id, user.id);
+    const shortUrl = `https://t.me/${BOT_USERNAME}/participate?startapp=r_${refLink.code}`;
+
+    const invitedCount = await prisma.participation.count({
+      where: { giveawayId: id, referrerUserId: user.id },
+    });
+
+    return reply.success({
+      referralLink: shortUrl,
+      referralCode: refLink.code,
+      clicks: refLink.clicks,
+      conversions: refLink.conversions,
+      invitedCount,
+      inviteMax: giveaway.condition.inviteMax || 10,
+    });
+  });
+
+  /**
+   * GET /referral/resolve/:code
+   * Публичный эндпоинт: resolve короткого кода → giveawayId + referrerUserId
+   * Также инкрементирует clicks
+   */
+  fastify.get<{ Params: { code: string } }>('/referral/resolve/:code', async (request, reply) => {
+    const { code } = request.params;
+
+    const refLink = await prisma.referralLink.findUnique({
+      where: { code },
+      select: {
+        id: true,
+        giveawayId: true,
+        userId: true,
+        clicks: true,
+        conversions: true,
+      },
+    });
+
+    if (!refLink) {
+      return reply.status(404).send({ ok: false, error: 'Реферальная ссылка не найдена' });
+    }
+
+    // Инкрементируем clicks (fire-and-forget)
+    prisma.referralLink.update({
+      where: { code },
+      data: { clicks: { increment: 1 } },
+    }).catch(() => {});
+
+    return reply.success({
+      giveawayId: refLink.giveawayId,
+      referrerUserId: refLink.userId,
     });
   });
 

@@ -1109,9 +1109,22 @@ export default function JoinGiveawayPage() {
                 {/* Вкладка: Приглашения */}
                 {activeExtrasTab === 'invites' && giveaway.conditions.inviteEnabled && (
                   <div className="space-y-3">
-                    <p className="text-sm text-tg-hint">
-                      {t('extras.inviteDescription', { current: invitedCount, max: inviteMax })}
-                    </p>
+                    {/* Прогресс приглашений */}
+                    <div>
+                      <div className="flex justify-between text-xs text-tg-hint mb-1">
+                        <span>{t('extras.inviteProgress')}</span>
+                        <span className="font-medium text-tg-text">{invitedCount}/{inviteMax}</span>
+                      </div>
+                      <div className="h-2 bg-tg-secondary rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-tg-button rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min((invitedCount / Math.max(inviteMax, 1)) * 100, 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-tg-hint mt-1">
+                        {t('extras.inviteDescription', { current: invitedCount, max: inviteMax })}
+                      </p>
+                    </div>
                     
                     {invitedCount < inviteMax ? (
                       <>
@@ -1136,6 +1149,9 @@ export default function JoinGiveawayPage() {
                             </button>
                           </div>
                         )}
+                        {linkCopied && (
+                          <p className="text-xs text-green-500 text-center">{t('extras.linkCopied')}</p>
+                        )}
                         
                         {/* Кнопка "Поделиться в Telegram" */}
                         <button
@@ -1154,18 +1170,29 @@ export default function JoinGiveawayPage() {
                     
                     {/* Список приглашённых */}
                     {invites.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-tg-secondary">
-                        <p className="text-xs text-tg-hint mb-2">{t('extras.invitedFriends')}:</p>
-                        <div className="space-y-1">
-                          {invites.slice(0, 5).map((inv) => (
-                            <div key={inv.userId} className="text-sm flex items-center gap-2">
-                              <span className="text-green-500">✅</span>
-                              <span>{inv.firstName}</span>
+                      <div className="pt-3 border-t border-tg-secondary">
+                        <p className="text-xs font-medium text-tg-hint mb-2">
+                          {t('extras.invitedFriends')} ({invites.length}):
+                        </p>
+                        <div className="space-y-2">
+                          {invites.map((inv) => (
+                            <div key={inv.userId} className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-green-500 flex-shrink-0">✅</span>
+                                <div className="min-w-0">
+                                  <span className="text-sm font-medium truncate block">
+                                    {inv.firstName}{inv.lastName ? ` ${inv.lastName}` : ''}
+                                  </span>
+                                  {inv.username && (
+                                    <span className="text-xs text-tg-hint">@{inv.username}</span>
+                                  )}
+                                </div>
+                              </div>
+                              <span className="text-xs text-tg-hint flex-shrink-0">
+                                {new Date(inv.joinedAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })}
+                              </span>
                             </div>
                           ))}
-                          {invites.length > 5 && (
-                            <p className="text-xs text-tg-hint">{t('extras.moreFriends', { count: invites.length - 5 })}</p>
-                          )}
                         </div>
                       </div>
                     )}

@@ -398,6 +398,7 @@
     "extras": {
       "title": "Увеличить шансы",
       "inviteFriends": "Пригласить друзей",
+      "inviteProgress": "Прогресс приглашений",
       "inviteDescription": "+1 билет за каждого друга (приглашено: {current}/{max})",
       "linkCopied": "✅ Ссылка скопирована!",
       "shareInTelegram": "Поделиться в Telegram",
@@ -793,6 +794,11 @@
     },
     "growth": {
       "title": "Рост участников (7 дней)"
+    },
+    "topInviters": {
+      "title": "Топ пригласивших",
+      "empty": "Приглашений пока нет",
+      "invites": "приг."
     },
     "actions": {
       "copyLink": "Скопировать ссылку",

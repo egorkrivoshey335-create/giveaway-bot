@@ -379,6 +379,7 @@
     "extras": {
       "title": "Мүмкіндіктерді арттыру",
       "inviteFriends": "Достарды шақыру",
+      "inviteProgress": "Шақыру барысы",
       "inviteDescription": "Әрбір дос үшін +1 билет (шақырылды: {current}/{max})",
       "linkCopied": "✅ Сілтеме көшірілді!",
       "shareInTelegram": "Telegram-да бөлісу",
@@ -699,6 +700,11 @@
     },
     "growth": {
       "title": "Қатысушылар өсуі (7 күн)"
+    },
+    "topInviters": {
+      "title": "Үздік шақырушылар",
+      "empty": "Шақырулар әлі жоқ",
+      "invites": "шақ."
     },
     "actions": {
       "copyLink": "Сілтемені көшіру",

@@ -379,6 +379,7 @@
     "extras": {
       "title": "Increase chances",
       "inviteFriends": "Invite friends",
+      "inviteProgress": "Invite progress",
       "inviteDescription": "+1 ticket per friend (invited: {current}/{max})",
       "linkCopied": "✅ Link copied!",
       "shareInTelegram": "Share in Telegram",
@@ -699,6 +700,11 @@
     },
     "growth": {
       "title": "Participants growth (7 days)"
+    },
+    "topInviters": {
+      "title": "Top Inviters",
+      "empty": "No invites yet",
+      "invites": "inv."
     },
     "actions": {
       "copyLink": "Copy link",
