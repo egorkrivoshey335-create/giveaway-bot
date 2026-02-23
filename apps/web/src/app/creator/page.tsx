@@ -7,6 +7,7 @@ import {
   getGiveawaysList,
   duplicateGiveaway,
   deleteGiveaway,
+  createSandboxGiveaway,
   GiveawaySummary,
 } from '@/lib/api';
 import { InlineToast } from '@/components/Toast';
@@ -141,7 +142,12 @@ function GiveawayCard({
       {/* Заголовок карточки */}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="font-semibold text-lg line-clamp-2">{giveaway.title || tCard('noTitle')}</h3>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {giveaway.isSandbox && (
+              <span className="text-xs bg-orange-500/15 text-orange-400 px-2 py-0.5 rounded-full font-medium flex-shrink-0">🧪 Тест</span>
+            )}
+            <h3 className="font-semibold text-lg line-clamp-2">{giveaway.title || tCard('noTitle')}</h3>
+          </div>
           <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${getStatusBadgeClass(giveaway.status)}`}>
             {getStatusLabel(giveaway.status, tGiveaway)}
           </span>
@@ -450,6 +456,23 @@ export default function CreatorDashboardPage() {
             >
               <span>📣</span>
               <span className="hidden sm:inline">{t('channelsShort')}</span>
+            </button>
+            <button
+              onClick={async () => {
+                const res = await createSandboxGiveaway();
+                if (res.ok && res.id) {
+                  setMessage('🧪 Sandbox создан');
+                  router.push(`/creator/giveaway/${res.id}`);
+                } else {
+                  setMessage(res.error || 'Ошибка создания sandbox');
+                  setTimeout(() => setMessage(null), 3000);
+                }
+              }}
+              className="bg-tg-secondary text-tg-hint rounded-lg px-3 py-2 font-medium flex items-center gap-2 hover:bg-tg-secondary/80 transition-colors"
+              title="Создать тестовый (sandbox) розыгрыш"
+            >
+              <span>🧪</span>
+              <span className="hidden sm:inline">Тест</span>
             </button>
             <button
               onClick={() => router.push('/creator/giveaway/new')}

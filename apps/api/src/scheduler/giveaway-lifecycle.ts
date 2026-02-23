@@ -1,6 +1,7 @@
 import { prisma, GiveawayStatus, ParticipationStatus, GiveawayMessageKind, PublishResultsMode } from '@randombeast/database';
 import crypto from 'crypto';
 import { config } from '../config.js';
+import { awardWinnerBadges } from '../lib/badges.js';
 
 // Имя бота для deep links
 const BOT_USERNAME = process.env.BOT_USERNAME || 'BeastRandomBot';
@@ -114,13 +115,37 @@ export async function processGiveawayLifecycle(): Promise<void> {
     
     if (activatedCount.count > 0) {
       console.log(`[Scheduler] Активировано розыгрышей: ${activatedCount.count}`);
+      // 14.8 Уведомления каталога: если появились новые активные розыгрыши — уведомляем подписчиков
+      notifyCatalogSubscribers().catch(err =>
+        console.error('[Scheduler] Ошибка уведомлений каталога:', err)
+      );
     }
     
-    // 2. ACTIVE → FINISHED (когда наступил endAt)
+    // 1.5 SANDBOX: удаляем истёкшие sandbox розыгрыши (TTL 24ч)
+    const expiredSandbox = await prisma.giveaway.findMany({
+      where: {
+        isSandbox: true,
+        endAt: { lte: now },
+        status: { notIn: [GiveawayStatus.CANCELLED] },
+      },
+      select: { id: true },
+    });
+    for (const s of expiredSandbox) {
+      await prisma.giveaway.update({
+        where: { id: s.id },
+        data: { status: GiveawayStatus.CANCELLED },
+      });
+    }
+    if (expiredSandbox.length > 0) {
+      console.log(`[Scheduler] Истёкших sandbox розыгрышей отменено: ${expiredSandbox.length}`);
+    }
+
+    // 2. ACTIVE → FINISHED (когда наступил endAt, не sandbox)
     const toFinish = await prisma.giveaway.findMany({
       where: {
         status: GiveawayStatus.ACTIVE,
         endAt: { lte: now },
+        isSandbox: false,
       },
       select: { id: true, title: true },
     });
@@ -280,6 +305,10 @@ export async function finishGiveaway(giveawayId: string): Promise<{
     notifyCreatorFinished(giveawayId).catch(err =>
       console.error('[Scheduler] Ошибка уведомления создателя:', err)
     );
+
+    // 14.5 Бейджи: начисляем победителям (fire-and-forget)
+    Promise.all(mainWinners.map((w) => awardWinnerBadges(w.userId)))
+      .catch((err) => console.error('[Badges] Ошибка начисления бейджей победителям:', err));
 
     return { ok: true, winnersCount: mainWinners.length, drawSeed };
 
@@ -1000,6 +1029,89 @@ async function publishResultsSeparatePosts(giveaway: GiveawayWithRelations): Pro
     } catch (error) {
       console.error(`[PublishResults] Ошибка обновления кнопки:`, error);
     }
+  }
+}
+
+// ============================================================================
+// 14.8 Уведомления каталога
+// ============================================================================
+
+/**
+ * Отправляет уведомления пользователям, подписавшимся на новые розыгрыши в каталоге.
+ * Запускается когда появляются новые ACTIVE розыгрыши с catalogEnabled.
+ * Для производительности использует cursor-based пагинацию с паузами.
+ */
+async function notifyCatalogSubscribers(): Promise<void> {
+  // Находим розыгрыши, которые только что стали активными и включены в каталог
+  // (startAt в последние 90 секунд)
+  const since = new Date(Date.now() - 90_000);
+  const newCatalogGiveaways = await prisma.giveaway.findMany({
+    where: {
+      status: GiveawayStatus.ACTIVE,
+      startAt: { gte: since },
+      draftPayload: { path: ['catalogEnabled'], equals: true },
+    },
+    select: {
+      id: true,
+      title: true,
+      type: true,
+      winnersCount: true,
+      shortCode: true,
+      owner: {
+        select: { firstName: true, username: true },
+      },
+    },
+    take: 5, // Не более 5 розыгрышей за раз
+  });
+
+  if (newCatalogGiveaways.length === 0) return;
+
+  // Находим подписчиков каталога батчами
+  const BATCH = 50;
+  let cursor: string | undefined;
+
+  for (let attempt = 0; attempt < 200; attempt++) {
+    const users = await prisma.user.findMany({
+      where: {
+        catalogNotificationsEnabled: true,
+        notificationsBlocked: false,
+        notificationsEnabled: true,
+      },
+      select: { id: true, telegramUserId: true, language: true },
+      take: BATCH,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      orderBy: { id: 'asc' },
+    });
+
+    if (users.length === 0) break;
+
+    for (const user of users) {
+      const lang = (user.language || 'ru') as 'ru' | 'en' | 'kk';
+
+      for (const g of newCatalogGiveaways) {
+        const text = lang === 'en'
+          ? `🎁 <b>New giveaway in the catalog!</b>\n\n<b>${g.title}</b>\n👥 Winners: ${g.winnersCount}\n\nOpen the app to participate!`
+          : lang === 'kk'
+          ? `🎁 <b>Каталогта жаңа ұтыс ойыны!</b>\n\n<b>${g.title}</b>\n👥 Жеңімпаздар: ${g.winnersCount}\n\nҚатысу үшін қолданбаны ашыңыз!`
+          : `🎁 <b>Новый розыгрыш в каталоге!</b>\n\n<b>${g.title}</b>\n👥 Победителей: ${g.winnersCount}\n\nОткройте приложение, чтобы участвовать!`;
+
+        await sendTelegramMessage(user.telegramUserId.toString(), text, {
+          inlineKeyboard: [[{
+            text: lang === 'en' ? '🎁 Participate' : lang === 'kk' ? '🎁 Қатысу' : '🎁 Участвовать',
+            url: `https://t.me/${BOT_USERNAME}/app?startapp=join_${g.id}`,
+          }]],
+        });
+
+        // Микропауза между сообщениями чтобы не перегружать Bot API
+        await new Promise((r) => setTimeout(r, 80));
+      }
+    }
+
+    if (users.length < BATCH) break;
+    cursor = users[users.length - 1].id;
+
+    // Пауза между батчами
+    await new Promise((r) => setTimeout(r, 1000));
   }
 }
 

@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   getDraft,
   createDraft,
   updateDraft,
+  discardDraft,
   getChannels,
   getPostTemplates,
   confirmGiveaway,
@@ -101,6 +102,9 @@ function formatDisplayDate(isoString: string | null | undefined): string {
 
 export default function GiveawayWizardPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // ?draft=<id> — загружаем конкретный черновик (после дублирования)
+  const draftIdParam = searchParams.get('draft');
   const t = useTranslations('wizard');
   const tCommon = useTranslations('common');
   const tErrors = useTranslations('errors');
@@ -118,6 +122,10 @@ export default function GiveawayWizardPage() {
   const [postTemplates, setPostTemplates] = useState<PostTemplate[]>([]);
   const [showPostsManager, setShowPostsManager] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+  // 14.2 Draft resume modal: показывается когда обнаружен существующий черновик
+  const [showDraftModal, setShowDraftModal] = useState(false);
+  const [existingDraftId, setExistingDraftId] = useState<string | null>(null);
   
   // TODO: TASKS-6 - проверка подписки пользователя
   const userHasPremium = false;
@@ -153,11 +161,29 @@ export default function GiveawayWizardPage() {
           setPostTemplates(postsRes.templates);
         }
 
-        // Load or create draft
-        let draftRes = await getDraft();
-        
+        // Load or create draft.
+        // getDraft() возвращает последний DRAFT (по updatedAt desc).
+        // После дублирования новый DRAFT будет самым свежим, поэтому getDraft вернёт его.
+        const existingDraftRes = await getDraft();
+
+        // Показываем модалку "Продолжить/Начать заново" только если:
+        // - нет явного ?draft= (не пришли из дублирования)
+        // - черновик реально был изменён (draftVersion > 1)
+        const hasExistingDraft =
+          !draftIdParam &&
+          existingDraftRes.ok &&
+          existingDraftRes.draft &&
+          existingDraftRes.draft.draftVersion > 1;
+
+        if (hasExistingDraft && existingDraftRes.draft) {
+          setExistingDraftId(existingDraftRes.draft.id);
+          setShowDraftModal(true);
+          setLoading(false);
+          return; // Ждём выбора пользователя
+        }
+
+        let draftRes = existingDraftRes;
         if (!draftRes.ok || !draftRes.draft) {
-          // Create new draft
           draftRes = await createDraft('TYPE');
         }
 
@@ -173,7 +199,6 @@ export default function GiveawayWizardPage() {
             publishResultsMode: 'SEPARATE_POSTS',
             captchaMode: 'SUSPICIOUS_ONLY',
             livenessEnabled: false,
-            // Дополнительные билеты - по умолчанию выключены
             inviteEnabled: false,
             inviteMax: 10,
             boostEnabled: false,
@@ -208,6 +233,78 @@ export default function GiveawayWizardPage() {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tErrors]);
+
+  // 14.2 Draft modal: "Продолжить" — восстанавливаем черновик
+  const handleResumeDraft = useCallback(async () => {
+    if (!existingDraftId) return;
+    setShowDraftModal(false);
+    setLoading(true);
+    try {
+      const draftRes = await getDraft();
+      if (draftRes.ok && draftRes.draft) {
+        setDraft(draftRes.draft);
+        const draftPayload = (draftRes.draft.draftPayload || {}) as GiveawayDraftPayload;
+        const payloadWithDefaults: GiveawayDraftPayload = {
+          language: 'ru',
+          buttonText: tCommon('participate'),
+          winnersCount: 1,
+          publishResultsMode: 'SEPARATE_POSTS',
+          captchaMode: 'SUSPICIOUS_ONLY',
+          livenessEnabled: false,
+          inviteEnabled: false,
+          inviteMax: 10,
+          boostEnabled: false,
+          boostChannelIds: [],
+          storiesEnabled: false,
+          catalogEnabled: false,
+          ...draftPayload,
+        };
+        setPayload(payloadWithDefaults);
+        const step = draftRes.draft.wizardStep as WizardStep;
+        if (step && WIZARD_STEPS.includes(step)) {
+          setCurrentStep(step);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to resume draft:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [existingDraftId, tCommon]);
+
+  // 14.2 Draft modal: "Начать заново" — отменяем черновик и создаём новый
+  const handleDiscardAndNew = useCallback(async () => {
+    if (!existingDraftId) return;
+    setShowDraftModal(false);
+    setLoading(true);
+    try {
+      await discardDraft(existingDraftId);
+      const newDraftRes = await createDraft('TYPE');
+      if (newDraftRes.ok && newDraftRes.draft) {
+        setDraft(newDraftRes.draft);
+        const defaults: GiveawayDraftPayload = {
+          language: 'ru',
+          buttonText: tCommon('participate'),
+          winnersCount: 1,
+          publishResultsMode: 'SEPARATE_POSTS',
+          captchaMode: 'SUSPICIOUS_ONLY',
+          livenessEnabled: false,
+          inviteEnabled: false,
+          inviteMax: 10,
+          boostEnabled: false,
+          boostChannelIds: [],
+          storiesEnabled: false,
+          catalogEnabled: false,
+        };
+        setPayload(defaults);
+        setCurrentStep('TYPE');
+      }
+    } catch (err) {
+      console.error('Failed to discard draft:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [existingDraftId, tCommon]);
 
   // Save draft with debounce
   const saveDraft = useCallback(async (newPayload: GiveawayDraftPayload, step: WizardStep, immediate = false) => {
@@ -1672,6 +1769,35 @@ export default function GiveawayWizardPage() {
           cancelText={t('exitConfirm.cancel')}
           variant="warning"
         />
+
+        {/* 14.2 Draft Resume Modal */}
+        {showDraftModal && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm p-4">
+            <div className="w-full max-w-sm bg-tg-bg rounded-2xl shadow-xl p-6 animate-in slide-in-from-bottom-4">
+              <div className="text-center mb-5">
+                <span className="text-4xl block mb-3">📋</span>
+                <h2 className="text-lg font-bold mb-1">{tCommon('statusDraft')}</h2>
+                <p className="text-sm text-tg-hint">
+                  У вас есть несохранённый черновик. Хотите продолжить редактирование или начать заново?
+                </p>
+              </div>
+              <div className="space-y-3">
+                <button
+                  onClick={handleResumeDraft}
+                  className="w-full py-3 px-4 bg-tg-button text-tg-button-text rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
+                >
+                  📝 Продолжить редактирование
+                </button>
+                <button
+                  onClick={handleDiscardAndNew}
+                  className="w-full py-3 px-4 bg-tg-secondary text-tg-text rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
+                >
+                  🆕 Начать заново
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

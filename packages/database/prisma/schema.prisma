@@ -112,9 +112,11 @@ model User {
   updatedAt      DateTime     @updatedAt
 
   // Task 0.5: notification & creator settings
-  notificationsEnabled    Boolean @default(true)
-  notificationsBlocked    Boolean @default(false)
-  creatorNotificationMode String  @default("MILESTONE") // MILESTONE | DAILY | OFF
+  notificationsEnabled         Boolean @default(true)
+  notificationsBlocked         Boolean @default(false)
+  creatorNotificationMode      String  @default("MILESTONE") // MILESTONE | DAILY | OFF
+  // 14.8 Уведомления каталога: opt-in для новых розыгрышей
+  catalogNotificationsEnabled  Boolean @default(false)
 
   // Relations
   channels       Channel[]

@@ -1103,6 +1103,7 @@ export interface GiveawaySummary {
   endAt: string | null;
   createdAt: string;
   updatedAt: string;
+  isSandbox?: boolean;
   postTemplate: {
     id: string;
     mediaType: string;
@@ -1828,5 +1829,239 @@ export async function getParticipantCount(giveawayId: string): Promise<{ok: bool
     credentials: 'include',
   });
 
+  return response.json();
+}
+
+// ====================================
+// Бан-лист
+// ====================================
+
+export interface BanEntry {
+  id: string;
+  bannedUserId: string;
+  bannedUser: {
+    id: string;
+    telegramUserId: string;
+    firstName: string | null;
+    lastName: string | null;
+    username: string | null;
+  };
+  reason: string | null;
+  createdAt: string;
+}
+
+// ====================================
+// Профиль пользователя
+// ====================================
+
+export interface UserProfile {
+  id: string;
+  username: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  telegramUserId: string;
+  isPremium: boolean;
+  language?: string;
+  notificationsBlocked: boolean;
+  joinedAt: string;
+  subscriptionTier: 'FREE' | 'PLUS' | 'PRO';
+  entitlementCode: string | null;
+  entitlementExpiresAt: string | null;
+  stats: {
+    totalGiveaways: number;
+    activeGiveaways: number;
+    totalParticipants: number;
+    totalWinners: number;
+    thisMonth: { giveaways: number; participants: number };
+    lastMonth: { giveaways: number; participants: number };
+  };
+  badges: Array<{ code: string; earnedAt: string }>;
+}
+
+export interface PublicUserProfile {
+  id: string;
+  username: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  telegramUserId: string;
+  isPremium: boolean;
+  joinedAt: string;
+  stats: { participations: number; wins: number };
+  badges: Array<{ code: string; earnedAt: string }>;
+}
+
+// ====================================
+// Sandbox
+// ====================================
+
+export async function createSandboxGiveaway(params?: {
+  title?: string;
+  winnersCount?: number;
+}): Promise<{
+  ok: boolean;
+  id?: string;
+  title?: string;
+  endAt?: string;
+  message?: string;
+  error?: string;
+}> {
+  const response = await fetch(`${API_URL}/giveaways/sandbox`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params || {}),
+  });
+  return response.json();
+}
+
+// ====================================
+// Профиль пользователя
+// ====================================
+
+export async function getMyProfile(): Promise<{ ok: boolean; profile?: UserProfile; error?: string }> {
+  const response = await fetch(`${API_URL}/users/me/profile`, { credentials: 'include' });
+  return response.json();
+}
+
+export async function updateNotifications(notificationsBlocked: boolean): Promise<{ ok: boolean; error?: string }> {
+  const response = await fetch(`${API_URL}/users/me/notifications`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notificationsBlocked }),
+  });
+  return response.json();
+}
+
+export async function getPublicProfile(telegramId: string): Promise<{ ok: boolean; profile?: PublicUserProfile; error?: string }> {
+  const response = await fetch(`${API_URL}/users/${telegramId}/profile`, { credentials: 'include' });
+  return response.json();
+}
+
+/**
+ * Забанить участника розыгрыша
+ */
+export async function banParticipant(
+  giveawayId: string,
+  userId: string,
+  reason?: string
+): Promise<{ ok: boolean; error?: string }> {
+  const response = await fetch(
+    `${API_URL}/giveaways/${giveawayId}/participants/${userId}/ban`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason }),
+    }
+  );
+  return response.json();
+}
+
+/**
+ * Разбанить участника розыгрыша
+ */
+export async function unbanParticipant(
+  giveawayId: string,
+  userId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const response = await fetch(
+    `${API_URL}/giveaways/${giveawayId}/participants/${userId}/unban`,
+    {
+      method: 'POST',
+      credentials: 'include',
+    }
+  );
+  return response.json();
+}
+
+/**
+ * Получить глобальный бан-лист создателя
+ */
+export async function getBanList(): Promise<{
+  ok: boolean;
+  entries?: BanEntry[];
+  error?: string;
+}> {
+  const response = await fetch(`${API_URL}/ban-list`, {
+    credentials: 'include',
+  });
+  return response.json();
+}
+
+/**
+ * Удалить запись из глобального бан-листа
+ */
+export async function deleteBanEntry(entryId: string): Promise<{ ok: boolean; error?: string }> {
+  const response = await fetch(`${API_URL}/ban-list/${entryId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  return response.json();
+}
+
+// ====================================
+// Форма приза (PrizeForm)
+// ====================================
+
+export interface PrizeFormConfig {
+  giveawayId: string;
+  giveawayTitle: string;
+  formFields: string[];
+  encryptionEnabled: boolean;
+  publicKey: string | null;
+  alreadySubmitted: boolean;
+  submittedAt: string | null;
+  processedAt: string | null;
+}
+
+export async function getPrizeFormConfig(giveawayId: string): Promise<{
+  ok: boolean;
+  giveawayId?: string;
+  giveawayTitle?: string;
+  formFields?: string[];
+  encryptionEnabled?: boolean;
+  publicKey?: string | null;
+  alreadySubmitted?: boolean;
+  submittedAt?: string | null;
+  processedAt?: string | null;
+  error?: string;
+}> {
+  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/prize-form/config`, {
+    credentials: 'include',
+  });
+  return response.json();
+}
+
+export async function submitPrizeForm(
+  giveawayId: string,
+  data: {
+    encryptedData?: string;
+    plainData?: {
+      name?: string;
+      phone?: string;
+      email?: string;
+      address?: string;
+      telegram?: string;
+      extra?: Record<string, string>;
+    };
+  }
+): Promise<{ ok: boolean; id?: string; submittedAt?: string; message?: string; error?: string }> {
+  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/prize-form`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
+
+export async function updateNotificationsCatalog(catalogNotificationsEnabled: boolean): Promise<{ ok: boolean; error?: string }> {
+  const response = await fetch(`${API_URL}/users/me/catalog-notifications`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ catalogNotificationsEnabled }),
+  });
   return response.json();
 }

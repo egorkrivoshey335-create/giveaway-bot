@@ -33,6 +33,8 @@ import { trackingLinksRoutes } from './routes/tracking-links.js';
 import { productsRoutes } from './routes/products.js';
 import { banListRoutes } from './routes/ban-list.js';
 import { remindersRoutes } from './routes/reminders.js';
+import { usersRoutes } from './routes/users.js';
+import { prizeFormsRoutes } from './routes/prize-forms.js';
 import { startGiveawayScheduler } from './scheduler/giveaway-lifecycle.js';
 import { processSubscriptionLifecycle } from './scheduler/subscription-lifecycle.js';
 import { RATE_LIMITS } from './config/rate-limits.js';
@@ -159,6 +161,8 @@ async function main() {
         await instance.register(productsRoutes);
         await instance.register(banListRoutes);
         await instance.register(remindersRoutes);
+        await instance.register(usersRoutes);
+        await instance.register(prizeFormsRoutes);
       },
       { prefix: '/api/v1' }
     );

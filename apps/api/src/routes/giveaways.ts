@@ -426,6 +426,7 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
         endAt: g.endAt?.toISOString() || null,
         createdAt: g.createdAt.toISOString(),
         updatedAt: g.updatedAt.toISOString(),
+        isSandbox: g.isSandbox,
         postTemplate: g.postTemplate ? {
           id: g.postTemplate.id,
           mediaType: g.postTemplate.mediaType,
@@ -820,7 +821,7 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.notFound('Розыгрыш не найден');
     }
 
-    // Создаём копию как DRAFT
+    // Создаём копию как DRAFT — начинаем с шага TYPE чтобы пользователь прошёл wizard
     const newGiveaway = await prisma.giveaway.create({
       data: {
         ownerUserId: user.id,
@@ -833,7 +834,8 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
         buttonText: original.buttonText,
         postTemplateId: original.postTemplateId,
         publishResultsMode: original.publishResultsMode,
-        wizardStep: 'REVIEW',
+        wizardStep: 'TYPE',
+        draftVersion: 2, // > 1 означает "реальный черновик с данными"
         draftPayload: original.draftPayload as object ?? undefined,
       },
     });
@@ -1459,17 +1461,17 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
       winnersCount: z.number().min(1).max(10).optional().default(1),
     }).parse(request.body || {});
 
-    // Проверяем лимит sandbox розыгрышей (максимум 3 одновременно)
+    // Проверяем лимит sandbox розыгрышей (максимум 1 одновременно)
     const existingSandbox = await prisma.giveaway.count({
       where: {
         ownerUserId: user.id,
         isSandbox: true,
-        status: { in: [GiveawayStatus.ACTIVE, GiveawayStatus.DRAFT] },
+        status: { in: [GiveawayStatus.ACTIVE, GiveawayStatus.DRAFT, GiveawayStatus.SCHEDULED] },
       },
     });
 
-    if (existingSandbox >= 3) {
-      return reply.badRequest('Максимум 3 активных sandbox розыгрыша');
+    if (existingSandbox >= 1) {
+      return reply.badRequest('У вас уже есть активный sandbox розыгрыш. Дождитесь его завершения или удалите.');
     }
 
     // Создаём sandbox розыгрыш

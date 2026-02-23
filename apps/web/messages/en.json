@@ -789,6 +789,74 @@
       "backButton": "Go Back"
     }
   },
+  "faq": {
+    "title": "FAQ",
+    "subtitle": "Frequently Asked Questions",
+    "searchPlaceholder": "Search FAQ...",
+    "noResults": "Nothing found",
+    "categories": {
+      "create": {
+        "title": "How to Create a Giveaway?",
+        "items": [
+          { "q": "Where do I start?", "a": "Tap 'Creator' in the bottom menu, then '+ Create'. The wizard will guide you through all steps: type, title, channels, dates, conditions, and winner settings." },
+          { "q": "How long does it take?", "a": "A basic giveaway takes 3–5 minutes. Your draft is saved automatically so you can pause and return later." },
+          { "q": "Can I edit after publishing?", "a": "After launch you can edit the title, prize description, and end date. Type, channels, and subscription conditions cannot be changed." }
+        ]
+      },
+      "types": {
+        "title": "Giveaway Types",
+        "items": [
+          { "q": "What are the giveaway types?", "a": "STANDARD — no extra conditions. BOOST_REQUIRED — participant must boost your channel. INVITE_REQUIRED — participant must invite N friends. CUSTOM — custom tasks (subscribe, repost, answer a question)." },
+          { "q": "Which type gives the best reach?", "a": "INVITE_REQUIRED provides viral growth. For a first giveaway we recommend STANDARD — simpler to set up and fewer barriers." }
+        ]
+      },
+      "participate": {
+        "title": "How to Participate?",
+        "items": [
+          { "q": "How do I join a giveaway?", "a": "1. Tap 'Participate' in the channel post or catalog.\n2. The Mini App opens — follow the instructions.\n3. Complete conditions (subscription, captcha, boost).\n4. Tap 'Confirm Participation'.\n5. Done — you're in!" },
+          { "q": "How do I increase my chances?", "a": "Invite friends via your referral link — each person who joins adds +1 ticket for you." },
+          { "q": "When are winners announced?", "a": "At the specified end time. Winners receive a personal Telegram notification." }
+        ]
+      },
+      "payments": {
+        "title": "Subscriptions & Payments",
+        "items": [
+          { "q": "What's included in the free plan?", "a": "Free: up to 3 simultaneous giveaways, up to 10 winners, basic statistics. Catalog not available." },
+          { "q": "How do I pay for a subscription?", "a": "Go to 'Creator' → 'Subscription'. Payment via YooKassa (bank card, SBP, YooMoney) or Telegram Stars." },
+          { "q": "How do I cancel a subscription?", "a": "'Creator' → 'Subscription' → 'Cancel Subscription'. The subscription stays active until the end of the paid period." }
+        ]
+      },
+      "security": {
+        "title": "Security",
+        "items": [
+          { "q": "How does bot protection work?", "a": "The built-in anti-fraud system analyzes participant behavior. Suspicious accounts are shown a math captcha. High-risk accounts are automatically excluded from winner selection." },
+          { "q": "How can I verify the draw is fair?", "a": "Every giveaway has a public audit seed (SHA256 hash of participants). You can independently verify the result: seed + participant list → check the algorithm." }
+        ]
+      },
+      "errors": {
+        "title": "Issues & Errors",
+        "items": [
+          { "q": "The giveaway is stuck in 'Pending'", "a": "This means the bot hasn't been confirmed as admin in the channel. Make sure @BeastRandomBot is added as an admin with permission to post messages." },
+          { "q": "Can't participate — 'Not subscribed to channel'", "a": "Subscribe to the channel listed in the giveaway conditions, then try again." },
+          { "q": "Didn't receive a win notification", "a": "Check if you've blocked @BeastRandomBot. Go to the bot chat and send /start." }
+        ]
+      },
+      "catalog": {
+        "title": "Giveaway Catalog",
+        "items": [
+          { "q": "What is the catalog?", "a": "A public list of active giveaways from all creators. Participants can discover new giveaways without searching channels." },
+          { "q": "How do I get into the catalog?", "a": "When creating a giveaway, enable 'Add to Catalog'. For PLUS+ and PRO+ subscribers, giveaways are added automatically." }
+        ]
+      },
+      "boosts": {
+        "title": "Boosts & Stories",
+        "items": [
+          { "q": "How does the 'Boost Channel' condition work?", "a": "The participant must boost your Telegram channel. A boost temporarily enhances the channel. Verification is automatic via the Telegram API." },
+          { "q": "What is the 'Post a Story' task?", "a": "The participant posts a screenshot or mention of the giveaway in their stories. The creator manually verifies completion via the management page." }
+        ]
+      }
+    }
+  },
   "postsManager": {
     "selectTitle": "Select Post",
     "manageTitle": "Manage Posts",

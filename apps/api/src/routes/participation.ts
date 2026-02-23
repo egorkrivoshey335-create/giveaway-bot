@@ -36,6 +36,7 @@ interface CaptchaData {
 // captcha:gen:{userId} - список timestamp генераций (TTL 10 минут)
 
 import { redis } from '../lib/redis.js';
+import { awardParticipationBadges } from '../lib/badges.js';
 
 // =========================================================================
 // Генерация уникального короткого реферального кода (URL-безопасный, без ambiguous chars)
@@ -502,7 +503,7 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
     };
 
     try {
-      // Получаем розыгрыш с условиями
+      // Получаем розыгрыш с условиями и владельцем
       const giveaway = await prisma.giveaway.findUnique({
       where: { id },
       include: {
@@ -514,6 +515,23 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(404).send({
         ok: false,
         error: 'Розыгрыш не найден',
+      });
+    }
+
+    // 14.4 Бан-лист: проверяем, не забанен ли участник создателем розыгрыша
+    const banEntry = await prisma.creatorBanList.findUnique({
+      where: {
+        creatorUserId_bannedUserId: {
+          creatorUserId: giveaway.ownerUserId,
+          bannedUserId: user.id,
+        },
+      },
+    });
+    if (banEntry) {
+      return reply.status(403).send({
+        ok: false,
+        error: 'Вы не можете участвовать в розыгрышах этого создателя',
+        code: 'USER_BANNED',
       });
     }
 
@@ -800,6 +818,10 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
 
     // 🔒 Освобождаем Redis lock перед отправкой ответа
     await releaseLock();
+
+    // 14.5 Бейджи: начисляем за участие (fire-and-forget)
+    awardParticipationBadges(user.id)
+      .catch((err) => fastify.log.warn({ err, userId: user.id }, 'Failed to award participation badges'));
 
     return reply.success({
       participation: {

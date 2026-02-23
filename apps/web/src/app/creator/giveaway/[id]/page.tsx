@@ -13,6 +13,7 @@ import {
   retryGiveaway,
   getParticipantCount,
   getTopInviters,
+  banParticipant,
   GiveawayFull,
   GiveawayStats,
   GiveawayParticipant,
@@ -619,6 +620,7 @@ export default function GiveawayDetailsPage() {
                         <th className="text-center px-4 py-3 font-medium">{t('participantsTab.tickets')}</th>
                         <th className="text-center px-4 py-3 font-medium">{t('participantsTab.invites')}</th>
                         <th className="text-right px-4 py-3 font-medium">{t('participantsTab.date')}</th>
+                        <th className="text-right px-4 py-3 font-medium w-10" />
                       </tr>
                     </thead>
                     <tbody>
@@ -641,6 +643,27 @@ export default function GiveawayDetailsPage() {
                           <td className="px-4 py-3 text-center">{p.invitedCount}</td>
                           <td className="px-4 py-3 text-right text-tg-hint">
                             {formatDate(p.joinedAt)}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`Забанить ${p.user.firstName || 'пользователя'}?`)) return;
+                                const res = await banParticipant(giveawayId, p.user.id);
+                                if (res.ok) {
+                                  setMessage('✅ Пользователь забанен');
+                                  loadParticipants();
+                                } else {
+                                  setMessage(res.error || 'Ошибка');
+                                }
+                                setTimeout(() => setMessage(null), 3000);
+                              }}
+                              title="Забанить"
+                              className="p-1.5 rounded-lg text-red-400 hover:bg-red-50/10 transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                              </svg>
+                            </button>
                           </td>
                         </tr>
                       ))}

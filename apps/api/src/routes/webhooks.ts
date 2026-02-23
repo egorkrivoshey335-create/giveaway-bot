@@ -13,6 +13,7 @@ import { prisma, PurchaseStatus } from '@randombeast/database';
 import { ErrorCode } from '@randombeast/shared';
 import { config } from '../config.js';
 import crypto from 'crypto';
+import { awardPatronBadge } from '../lib/badges.js';
 
 // ============================================================================
 // IP Whitelist ЮKassa
@@ -203,6 +204,9 @@ async function processSuccessfulPayment(
     },
     'Payment processed, entitlement created'
   );
+
+  // 14.5 Бейджи: начисляем бейдж 'patron' при первой оплате (fire-and-forget)
+  awardPatronBadge(purchase.userId).catch(() => {});
 
   return {
     alreadyProcessed: false,
