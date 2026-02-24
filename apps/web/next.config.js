@@ -1,4 +1,3 @@
-const { withSentryConfig } = require('@sentry/nextjs');
 const createNextIntlPlugin = require('next-intl/plugin');
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
@@ -8,12 +7,12 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@randombeast/shared'],
   
-  // Включить экспериментальный instrumentation
+  // Enable instrumentation hook for Sentry
   experimental: {
     instrumentationHook: true,
   },
 
-  // Bundle analyzer (запускать через ANALYZE=true pnpm build)
+  // Bundle analyzer (ANALYZE=true pnpm build)
   ...(process.env.ANALYZE === 'true' && {
     webpack: (config, { isServer }) => {
       if (!isServer) {
@@ -30,16 +29,23 @@ const nextConfig = {
   }),
 };
 
-const sentryWebpackPluginOptions = {
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  silent: true,
-  widenClientFileUpload: true,
-  hideSourceMaps: true,
-  disableLogger: true,
-};
+// Подключаем Sentry только если пакет установлен и DSN задан
+let finalConfig = withNextIntl(nextConfig);
 
-module.exports = withSentryConfig(
-  withNextIntl(nextConfig),
-  sentryWebpackPluginOptions
-);
+try {
+  if (process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN) {
+    const { withSentryConfig } = require('@sentry/nextjs');
+    finalConfig = withSentryConfig(withNextIntl(nextConfig), {
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      silent: true,
+      widenClientFileUpload: true,
+      hideSourceMaps: true,
+      disableLogger: true,
+    });
+  }
+} catch {
+  // @sentry/nextjs не установлен — пропускаем
+}
+
+module.exports = finalConfig;
