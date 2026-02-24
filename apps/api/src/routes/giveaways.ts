@@ -336,54 +336,6 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   /**
-   * GET /giveaways/:id/public
-   * Публичная информация о розыгрыше — доступна без авторизации.
-   * Используется страницей /giveaway/[id] для участников.
-   */
-  fastify.get<{ Params: { id: string } }>('/giveaways/:id/public', async (request, reply) => {
-    const { id } = request.params;
-
-    const giveaway = await prisma.giveaway.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        type: true,
-        winnersCount: true,
-        totalParticipants: true,
-        endAt: true,
-        owner: {
-          select: { username: true, firstName: true },
-        },
-      },
-    });
-
-    if (!giveaway) {
-      return reply.notFound('Giveaway not found');
-    }
-
-    // Не показываем DRAFT розыгрыши публично
-    if (giveaway.status === GiveawayStatus.DRAFT) {
-      return reply.notFound('Giveaway not found');
-    }
-
-    return reply.success({
-      giveaway: {
-        id: giveaway.id,
-        title: giveaway.title,
-        status: giveaway.status,
-        type: giveaway.type,
-        winnersCount: giveaway.winnersCount,
-        totalParticipants: giveaway.totalParticipants,
-        endAt: giveaway.endAt?.toISOString() || null,
-        creatorUsername: giveaway.owner.username,
-        creatorFirstName: giveaway.owner.firstName,
-      },
-    });
-  });
-
-  /**
    * GET /giveaways
    * Список розыгрышей текущего пользователя с фильтрами и пагинацией
    */
