@@ -12,11 +12,15 @@ const intlMiddleware = createMiddleware({
 // Cookie set by POST /api/maintenance after correct password
 const ACCESS_COOKIE = 'rb_site_access';
 
-// Paths that are always accessible (maintenance page itself, API routes, static)
-const PUBLIC_PATHS = ['/maintenance', '/api/', '/_next/', '/favicon', '/robots', '/sitemap'];
+// Static prefixes that are always accessible
+const PUBLIC_PREFIXES = ['/api/', '/_next/', '/favicon', '/robots', '/sitemap'];
 
 function isPublicPath(pathname: string): boolean {
-  return PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  // Always allow static paths
+  if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) return true;
+  // Allow maintenance page with ANY locale prefix: /maintenance, /en/maintenance, /ru/maintenance, /kk/maintenance
+  if (pathname === '/maintenance' || pathname.endsWith('/maintenance')) return true;
+  return false;
 }
 
 export default function middleware(request: NextRequest) {
