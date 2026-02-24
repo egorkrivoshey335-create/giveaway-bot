@@ -1,7 +1,7 @@
 /**
  * RandomBeast Bot — Channel Rights Check Job
  *
- * Очередь: `channel:check-rights`
+ * Очередь: `channel-check-rights`
  * Триггер: Periodic (раз в 6 часов) или при событии
  * Действие: Проверка прав бота в канале, обновление Channel.botIsAdmin
  */
@@ -23,7 +23,7 @@ export interface ChannelCheckRightsData {
  * Worker для проверки прав бота в канале
  */
 export const channelCheckRightsWorker = new Worker<ChannelCheckRightsData>(
-  'channel:check-rights',
+  'channel-check-rights',
   async (job: Job<ChannelCheckRightsData>) => {
     const { channelId, telegramId, title } = job.data;
 

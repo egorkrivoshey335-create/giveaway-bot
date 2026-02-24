@@ -1,7 +1,7 @@
 /**
  * RandomBeast Bot — Creator Daily Summary Job
  *
- * Очередь: `creator:daily-summary`
+ * Очередь: `creator-daily-summary`
  * Триггер: Ежедневно в 20:00 по времени создателя
  * Действие: Отправка сводки по активным розыгрышам
  */
@@ -29,7 +29,7 @@ export interface CreatorDailySummaryData {
  * Worker для ежедневной сводки создателю
  */
 export const creatorDailySummaryWorker = new Worker<CreatorDailySummaryData>(
-  'creator:daily-summary',
+  'creator-daily-summary',
   async (job: Job<CreatorDailySummaryData>) => {
     const { creatorTelegramId, activeGiveaways, totalParticipants, newParticipantsToday } = job.data;
 

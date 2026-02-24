@@ -1,7 +1,7 @@
 /**
  * RandomBeast Bot — Giveaway End Job
  *
- * Очередь: `giveaway:end`
+ * Очередь: `giveaway-end`
  * Триггер: API создает job при достижении времени окончания розыгрыша
  * Действие: Уведомление создателя о необходимости выбрать победителей
  */
@@ -25,7 +25,7 @@ export interface GiveawayEndData {
  * Worker для уведомления о завершении розыгрыша
  */
 export const giveawayEndWorker = new Worker<GiveawayEndData>(
-  'giveaway:end',
+  'giveaway-end',
   async (job: Job<GiveawayEndData>) => {
     const { giveawayId, title, creatorTelegramId, participantCount, winnerCount } = job.data;
 

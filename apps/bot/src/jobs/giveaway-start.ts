@@ -1,7 +1,7 @@
 /**
  * RandomBeast Bot — Giveaway Start Job
  *
- * Очередь: `giveaway:start`
+ * Очередь: `giveaway-start`
  * Триггер: API создает job при достижении времени начала розыгрыша
  * Действие: Публикация поста во всех привязанных каналах/группах
  */
@@ -30,7 +30,7 @@ export interface GiveawayStartData {
  * Worker для публикации розыгрыша в каналах
  */
 export const giveawayStartWorker = new Worker<GiveawayStartData>(
-  'giveaway:start',
+  'giveaway-start',
   async (job: Job<GiveawayStartData>) => {
     const { giveawayId, title, postText, mediaUrl, mediaType, channels } = job.data;
 

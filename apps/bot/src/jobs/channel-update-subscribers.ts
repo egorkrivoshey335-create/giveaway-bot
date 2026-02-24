@@ -1,7 +1,7 @@
 /**
  * RandomBeast Bot — Channel Subscriber Count Update Job
  *
- * Очередь: `channel:update-subscribers`
+ * Очередь: `channel-update-subscribers`
  * Триггер: Periodic (раз в 24 часа)
  * Действие: Обновление subscriberCount для всех каналов
  */
@@ -23,7 +23,7 @@ export interface ChannelUpdateSubscribersData {
  * Worker для обновления количества подписчиков
  */
 export const channelUpdateSubscribersWorker = new Worker<ChannelUpdateSubscribersData>(
-  'channel:update-subscribers',
+  'channel-update-subscribers',
   async (job: Job<ChannelUpdateSubscribersData>) => {
     const { channelId, telegramId, title } = job.data;
 
