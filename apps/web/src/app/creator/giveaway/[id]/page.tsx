@@ -1123,6 +1123,7 @@ export default function GiveawayDetailsPage() {
                         rel="noopener noreferrer"
                         className="flex-shrink-0"
                       >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={getLivenessPhotoUrl(giveawayId, check.userId)}
                           alt="Фото"

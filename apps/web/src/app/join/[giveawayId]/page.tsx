@@ -1578,6 +1578,7 @@ export default function JoinGiveawayPage() {
           {/* Превью загруженного фото */}
           {livenessPhoto && (
             <div className="mb-4 flex justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element -- blob URL not supported by next/image */}
               <img
                 src={URL.createObjectURL(livenessPhoto)}
                 alt="Ваше фото"
