@@ -6,6 +6,11 @@ import rateLimit from '@fastify/rate-limit';
 import multipart from '@fastify/multipart';
 import { ZodError } from 'zod';
 import { config } from './config.js';
+import { initSentry, setupErrorHandlers } from './lib/sentry.js';
+
+// Инициализируем Sentry до всего остального
+initSentry();
+setupErrorHandlers();
 import responseHelpers from './lib/response.js';
 import { redis, closeRedis } from './lib/redis.js';
 import { ErrorCode, formatError } from '@randombeast/shared';

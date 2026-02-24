@@ -1,32 +1,35 @@
 // PM2 конфигурация для production
-// Путь к tsx CLI через pnpm store (избегает проблемы с симлинками)
+// Используем node_modules/.bin/tsx — symlink, работает с любой версией tsx
 
 module.exports = {
   apps: [
     {
       name: 'api',
       cwd: './apps/api',
-      // Прямой путь к tsx CLI (найден через: pnpm --filter api exec which tsx)
-      script: '/opt/randombeast/app/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/cli.mjs',
+      script: '../../node_modules/.bin/tsx',
       args: 'src/server.ts',
-      interpreter: 'node',
+      interpreter: 'none',
       env: {
         NODE_ENV: 'production',
       },
       max_restarts: 10,
-      restart_delay: 1000,
+      restart_delay: 3000,
+      watch: false,
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
     },
     {
       name: 'bot',
       cwd: './apps/bot',
-      script: '/opt/randombeast/app/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/cli.mjs',
+      script: '../../node_modules/.bin/tsx',
       args: 'src/server.ts',
-      interpreter: 'node',
+      interpreter: 'none',
       env: {
         NODE_ENV: 'production',
       },
       max_restarts: 10,
-      restart_delay: 1000,
+      restart_delay: 3000,
+      watch: false,
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
     },
     {
       name: 'web',
@@ -38,7 +41,9 @@ module.exports = {
         NODE_ENV: 'production',
       },
       max_restarts: 10,
-      restart_delay: 1000,
+      restart_delay: 3000,
+      watch: false,
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
     },
     {
       name: 'site',
@@ -50,7 +55,22 @@ module.exports = {
         NODE_ENV: 'production',
       },
       max_restarts: 10,
-      restart_delay: 1000,
+      restart_delay: 3000,
+      watch: false,
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
     },
   ],
 };
+
+// =============================================================================
+// После деплоя выполнить:
+//
+// pm2 startup          # настроить автозапуск (выполнить команду которую выведет)
+// pm2 save             # сохранить список процессов
+//
+// pm2-logrotate (ротация логов, важно для prod):
+// pm2 install pm2-logrotate
+// pm2 set pm2-logrotate:max_size 100M
+// pm2 set pm2-logrotate:retain 7
+// pm2 set pm2-logrotate:compress true
+// =============================================================================
