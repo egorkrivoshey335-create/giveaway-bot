@@ -1,7 +1,7 @@
 'use client';
 
 import * as LucideIcons from 'lucide-react';
-import { CSSProperties, SVGProps } from 'react';
+import { CSSProperties, SVGProps, useState } from 'react';
 
 /**
  * Маппинг наших именований иконок на Lucide иконки
@@ -74,7 +74,31 @@ const LUCIDE_ICON_MAP: Record<string, keyof typeof LucideIcons> = {
   'icon-theme': 'Palette',
   'icon-notification': 'Bell',
   'icon-refresh': 'RefreshCw',
+
+  // Extra (используются в компонентах)
+  'icon-image': 'Image',
+  'icon-upload': 'Upload',
+  'icon-gift': 'Gift',
+  'icon-trophy': 'Trophy',
+  'icon-check': 'Check',
+  'icon-warning': 'AlertTriangle',
+  'icon-user': 'User',
+  'icon-search': 'Search',
+  'icon-phone': 'Phone',
+  'icon-email': 'Mail',
+
+  // Referral & Engagement
+  'icon-referral': 'UserPlus',
+  'icon-story': 'ImagePlus',
+  'icon-report': 'Flag',
+  'icon-ban': 'UserX',
+  'icon-unban': 'UserCheck',
+  'icon-sandbox': 'TestTube2',
 };
+
+/** Форматы brand-иконок — проверяются в этом порядке */
+const BRAND_FORMATS = ['webp', 'svg', 'png'] as const;
+type BrandFormat = (typeof BRAND_FORMATS)[number];
 
 export interface AppIconProps {
   /**
@@ -83,7 +107,7 @@ export interface AppIconProps {
   name: string;
   /**
    * Вариант иконки:
-   * - brand: использовать brand SVG из /public/icons/brand/
+   * - brand: использовать brand-иконку из /public/icons/brand/ (webp/svg/png)
    * - lucide: использовать Lucide React icon
    */
   variant?: 'brand' | 'lucide';
@@ -133,63 +157,98 @@ export interface AppIconProps {
  * <AppIcon name="icon-home" size={24} />
  * ```
  */
-export function AppIcon({
-  name,
-  variant = 'lucide', // По умолчанию используем lucide (пока brand иконки не загружены)
-  size = 24,
+/**
+ * Внутренний компонент brand-иконки с автоперебором форматов:
+ * пробует webp → svg → png → Lucide fallback
+ */
+function BrandIcon({
+  normalizedName,
+  size,
   color,
-  strokeWidth = 2,
-  className = '',
-  style = {},
-  'aria-label': ariaLabel,
-}: AppIconProps) {
-  // Нормализовать имя иконки (убрать префикс icon- если есть)
-  const normalizedName = name.startsWith('icon-') ? name : `icon-${name}`;
+  strokeWidth,
+  className,
+  style,
+  ariaLabel,
+}: {
+  normalizedName: string;
+  size: number;
+  color?: string;
+  strokeWidth: number;
+  className: string;
+  style: CSSProperties;
+  ariaLabel?: string;
+}) {
+  const [formatIndex, setFormatIndex] = useState(0);
+  const [failed, setFailed] = useState(false);
 
-  // Если variant === 'brand', пытаемся загрузить brand SVG
-  if (variant === 'brand') {
-    const brandPath = `/icons/brand/${normalizedName}.svg`;
-    
+  if (failed) {
+    // Все форматы не найдены → Lucide fallback
     return (
-      <img
-        src={brandPath}
-        alt={ariaLabel || name}
-        width={size}
-        height={size}
-        className={className}
-        style={{
-          display: 'inline-block',
-          verticalAlign: 'middle',
-          filter: color ? `drop-shadow(0 0 0 ${color})` : undefined,
-          ...style,
-        }}
-        onError={(e) => {
-          // Fallback: если brand иконка не найдена, скрываем элемент
-          console.warn(`Brand icon not found: ${brandPath}`);
-          e.currentTarget.style.display = 'none';
-        }}
-      />
-    );
-  }
-
-  // Lucide variant
-  const lucideIconName = LUCIDE_ICON_MAP[normalizedName];
-  if (!lucideIconName) {
-    console.warn(`Icon "${normalizedName}" not found in Lucide map. Fallback to QuestionMark.`);
-    const FallbackIcon = LucideIcons.HelpCircle;
-    return (
-      <FallbackIcon
+      <LucideIconRenderer
+        normalizedName={normalizedName}
         size={size}
         color={color}
         strokeWidth={strokeWidth}
         className={className}
         style={style}
-        aria-label={ariaLabel || name}
+        ariaLabel={ariaLabel}
       />
     );
   }
 
-  const LucideIcon = LucideIcons[lucideIconName] as React.ComponentType<SVGProps<SVGSVGElement> & { size?: number; strokeWidth?: number }>;
+  const format: BrandFormat = BRAND_FORMATS[formatIndex];
+  const brandPath = `/icons/brand/${normalizedName}.${format}`;
+
+  return (
+    <img
+      src={brandPath}
+      alt={ariaLabel || normalizedName}
+      width={size}
+      height={size}
+      className={className}
+      style={{
+        display: 'inline-block',
+        verticalAlign: 'middle',
+        objectFit: 'contain',
+        ...(color ? { filter: `opacity(1)` } : {}),
+        ...style,
+      }}
+      onError={() => {
+        const next = formatIndex + 1;
+        if (next < BRAND_FORMATS.length) {
+          setFormatIndex(next);
+        } else {
+          setFailed(true);
+        }
+      }}
+    />
+  );
+}
+
+/**
+ * Внутренний рендерер Lucide иконки
+ */
+function LucideIconRenderer({
+  normalizedName,
+  size,
+  color,
+  strokeWidth,
+  className,
+  style,
+  ariaLabel,
+}: {
+  normalizedName: string;
+  size: number;
+  color?: string;
+  strokeWidth: number;
+  className: string;
+  style: CSSProperties;
+  ariaLabel?: string;
+}) {
+  const lucideIconName = LUCIDE_ICON_MAP[normalizedName];
+  const LucideIcon = (
+    lucideIconName ? LucideIcons[lucideIconName] : LucideIcons.HelpCircle
+  ) as React.ComponentType<SVGProps<SVGSVGElement> & { size?: number; strokeWidth?: number }>;
 
   return (
     <LucideIcon
@@ -198,7 +257,47 @@ export function AppIcon({
       strokeWidth={strokeWidth}
       className={className}
       style={style}
-      aria-label={ariaLabel || name}
+      aria-label={ariaLabel || normalizedName}
+    />
+  );
+}
+
+export function AppIcon({
+  name,
+  variant = 'lucide',
+  size = 24,
+  color,
+  strokeWidth = 2,
+  className = '',
+  style = {},
+  'aria-label': ariaLabel,
+}: AppIconProps) {
+  // Нормализовать имя: "home" → "icon-home"
+  const normalizedName = name.startsWith('icon-') ? name : `icon-${name}`;
+
+  if (variant === 'brand') {
+    return (
+      <BrandIcon
+        normalizedName={normalizedName}
+        size={size}
+        color={color}
+        strokeWidth={strokeWidth}
+        className={className}
+        style={style}
+        ariaLabel={ariaLabel}
+      />
+    );
+  }
+
+  return (
+    <LucideIconRenderer
+      normalizedName={normalizedName}
+      size={size}
+      color={color}
+      strokeWidth={strokeWidth}
+      className={className}
+      style={style}
+      ariaLabel={ariaLabel}
     />
   );
 }

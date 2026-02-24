@@ -9,6 +9,7 @@ import {
   verifySessionToken,
   getSessionCookieOptions,
 } from '../utils/session.js';
+import { notifyNewUserMilestone } from '../lib/admin-notify.js';
 
 // Request schemas
 const telegramAuthSchema = z.object({
@@ -109,6 +110,15 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       );
 
       fastify.log.info({ userId: user.id, telegramUserId: telegramUser.id }, 'User authenticated');
+
+      // 17.2 Системные уведомления: рубежи регистраций (fire-and-forget)
+      // Определяем был ли это новый пользователь через временну́ю метку создания
+      const isNewUser = user.createdAt.getTime() > Date.now() - 5000; // создан в последние 5 сек
+      if (isNewUser) {
+        prisma.user.count().then(totalUsers => {
+          notifyNewUserMilestone(totalUsers, user.username);
+        }).catch(() => {});
+      }
 
       return reply.success({ message: 'Authenticated successfully' });
     }

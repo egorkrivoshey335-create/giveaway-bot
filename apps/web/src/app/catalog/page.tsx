@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { getCatalog, CatalogGiveaway } from '@/lib/api';
 import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
+import { AppIcon } from '@/components/AppIcon';
 
 // Тип для функции перевода (упрощённый для передачи как пропс)
 type TranslateFunc = (key: string, values?: Record<string, string | number | Date>) => string;
@@ -48,7 +49,7 @@ function CatalogCard({
         {/* Информация о канале */}
         {giveaway.channel && (
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-lg">📢</span>
+            <AppIcon name="icon-channel" variant="brand" size={20} />
             <div className="flex-1 min-w-0">
               <div className="font-medium text-sm truncate">{giveaway.channel.title}</div>
               <div className="text-xs text-tg-hint">
@@ -63,17 +64,17 @@ function CatalogCard({
 
         {/* Статистика */}
         <div className="flex items-center gap-4 text-sm text-tg-hint">
-          <span className="flex items-center gap-1">
-            <span>👥</span>
+          <span className="flex items-center gap-1.5">
+            <AppIcon name="icon-participant" variant="brand" size={15} />
             <span>{formatNumber(giveaway.participantsCount)}</span>
           </span>
-          <span className="flex items-center gap-1">
-            <span>🏆</span>
+          <span className="flex items-center gap-1.5">
+            <AppIcon name="icon-winner" variant="brand" size={15} />
             <span>{giveaway.winnersCount}</span>
           </span>
           {giveaway.endAt && (
-            <span className="flex items-center gap-1">
-              <span>⏰</span>
+            <span className="flex items-center gap-1.5">
+              <AppIcon name="icon-calendar" variant="brand" size={15} />
               <span>{formatTimeLeft(giveaway.endAt, t)}</span>
             </span>
           )}
@@ -84,7 +85,7 @@ function CatalogCard({
       <div className="border-t border-tg-bg px-4 py-3">
         <div className="flex items-center justify-between">
           <span className="text-sm text-tg-link">{t('participate')}</span>
-          <span className="text-tg-hint">→</span>
+          <AppIcon name="icon-back" variant="brand" size={16} className="rotate-180" />
         </div>
       </div>
     </div>
@@ -110,7 +111,7 @@ function CatalogCardWithAccess({
         {/* Информация о канале */}
         {giveaway.channel && (
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-lg">📢</span>
+            <AppIcon name="icon-channel" variant="brand" size={20} />
             <div className="flex-1 min-w-0">
               <div className="font-medium text-sm truncate">{giveaway.channel.title}</div>
               <div className="text-xs text-tg-hint">
@@ -125,17 +126,17 @@ function CatalogCardWithAccess({
 
         {/* Статистика */}
         <div className="flex items-center gap-4 text-sm text-tg-hint">
-          <span className="flex items-center gap-1">
-            <span>👥</span>
+          <span className="flex items-center gap-1.5">
+            <AppIcon name="icon-participant" variant="brand" size={15} />
             <span>{formatNumber(giveaway.participantsCount)}</span>
           </span>
-          <span className="flex items-center gap-1">
-            <span>🏆</span>
+          <span className="flex items-center gap-1.5">
+            <AppIcon name="icon-winner" variant="brand" size={15} />
             <span>{giveaway.winnersCount}</span>
           </span>
           {giveaway.endAt && (
-            <span className="flex items-center gap-1">
-              <span>⏰</span>
+            <span className="flex items-center gap-1.5">
+              <AppIcon name="icon-calendar" variant="brand" size={15} />
               <span>{formatTimeLeft(giveaway.endAt, t)}</span>
             </span>
           )}

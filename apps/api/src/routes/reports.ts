@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { prisma } from '@randombeast/database';
 import { ErrorCode } from '@randombeast/shared';
 import { requireUser } from '../plugins/auth.js';
+import { notifyNewReport, notifyCatalogRemoved } from '../lib/admin-notify.js';
 
 // Schemas
 const createReportSchema = z.object({
@@ -25,6 +26,9 @@ const updateReportSchema = z.object({
   moderatorNotes: z.string().max(1000).optional(),
 });
 
+/** Порог автоматического снятия розыгрыша с каталога */
+const AUTO_REMOVE_CATALOG_THRESHOLD = 5;
+
 export const reportsRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * POST /reports
@@ -37,6 +41,8 @@ export const reportsRoutes: FastifyPluginAsync = async (fastify) => {
     const body = createReportSchema.parse(request.body);
 
     // Проверяем что цель существует
+    let giveawayForReport: { id: string; title: string; isPublicInCatalog: boolean; catalogApproved: boolean; ownerUserId: string } | null = null;
+
     if (body.targetType === 'USER') {
       const targetUser = await prisma.user.findUnique({
         where: { id: body.targetId },
@@ -45,15 +51,16 @@ export const reportsRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.notFound('Target user not found');
       }
     } else if (body.targetType === 'GIVEAWAY') {
-      const targetGiveaway = await prisma.giveaway.findUnique({
+      giveawayForReport = await prisma.giveaway.findUnique({
         where: { id: body.targetId },
+        select: { id: true, title: true, isPublicInCatalog: true, catalogApproved: true, ownerUserId: true },
       });
-      if (!targetGiveaway) {
+      if (!giveawayForReport) {
         return reply.notFound('Target giveaway not found');
       }
     }
 
-    // Проверяем что пользователь еще не отправлял жалобу на эту цель
+    // Один пользователь = одна активная жалоба на ту же цель
     const existingReport = await prisma.report.findFirst({
       where: {
         reporterId: user.id,
@@ -70,7 +77,7 @@ export const reportsRoutes: FastifyPluginAsync = async (fastify) => {
     // Создаём репорт
     const report = await prisma.report.create({
       data: {
-        giveawayId: body.targetType === 'GIVEAWAY' ? body.targetId : body.targetId, // Use targetId as giveawayId
+        giveawayId: body.targetType === 'GIVEAWAY' ? body.targetId : body.targetId,
         reporterId: user.id,
         targetType: body.targetType,
         targetId: body.targetId,
@@ -81,6 +88,55 @@ export const reportsRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     fastify.log.info({ userId: user.id, reportId: report.id, targetType: body.targetType }, 'Report created');
+
+    // Считаем суммарное количество активных жалоб на эту цель
+    const totalReports = await prisma.report.count({
+      where: {
+        targetType: body.targetType,
+        targetId: body.targetId,
+        status: { not: 'RESOLVED' },
+      },
+    });
+
+    // 17.3 Уведомление администратору о новой жалобе
+    if (body.targetType === 'GIVEAWAY' && giveawayForReport) {
+      notifyNewReport({
+        giveawayTitle: giveawayForReport.title,
+        giveawayId: giveawayForReport.id,
+        reason: body.reason,
+        reporterUsername: user.username,
+        totalReports,
+      });
+
+      // 17.3 Автоснятие с каталога при > AUTO_REMOVE_CATALOG_THRESHOLD жалоб
+      if (
+        totalReports > AUTO_REMOVE_CATALOG_THRESHOLD &&
+        giveawayForReport.isPublicInCatalog
+      ) {
+        await prisma.giveaway.update({
+          where: { id: giveawayForReport.id },
+          data: {
+            isPublicInCatalog: false,
+            catalogApproved: false,
+          },
+        });
+
+        fastify.log.warn(
+          { giveawayId: giveawayForReport.id, totalReports },
+          'Giveaway auto-removed from catalog due to report threshold'
+        );
+
+        // Уведомляем администратора об автоснятии
+        notifyCatalogRemoved({
+          giveawayTitle: giveawayForReport.title,
+          giveawayId: giveawayForReport.id,
+          reportCount: totalReports,
+        });
+
+        // Уведомляем создателя розыгрыша (через Telegram Bot API)
+        notifyCreatorCatalogRemoved(giveawayForReport.ownerUserId, giveawayForReport.title).catch(() => {});
+      }
+    }
 
     return reply.success({
       id: report.id,
@@ -151,7 +207,7 @@ export const reportsRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.notFound('Report not found');
     }
 
-    // Проверяем доступ (только автор репорта может видеть детали)
+    // Только автор репорта может видеть детали
     if (report.reporterId !== user.id) {
       return reply.forbidden('Access denied');
     }
@@ -171,7 +227,7 @@ export const reportsRoutes: FastifyPluginAsync = async (fastify) => {
 
   /**
    * GET /reports/about-giveaway/:giveawayId
-   * Получить все репорты о конкретном розыгрыше (для владельца)
+   * Получить все репорты о конкретном розыгрыше (для создателя)
    */
   fastify.get<{ Params: { giveawayId: string } }>(
     '/reports/about-giveaway/:giveawayId',
@@ -181,7 +237,7 @@ export const reportsRoutes: FastifyPluginAsync = async (fastify) => {
 
       const { giveawayId } = request.params;
 
-      // Проверяем что розыгрыш принадлежит пользователю
+      // Только владелец розыгрыша
       const giveaway = await prisma.giveaway.findFirst({
         where: {
           id: giveawayId,
@@ -193,7 +249,6 @@ export const reportsRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.notFound('Giveaway not found');
       }
 
-      // Получаем все репорты о розыгрыше
       const reports = await prisma.report.findMany({
         where: {
           targetType: 'GIVEAWAY',
@@ -224,4 +279,69 @@ export const reportsRoutes: FastifyPluginAsync = async (fastify) => {
       );
     }
   );
+
+  /**
+   * PATCH /reports/:id
+   * Обновить статус репорта (для модератора — внутреннее использование)
+   * Доступно только через internal-token аутентификацию (заголовок X-Internal-Token)
+   */
+  fastify.patch<{ Params: { id: string } }>('/reports/:id', async (request, reply) => {
+    const token = request.headers['x-internal-token'];
+    if (!token || token !== process.env.INTERNAL_API_TOKEN) {
+      return reply.forbidden('Access denied');
+    }
+
+    const { id } = request.params;
+    const body = updateReportSchema.parse(request.body);
+
+    const report = await prisma.report.findUnique({ where: { id } });
+    if (!report) {
+      return reply.notFound('Report not found');
+    }
+
+    const updated = await prisma.report.update({
+      where: { id },
+      data: {
+        status: body.status,
+        moderatorNotes: body.moderatorNotes,
+        resolvedAt: body.status === 'RESOLVED' || body.status === 'REJECTED' ? new Date() : undefined,
+      },
+    });
+
+    return reply.success({
+      id: updated.id,
+      status: updated.status,
+      resolvedAt: updated.resolvedAt?.toISOString() || null,
+    });
+  });
 };
+
+/**
+ * Уведомить создателя розыгрыша через Telegram Bot API о снятии с каталога из-за жалоб.
+ */
+async function notifyCreatorCatalogRemoved(ownerUserId: string, giveawayTitle: string): Promise<void> {
+  const { config } = await import('../config.js');
+
+  if (!config.botToken) return;
+
+  const owner = await prisma.user.findUnique({
+    where: { id: ownerUserId },
+    select: { telegramUserId: true, notificationsBlocked: true },
+  });
+
+  if (!owner || owner.notificationsBlocked) return;
+
+  await fetch(`https://api.telegram.org/bot${config.botToken}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: owner.telegramUserId.toString(),
+      text:
+        `⚠️ <b>Ваш розыгрыш снят с каталога</b>\n\n` +
+        `Розыгрыш "<b>${giveawayTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</b>" ` +
+        `получил несколько жалоб от пользователей и был автоматически снят с публикации в каталоге.\n\n` +
+        `Если вы считаете это ошибкой, обратитесь в поддержку @Cosmolex_bot.`,
+      parse_mode: 'HTML',
+    }),
+  }).catch(() => {});
+}

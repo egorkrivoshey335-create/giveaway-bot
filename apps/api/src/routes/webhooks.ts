@@ -14,6 +14,7 @@ import { ErrorCode } from '@randombeast/shared';
 import { config } from '../config.js';
 import crypto from 'crypto';
 import { awardPatronBadge } from '../lib/badges.js';
+import { notifyNewPurchase } from '../lib/admin-notify.js';
 
 // ============================================================================
 // IP Whitelist ЮKassa
@@ -207,6 +208,14 @@ async function processSuccessfulPayment(
 
   // 14.5 Бейджи: начисляем бейдж 'patron' при первой оплате (fire-and-forget)
   awardPatronBadge(purchase.userId).catch(() => {});
+
+  // 17.2 Системные уведомления: уведомляем админа о покупке (fire-and-forget)
+  notifyNewPurchase({
+    username: purchase.user.username,
+    productTitle: purchase.product.title,
+    amount: purchase.amount,
+    currency: purchase.currency,
+  });
 
   return {
     alreadyProcessed: false,

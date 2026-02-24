@@ -31,6 +31,8 @@ const envSchema = z.object({
   YOOKASSA_RETURN_URL: z.string().optional(),
   WEBAPP_URL: z.string().optional(),
   SITE_URL: z.string().optional(),
+  ADMIN_CHAT_ID: z.string().optional(), // Telegram chat/channel ID for admin notifications
+  ADMIN_USER_IDS: z.string().optional(), // Comma-separated Telegram user IDs of admins
 });
 
 const env = envSchema.parse(process.env);
@@ -103,7 +105,14 @@ export const config = {
 
   // Marketing site URL (for randomizer page)
   siteUrl: env.SITE_URL || 'http://localhost:3002',
-  
+
+  // Admin notifications
+  adminChatId: process.env.ADMIN_CHAT_ID || null,
+  adminUserIds: (process.env.ADMIN_USER_IDS || '')
+    .split(',')
+    .map(id => parseInt(id.trim(), 10))
+    .filter(id => !isNaN(id)),
+
   // Whitelist: если пустой — доступ для всех
   allowedUsers,
   maintenanceMode: allowedUsers.length > 0,

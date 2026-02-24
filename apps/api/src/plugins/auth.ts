@@ -18,8 +18,9 @@ export interface AuthUser {
 }
 
 /**
- * Extracts user from session cookie without throwing
- * Returns null if not authenticated
+ * Extracts user from session cookie without throwing.
+ * Returns null if not authenticated.
+ * Does NOT check SystemBan — use requireUser() for that.
  */
 export async function getUser(request: FastifyRequest): Promise<AuthUser | null> {
   const sessionToken = request.cookies[config.auth.cookieName];
@@ -52,8 +53,12 @@ export async function getUser(request: FastifyRequest): Promise<AuthUser | null>
 }
 
 /**
- * Requires authenticated user, sends 401 if not authenticated
- * Returns user info or null (after sending response)
+ * Requires authenticated user.
+ * Sends 401 if not authenticated.
+ * Sends 403 with ACCOUNT_BANNED if user is in SystemBan.
+ * Automatically clears expired bans.
+ *
+ * Returns user info or null (after sending response).
  */
 export async function requireUser(
   request: FastifyRequest,
@@ -62,10 +67,31 @@ export async function requireUser(
   const user = await getUser(request);
 
   if (!user) {
-    // Clear potentially invalid cookie
     reply.clearCookie(config.auth.cookieName, getSessionCookieOptions());
     reply.status(401).send({ ok: false, error: 'Not authenticated' });
     return null;
+  }
+
+  // === 17.4 SystemBan: проверка на каждом авторизованном запросе ===
+  const ban = await prisma.systemBan.findUnique({
+    where: { userId: user.id },
+  });
+
+  if (ban) {
+    // Проверяем не истёк ли бан (expiresAt = null → перманентный)
+    if (ban.expiresAt && ban.expiresAt < new Date()) {
+      // Бан истёк — автоматически удаляем
+      await prisma.systemBan.delete({ where: { userId: user.id } }).catch(() => {});
+    } else {
+      // Бан активен
+      reply.status(403).send({
+        ok: false,
+        error: 'ACCOUNT_BANNED',
+        message: 'Ваш аккаунт заблокирован. Обратитесь в поддержку @Cosmolex_bot',
+        expiresAt: ban.expiresAt?.toISOString() || null,
+      });
+      return null;
+    }
   }
 
   return user;

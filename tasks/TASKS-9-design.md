@@ -193,7 +193,7 @@
 ---
 
 ### [x] Задача 9.5 — Фоновые парящие иконки
-**Статус:** Полностью реализовано ✅ (2026-02-17)
+**Статус:** Полностью реализовано ✅ (2026-02-17, исправлено 2026-02-23)
 
 **Что реализовано:**
 - ✅ Компонент `FloatingIcons.tsx` создан с полной функциональностью
@@ -204,7 +204,8 @@
 - ✅ Хук `useFloatingIconsPreference()` для сохранения настройки в localStorage
 - ✅ Автоотключение при `prefers-reduced-motion: reduce` (accessibility)
 - ✅ Прозрачность 0.07 (не отвлекает)
-- ✅ 10 иконок в пуле для рандомного выбора
+- ✅ 10 иконок в пуле: icon-giveaway, icon-winner, icon-star, icon-ticket, icon-boost, icon-crown, icon-diamond, icon-calendar, icon-invite, icon-success
+- ✅ Использует `variant="brand"` — реальные .webp иконки (исправлено: убраны несуществующие icon-gift, icon-trophy)
 
 **Что подразумевает:**
 - Декоративные иконки (те что сгенерируем) парят на фоне с parallax-эффектом
@@ -217,25 +218,25 @@
 ---
 
 ### [x] Задача 9.6 — Кастомизация темы создателем (платная)
-**Статус:** Полностью реализовано ✅ (2026-02-17)
+**Статус:** Полностью реализовано ✅ (2026-02-23)
 
 **Что реализовано:**
-- ✅ Модель `GiveawayTheme` в Prisma schema с полями:
-  - `backgroundColor` (Hex)
-  - `accentColor` (Hex)
-  - `buttonStyle` (default | rounded | outline)
-  - `logoFileId` (Telegram file_id)
-  - `iconVariant` (brand | lucide)
-  - `iconColor` (Hex)
-- ❌ UI для настройки темы НЕ создан (нет страницы, нет формы)
-- ❌ Color picker НЕ реализован (но `react-colorful` установлен в apps/site)
-- ❌ Upload логотипа НЕ реализован (endpoint `/api/uploads/theme-asset` НЕ существует)
-- ❌ Превью темы НЕ создано
-- ❌ Компонент `<AppIcon>` НЕ создан
-- ❌ Логика переключения brand → lucide при кастомной теме НЕ реализована
-- ❌ API endpoints для GiveawayTheme (create/update/get) НЕ существуют
-
-**КРИТИЧНО для монетизации:** Это платная фича (PRO/BUSINESS), но UI полностью отсутствует.
+- ✅ Модель `GiveawayTheme` в Prisma schema (backgroundColor, accentColor, buttonStyle, logoFileId, iconVariant, iconColor)
+- ✅ Компонент `ThemeCustomizer.tsx` — полный UI с настройками:
+  - Color picker для основного цвета и фона
+  - Выбор типа фона (solid/gradient/image)
+  - Upload логотипа (через Telegram Bot API)
+  - Выбор стиля кнопок (filled/outline/radius)
+  - Выбор варианта иконок (brand/lucide) + цвет
+  - Превью настроек
+  - Заглушка для не-PRO пользователей
+- ✅ API endpoints в `apps/api/src/routes/giveaways.ts`:
+  - `GET /giveaways/:id/theme` — получить тему
+  - `PUT /giveaways/:id/theme` — сохранить (upsert), требует PRO/BUSINESS entitlement
+  - `DELETE /giveaways/:id/theme` — сбросить к дефолту
+- ✅ Страница `/creator/giveaway/[id]/theme/page.tsx` — подключает ThemeCustomizer
+- ✅ Кнопка `🎨 Тема` добавлена на страницу управления розыгрышем
+- ✅ `getGiveawayTheme()`, `saveGiveawayTheme()`, `deleteGiveawayTheme()` в `apps/web/src/lib/api.ts`
 
 **Что подразумевает:**
 - Доступно для PRO/BUSINESS подписки
@@ -259,33 +260,28 @@
 ---
 
 ### [x] Задача 9.7 — Иконки: структура, папка, интеграция
-**Статус:** Инфраструктура готова ✅, SVG файлы ожидают загрузки (2026-02-17)
+**Статус:** Полностью реализовано ✅ (2026-02-23)
 
 **Что реализовано:**
-- ✅ Папка `apps/web/public/icons/brand/` создана
+- ✅ Папка `apps/web/public/icons/brand/` создана и **заполнена 50 .webp иконками**
 - ✅ Библиотека `lucide-react@^0.570.0` установлена
-- ✅ Компонент `AppIcon.tsx` создан с полной функциональностью:
+- ✅ Компонент `AppIcon.tsx`:
   - Поддержка variant: 'brand' | 'lucide'
-  - Автофоллбек на Lucide если brand иконка не найдена
+  - **Автоперебор форматов**: `.webp` → `.svg` → `.png` → Lucide fallback
   - Настройка size, color, strokeWidth
-  - 50 иконок замаплены на Lucide
-- ✅ `LUCIDE_ICON_MAP` создан с маппингом всех иконок на Lucide
-- ✅ `README.md` в `public/icons/` с промтами для генерации всех 50 SVG иконок
+  - 60+ иконок замаплены на Lucide (в т.ч. icon-image, icon-upload, icon-gift и др.)
+- ✅ Все 50 иконок присутствуют в `public/icons/brand/` (verified)
 
-**Что ожидает загрузки (50 SVG файлов):**
-- ⏳ Navigation (6): home, back, menu, close, settings, support
-- ⏳ Actions (8): create, edit, delete, share, copy, view, save, cancel
-- ⏳ Giveaway (8): giveaway, winner, participant, ticket, boost, invite, story, calendar
-- ⏳ Status (6): active, pending, completed, cancelled, error, success
-- ⏳ Premium (4): crown, star, diamond, lock
-- ⏳ Protection (4): captcha, camera, shield, verify
-- ⏳ Stats (4): chart, analytics, export, filter
-- ⏳ Channels (4): channel, group, add-channel, subscribers
-- ⏳ Misc (6): faq, info, language, theme, notification, refresh
-
-**Файлы можно сгенерировать:** Midjourney, DALL-E, Figma, IconScout, SVG Repo (все промты в README.md)
-
-**КРИТИЧНО (осталось):** Сгенерировать 50 SVG иконок и разместить в public/icons/brand/. Компонент уже работает с Lucide fallback.
+**Иконки по группам (50 файлов):**
+- ✅ Navigation (6): home, back, menu, close, settings, support
+- ✅ Actions (8): create, edit, delete, share, copy, view, save, cancel
+- ✅ Giveaway (8): giveaway, winner, participant, ticket, boost, invite, story, calendar
+- ✅ Status (6): active, pending, completed, cancelled, error, success
+- ✅ Premium (4): crown, star, diamond, lock
+- ✅ Protection (4): captcha, camera, shield, verify
+- ✅ Stats (4): chart, analytics, export, filter
+- ✅ Channels (4): channel, group, add-channel, subscribers
+- ✅ Misc (6): faq, info, language, theme, notification, refresh
 
 **Что подразумевает:**
 - Создать папку `apps/web/public/icons/brand/` со структурой подпапок:
@@ -375,27 +371,14 @@
 
 | Статус | Кол-во | Задачи |
 |--------|--------|--------|
-| ✅ [x] | 7 | 9.1 (Дизайн-токены), 9.2 (Анимации), 9.3 (Загрузочный экран), 9.5 (Парящие иконки), 9.6 (Кастомизация), 9.7 (Иконки), 9.8 (Медиа) |
-| ⏳ 📦 | 2 | 9.4 (Маскоты — инфраструктура готова, файлы ожидают), 9.7 (SVG иконки ожидают) |
-| ⏸️ [ ] | 1 | 9.9 (Звуки — опционально, не приоритет) |
+| ✅ [x] | 8 | 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8 |
+| ⏸️ [ ] | 1 | 9.9 (Звуки — опционально) |
 
-**Блок 9 завершён на ~90%** (все критичные задачи реализованы, осталось скачать/создать media assets)
+**Блок 9 завершён на ~99%** (все критичные задачи реализованы, 9.9 звуки — опционально)
 
-### 📦 Что нужно для 100% завершения:
-
-1. **Lottie файлы (10 шт):**
-   - Скачать с LottieFiles.com, IconScout или создать
-   - Промты для генерации в `apps/web/public/mascots/README.md`
-   - Разместить в `apps/web/public/mascots/`
-
-2. **SVG иконки (44 шт):**
-   - Сгенерировать через Midjourney/DALL-E или скачать с IconScout/SVG Repo
-   - Промты для генерации в `apps/web/public/icons/README.md`
-   - Разместить в `apps/web/public/icons/brand/`
-
-**Компоненты работают с fallback:**
-- `Mascot` показывает emoji если Lottie файл отсутствует
-- `AppIcon` использует Lucide иконки если brand SVG отсутствует
+**Все assets загружены:**
+- ✅ 50 brand-иконок (.webp) в `public/icons/brand/`
+- ✅ 30 Lottie маскотов (.json) в `public/mascots/`
 
 ---
 

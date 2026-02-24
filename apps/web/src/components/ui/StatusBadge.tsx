@@ -1,8 +1,9 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { AppIcon } from '@/components/AppIcon';
 
-export type StatusType = 
+export type StatusType =
   | 'DRAFT'
   | 'PENDING_CONFIRM'
   | 'SCHEDULED'
@@ -20,9 +21,25 @@ export interface StatusBadgeProps {
   className?: string;
 }
 
+const STATUS_CONFIG: Record<
+  StatusType,
+  { icon: string; bg: string; text: string; labelKey: string }
+> = {
+  DRAFT:           { icon: 'icon-edit',      bg: 'bg-gray-500/15',   text: 'text-gray-500',   labelKey: 'statusDraft' },
+  PENDING_CONFIRM: { icon: 'icon-pending',   bg: 'bg-yellow-500/15', text: 'text-yellow-600', labelKey: 'statusPendingConfirm' },
+  SCHEDULED:       { icon: 'icon-calendar',  bg: 'bg-blue-500/15',   text: 'text-blue-500',   labelKey: 'statusScheduled' },
+  ACTIVE:          { icon: 'icon-active',    bg: 'bg-green-500/15',  text: 'text-green-500',  labelKey: 'statusActive' },
+  FINISHED:        { icon: 'icon-completed', bg: 'bg-purple-500/15', text: 'text-purple-500', labelKey: 'statusFinished' },
+  CANCELLED:       { icon: 'icon-cancelled', bg: 'bg-red-500/15',    text: 'text-red-400',    labelKey: 'statusCancelled' },
+  ERROR:           { icon: 'icon-error',     bg: 'bg-orange-500/15', text: 'text-orange-500', labelKey: 'statusError' },
+  success:         { icon: 'icon-success',   bg: 'bg-green-500/15',  text: 'text-green-500',  labelKey: 'statusSuccess' },
+  warning:         { icon: 'icon-error',     bg: 'bg-yellow-500/15', text: 'text-yellow-600', labelKey: 'statusWarning' },
+  info:            { icon: 'icon-info',      bg: 'bg-blue-500/15',   text: 'text-blue-500',   labelKey: 'statusInfo' },
+};
+
 /**
- * StatusBadge — значок статуса с цветовой кодировкой
- * 
+ * StatusBadge — значок статуса с brand-иконкой и цветовой кодировкой
+ *
  * @example
  * ```tsx
  * <StatusBadge status="ACTIVE" />
@@ -31,78 +48,14 @@ export interface StatusBadgeProps {
  */
 export function StatusBadge({ status, label, className = '' }: StatusBadgeProps) {
   const t = useTranslations('common');
-  
-  const statusConfig = {
-    DRAFT: {
-      icon: '📝',
-      bg: 'bg-gray-100',
-      text: 'text-gray-700',
-      label: label || t('statusDraft'),
-    },
-    PENDING_CONFIRM: {
-      icon: '⏳',
-      bg: 'bg-yellow-100',
-      text: 'text-yellow-700',
-      label: label || t('statusPendingConfirm'),
-    },
-    SCHEDULED: {
-      icon: '⏰',
-      bg: 'bg-blue-100',
-      text: 'text-blue-700',
-      label: label || t('statusScheduled'),
-    },
-    ACTIVE: {
-      icon: '🟢',
-      bg: 'bg-green-100',
-      text: 'text-green-700',
-      label: label || t('statusActive'),
-    },
-    FINISHED: {
-      icon: '✅',
-      bg: 'bg-emerald-100',
-      text: 'text-emerald-700',
-      label: label || t('statusFinished'),
-    },
-    CANCELLED: {
-      icon: '❌',
-      bg: 'bg-red-100',
-      text: 'text-red-700',
-      label: label || t('statusCancelled'),
-    },
-    ERROR: {
-      icon: '⚠️',
-      bg: 'bg-orange-100',
-      text: 'text-orange-700',
-      label: label || t('statusError'),
-    },
-    success: {
-      icon: '✓',
-      bg: 'bg-green-100',
-      text: 'text-green-700',
-      label: label || t('statusSuccess'),
-    },
-    warning: {
-      icon: '!',
-      bg: 'bg-yellow-100',
-      text: 'text-yellow-700',
-      label: label || t('statusWarning'),
-    },
-    info: {
-      icon: 'ℹ',
-      bg: 'bg-blue-100',
-      text: 'text-blue-700',
-      label: label || t('statusInfo'),
-    },
-  };
-
-  const config = statusConfig[status] || statusConfig.info;
+  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.info;
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${config.bg} ${config.text} ${className}`}
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${cfg.bg} ${cfg.text} ${className}`}
     >
-      <span>{config.icon}</span>
-      <span>{config.label}</span>
+      <AppIcon name={cfg.icon} variant="brand" size={14} />
+      <span>{label ?? t(cfg.labelKey as Parameters<typeof t>[0])}</span>
     </span>
   );
 }

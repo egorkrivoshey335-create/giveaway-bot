@@ -2,6 +2,8 @@ import { prisma, GiveawayStatus, ParticipationStatus, GiveawayMessageKind, Publi
 import crypto from 'crypto';
 import { config } from '../config.js';
 import { awardWinnerBadges } from '../lib/badges.js';
+import { checkContent } from '@randombeast/shared';
+import { notifyCatalogApproved } from '../lib/admin-notify.js';
 
 // Имя бота для deep links
 const BOT_USERNAME = process.env.BOT_USERNAME || 'BeastRandomBot';
@@ -139,6 +141,11 @@ export async function processGiveawayLifecycle(): Promise<void> {
     if (expiredSandbox.length > 0) {
       console.log(`[Scheduler] Истёкших sandbox розыгрышей отменено: ${expiredSandbox.length}`);
     }
+
+    // 1.6 Автоматическая модерация каталога (17.1)
+    runCatalogAutoModeration().catch(err =>
+      console.error('[Scheduler] Ошибка модерации каталога:', err)
+    );
 
     // 2. ACTIVE → FINISHED (когда наступил endAt, не sandbox)
     const toFinish = await prisma.giveaway.findMany({
@@ -1112,6 +1119,108 @@ async function notifyCatalogSubscribers(): Promise<void> {
 
     // Пауза между батчами
     await new Promise((r) => setTimeout(r, 1000));
+  }
+}
+
+// ============================================================================
+// 17.1 Автоматическая модерация каталога
+// ============================================================================
+
+/**
+ * Автоматическая модерация розыгрышей для попадания в каталог.
+ *
+ * Условия для одобрения:
+ *   1. status = ACTIVE
+ *   2. isPublicInCatalog = true (тумблер "Продвижение" включён)
+ *   3. totalParticipants >= 100
+ *   4. catalogApproved = false (ещё не одобрен)
+ *   5. Создатель НЕ в SystemBan
+ *   6. Заголовок и текст поста НЕ содержат стоп-слов (checkContent)
+ *
+ * Если все условия выполнены → catalogApproved=true, catalogApprovedAt=now()
+ * Запускается каждый цикл планировщика.
+ */
+async function runCatalogAutoModeration(): Promise<void> {
+  try {
+    // Находим кандидатов: активные, с продвижением, ≥100 участников, ещё не одобренные
+    const candidates = await prisma.giveaway.findMany({
+      where: {
+        status: GiveawayStatus.ACTIVE,
+        isPublicInCatalog: true,
+        catalogApproved: false,
+        totalParticipants: { gte: 100 },
+      },
+      select: {
+        id: true,
+        title: true,
+        totalParticipants: true,
+        ownerUserId: true,
+        owner: {
+          select: {
+            id: true,
+            username: true,
+            systemBan: { select: { id: true, expiresAt: true } },
+          },
+        },
+        postTemplate: {
+          select: { text: true },
+        },
+      },
+    });
+
+    if (candidates.length === 0) return;
+
+    console.log(`[CatalogModeration] Кандидатов для проверки: ${candidates.length}`);
+
+    for (const giveaway of candidates) {
+      // 1. Проверяем системный бан создателя
+      const ban = giveaway.owner.systemBan;
+      if (ban) {
+        // Если бан истёк — игнорируем
+        const banActive = !ban.expiresAt || ban.expiresAt > new Date();
+        if (banActive) {
+          console.log(`[CatalogModeration] Пропускаем ${giveaway.id}: создатель в бане`);
+          continue;
+        }
+      }
+
+      // 2. Проверяем стоп-слова в названии и тексте поста
+      const textToCheck = [
+        giveaway.title || '',
+        giveaway.postTemplate?.text || '',
+      ].join(' ');
+
+      const contentCheck = checkContent(textToCheck);
+
+      if (!contentCheck.clean) {
+        console.log(
+          `[CatalogModeration] Пропускаем ${giveaway.id}: найдены стоп-слова: ${contentCheck.flaggedWords.join(', ')}`
+        );
+        continue;
+      }
+
+      // Все проверки пройдены — одобряем в каталог
+      await prisma.giveaway.update({
+        where: { id: giveaway.id },
+        data: {
+          catalogApproved: true,
+          catalogApprovedAt: new Date(),
+        },
+      });
+
+      console.log(
+        `[CatalogModeration] Одобрен в каталог: ${giveaway.title} (${giveaway.id}), участников: ${giveaway.totalParticipants}`
+      );
+
+      // 17.2 Уведомляем администратора об одобрении
+      notifyCatalogApproved({
+        giveawayTitle: giveaway.title || 'Без названия',
+        giveawayId: giveaway.id,
+        participantCount: giveaway.totalParticipants,
+      });
+    }
+  } catch (error) {
+    console.error('[CatalogModeration] Ошибка модерации каталога:', error);
   }
 }
 

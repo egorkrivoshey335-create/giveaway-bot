@@ -877,5 +877,23 @@
       "title": "No Posts Found",
       "description": "Create your first post template for giveaways"
     }
+  },
+  "report": {
+    "buttonLabel": "⚠️ Report",
+    "title": "Report Giveaway",
+    "subtitle": "Choose the reason for reporting",
+    "descriptionPlaceholder": "Describe the issue in more detail (optional)",
+    "submit": "Submit Report",
+    "submitting": "Submitting...",
+    "successTitle": "Report Submitted",
+    "successMessage": "We will review your report shortly",
+    "alreadyReported": "You have already reported this giveaway",
+    "reasons": {
+      "SPAM": "Spam / Advertising",
+      "FRAUD": "Fraud",
+      "INAPPROPRIATE_CONTENT": "Inappropriate Content",
+      "FAKE_GIVEAWAY": "Prize Not Delivered",
+      "OTHER": "Other"
+    }
   }
 }

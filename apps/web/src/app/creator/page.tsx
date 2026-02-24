@@ -11,6 +11,7 @@ import {
   GiveawaySummary,
 } from '@/lib/api';
 import { InlineToast } from '@/components/Toast';
+import { AppIcon } from '@/components/AppIcon';
 
 // Берём username бота из env
 const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
@@ -155,12 +156,12 @@ function GiveawayCard({
 
         {/* Статистика */}
         <div className="flex items-center gap-4 text-sm text-tg-hint mb-3">
-          <span className="flex items-center gap-1">
-            <span>👥</span>
+          <span className="flex items-center gap-1.5">
+            <AppIcon name="icon-participant" variant="brand" size={16} />
             <span>{giveaway.participantsCount}</span>
           </span>
-          <span className="flex items-center gap-1">
-            <span>🏆</span>
+          <span className="flex items-center gap-1.5">
+            <AppIcon name="icon-winner" variant="brand" size={16} />
             <span>{giveaway.winnersCount}</span>
           </span>
         </div>
@@ -180,7 +181,10 @@ function GiveawayCard({
           }}
           className="flex-1 py-3 text-sm text-tg-link hover:bg-tg-bg/50 transition-colors"
         >
-          📊 {t('menu.stats')}
+          <span className="flex items-center justify-center gap-1.5">
+            <AppIcon name="icon-analytics" variant="brand" size={16} />
+            {t('menu.stats')}
+          </span>
         </button>
         <button
           onClick={(e) => {
@@ -189,7 +193,10 @@ function GiveawayCard({
           }}
           className="flex-1 py-3 text-sm text-tg-link hover:bg-tg-bg/50 transition-colors border-l border-tg-bg"
         >
-          📋 {t('menu.copy')}
+          <span className="flex items-center justify-center gap-1.5">
+            <AppIcon name="icon-copy" variant="brand" size={16} />
+            {t('menu.copy')}
+          </span>
         </button>
         {/* Меню с действиями */}
         <div className="relative">
@@ -396,11 +403,11 @@ export default function CreatorDashboardPage() {
 
   // Фильтры
   const filters: { key: StatusFilter; label: string; icon: string }[] = [
-    { key: 'all', label: t('filters.all'), icon: '' },
-    { key: 'ACTIVE', label: t('filters.active'), icon: '🟢' },
-    { key: 'SCHEDULED', label: t('filters.scheduled'), icon: '⏰' },
-    { key: 'FINISHED', label: t('filters.finished'), icon: '✅' },
-    { key: 'DRAFT', label: t('filters.draft'), icon: '📝' },
+    { key: 'all',       label: t('filters.all'),       icon: '' },
+    { key: 'ACTIVE',    label: t('filters.active'),    icon: 'icon-active' },
+    { key: 'SCHEDULED', label: t('filters.scheduled'), icon: 'icon-calendar' },
+    { key: 'FINISHED',  label: t('filters.finished'),  icon: 'icon-completed' },
+    { key: 'DRAFT',     label: t('filters.draft'),     icon: 'icon-edit' },
   ];
 
   if (loading) {
@@ -444,9 +451,7 @@ export default function CreatorDashboardPage() {
               className="bg-tg-secondary text-tg-text rounded-full p-2 font-medium flex items-center justify-center hover:bg-tg-secondary/80 transition-colors"
               title={t('profile')}
             >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
+              <AppIcon name="icon-participant" variant="brand" size={24} />
             </button>
 
             <button
@@ -454,7 +459,7 @@ export default function CreatorDashboardPage() {
               className="bg-tg-secondary text-tg-text rounded-lg px-3 py-2 font-medium flex items-center gap-2 hover:bg-tg-secondary/80 transition-colors"
               title={t('channels')}
             >
-              <span>📣</span>
+              <AppIcon name="icon-channel" variant="brand" size={18} />
               <span className="hidden sm:inline">{t('channelsShort')}</span>
             </button>
             <button
@@ -478,7 +483,7 @@ export default function CreatorDashboardPage() {
               onClick={() => router.push('/creator/giveaway/new')}
               className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2 font-medium flex items-center gap-2"
             >
-              <span>➕</span>
+              <AppIcon name="icon-create" variant="brand" size={18} />
               <span>{t('create')}</span>
             </button>
           </div>
@@ -499,7 +504,7 @@ export default function CreatorDashboardPage() {
                   : 'bg-tg-secondary text-tg-text hover:bg-tg-secondary/80'
               }`}
             >
-              {f.icon && <span className="mr-1">{f.icon}</span>}
+              {f.icon && <AppIcon name={f.icon} variant="brand" size={14} className="mr-1 inline-block" />}
               {f.label}
               {counts[f.key] !== undefined && (
                 <span className="ml-1 opacity-70">({counts[f.key]})</span>
@@ -516,7 +521,7 @@ export default function CreatorDashboardPage() {
             className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left"
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl">📣</span>
+              <AppIcon name="icon-channel" variant="brand" size={32} />
               <svg className="w-5 h-5 text-tg-hint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
@@ -540,7 +545,7 @@ export default function CreatorDashboardPage() {
             className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left"
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl">📝</span>
+              <AppIcon name="icon-edit" variant="brand" size={32} />
               <svg className="w-5 h-5 text-tg-hint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
@@ -567,7 +572,9 @@ export default function CreatorDashboardPage() {
           </div>
         ) : (
           <div className="text-center py-12 bg-tg-secondary rounded-xl">
-            <div className="text-6xl mb-4">🎁</div>
+            <div className="flex justify-center mb-4">
+              <AppIcon name="icon-giveaway" variant="brand" size={64} />
+            </div>
             <h2 className="text-xl font-semibold mb-2">
               {statusFilter === 'all' ? t('empty.title') : t('empty.titleFiltered')}
             </h2>

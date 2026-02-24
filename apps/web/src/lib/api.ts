@@ -2065,3 +2065,87 @@ export async function updateNotificationsCatalog(catalogNotificationsEnabled: bo
   });
   return response.json();
 }
+
+// ============================================================================
+// 17.3 Система жалоб
+// ============================================================================
+
+export type ReportReason =
+  | 'SPAM'
+  | 'FRAUD'
+  | 'INAPPROPRIATE_CONTENT'
+  | 'FAKE_GIVEAWAY'
+  | 'OTHER';
+
+export interface SubmitReportParams {
+  targetType: 'GIVEAWAY' | 'USER';
+  targetId: string;
+  reason: ReportReason;
+  description?: string;
+}
+
+export interface SubmitReportResult {
+  ok: boolean;
+  id?: string;
+  status?: string;
+  createdAt?: string;
+  error?: string;
+}
+
+/**
+ * Отправить жалобу на розыгрыш или пользователя
+ */
+export async function submitReport(params: SubmitReportParams): Promise<SubmitReportResult> {
+  const response = await fetch(`${API_URL}/reports`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  return response.json();
+}
+
+// ============================================================================
+// 9.6 Тема розыгрыша (кастомизация, PRO/BUSINESS)
+// ============================================================================
+
+export interface GiveawayThemeSettings {
+  backgroundColor?: string | null;
+  accentColor?: string | null;
+  buttonStyle?: 'default' | 'rounded' | 'outline';
+  logoFileId?: string | null;
+  iconVariant?: 'brand' | 'lucide';
+  iconColor?: string;
+}
+
+export async function getGiveawayTheme(
+  giveawayId: string
+): Promise<{ ok: boolean; theme: GiveawayThemeSettings | null; error?: string }> {
+  const res = await fetch(`${API_URL}/giveaways/${giveawayId}/theme`, {
+    credentials: 'include',
+  });
+  return res.json();
+}
+
+export async function saveGiveawayTheme(
+  giveawayId: string,
+  theme: GiveawayThemeSettings
+): Promise<{ ok: boolean; theme?: GiveawayThemeSettings; error?: string }> {
+  const res = await fetch(`${API_URL}/giveaways/${giveawayId}/theme`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(theme),
+  });
+  return res.json();
+}
+
+export async function deleteGiveawayTheme(
+  giveawayId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const res = await fetch(`${API_URL}/giveaways/${giveawayId}/theme`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  return res.json();
+}

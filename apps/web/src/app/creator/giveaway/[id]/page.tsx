@@ -23,6 +23,7 @@ import { InlineToast } from '@/components/Toast';
 import { ShareBottomSheet } from '@/components/ShareBottomSheet';
 import { StatsBottomSheet } from '@/components/StatsBottomSheet';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
+import { AppIcon } from '@/components/AppIcon';
 
 // Берём username бота из env
 const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
@@ -60,7 +61,9 @@ function formatDate(dateStr: string | null): string {
 function StatCard({ icon, label, value, subValue }: { icon: string; label: string; value: number | string; subValue?: string }) {
   return (
     <div className="bg-tg-secondary rounded-lg p-4 text-center transition-all duration-300 hover:scale-105">
-      <div className="text-2xl mb-1">{icon}</div>
+      <div className="flex justify-center mb-1">
+        <AppIcon name={icon} variant="brand" size={28} />
+      </div>
       <div className="text-2xl font-bold">
         {typeof value === 'number' ? (
           <AnimatedCounter value={value} />
@@ -287,7 +290,9 @@ export default function GiveawayDetailsPage() {
     return (
       <main className="min-h-screen p-4">
         <div className="max-w-4xl mx-auto text-center py-12">
-          <div className="text-4xl mb-4">❌</div>
+          <div className="flex justify-center mb-4">
+            <AppIcon name="icon-error" variant="brand" size={56} />
+          </div>
           <p className="text-tg-hint mb-4">{error || tErrors('giveawayNotFound')}</p>
           <button
             onClick={() => router.push('/creator')}
@@ -301,11 +306,11 @@ export default function GiveawayDetailsPage() {
   }
 
   // Табы
-  const tabs: { key: TabType; label: string; show: boolean }[] = [
-    { key: 'overview', label: `📊 ${t('tabs.overview')}`, show: true },
-    { key: 'participants', label: `👥 ${t('tabs.participants')} (${giveaway.participantsCount})`, show: true },
-    { key: 'winners', label: `🏆 ${t('tabs.winners')} (${giveaway.winners.length})`, show: giveaway.status === 'FINISHED' && giveaway.winners.length > 0 },
-    { key: 'stories', label: `📺 ${t('tabs.stories')}`, show: giveaway.condition?.storiesEnabled || false },
+  const tabs: { key: TabType; icon: string; label: string; count?: number; show: boolean }[] = [
+    { key: 'overview',     icon: 'icon-analytics', label: t('tabs.overview'),                                    show: true },
+    { key: 'participants', icon: 'icon-participant', label: t('tabs.participants'), count: giveaway.participantsCount, show: true },
+    { key: 'winners',      icon: 'icon-winner',     label: t('tabs.winners'),      count: giveaway.winners.length, show: giveaway.status === 'FINISHED' && giveaway.winners.length > 0 },
+    { key: 'stories',      icon: 'icon-story',      label: t('tabs.stories'),                                    show: giveaway.condition?.storiesEnabled || false },
   ];
 
   return (
@@ -337,7 +342,10 @@ export default function GiveawayDetailsPage() {
               onClick={() => setShowStartModal(true)}
               className="flex-1 bg-tg-button text-tg-button-text rounded-lg px-6 py-3 font-medium transition-all hover:scale-105 active:scale-95 hover:shadow-lg"
             >
-              🚀 {t('actions.startNow')}
+              <span className="flex items-center justify-center gap-2">
+                <AppIcon name="icon-active" variant="brand" size={18} />
+                {t('actions.startNow')}
+              </span>
             </button>
             
             {/* Меню с тремя точками */}
@@ -359,7 +367,10 @@ export default function GiveawayDetailsPage() {
                     }}
                     className="w-full text-left px-4 py-3 hover:bg-tg-bg transition-colors"
                   >
-                    👥 {t('actions.viewParticipants')}
+                    <span className="flex items-center gap-2">
+                      <AppIcon name="icon-participant" variant="brand" size={16} />
+                      {t('actions.viewParticipants')}
+                    </span>
                   </button>
                   <button
                     onClick={() => {
@@ -368,7 +379,10 @@ export default function GiveawayDetailsPage() {
                     }}
                     className="w-full text-left px-4 py-3 hover:bg-tg-bg transition-colors text-red-500"
                   >
-                    🗑️ {t('actions.delete')}
+                    <span className="flex items-center gap-2">
+                      <AppIcon name="icon-cancelled" variant="brand" size={16} />
+                      {t('actions.delete')}
+                    </span>
                   </button>
                 </div>
               )}
@@ -380,7 +394,9 @@ export default function GiveawayDetailsPage() {
         {giveaway.status === 'ERROR' && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 animate-shake">
             <div className="flex items-start gap-3">
-              <div className="text-2xl animate-bounce-subtle">⚠️</div>
+              <div className="animate-bounce-subtle">
+                <AppIcon name="icon-error" variant="brand" size={28} />
+              </div>
               <div className="flex-1">
                 <div className="font-medium text-red-900 mb-1">
                   {t('error.title')}
@@ -392,7 +408,10 @@ export default function GiveawayDetailsPage() {
                   onClick={handleRetry}
                   className="bg-red-600 text-white rounded-lg px-4 py-2 text-sm font-medium transition-all hover:scale-105 active:scale-95 hover:shadow-lg"
                 >
-                  🔄 {t('actions.retry')}
+                  <span className="flex items-center gap-2 justify-center">
+                    <AppIcon name="icon-refresh" variant="brand" size={16} />
+                    {t('actions.retry')}
+                  </span>
                 </button>
               </div>
             </div>
@@ -403,15 +422,17 @@ export default function GiveawayDetailsPage() {
         <div className="mb-6 flex gap-3 animate-fadeIn" style={{ animationDelay: '0.1s' }}>
           <button
             onClick={() => setShowShareSheet(true)}
-            className="flex-1 bg-tg-secondary text-tg-text rounded-lg px-4 py-3 font-medium transition-all hover:scale-105 active:scale-95 hover:bg-opacity-80"
+            className="flex-1 bg-tg-secondary text-tg-text rounded-lg px-4 py-3 font-medium transition-all hover:scale-105 active:scale-95 hover:bg-opacity-80 flex items-center justify-center gap-2"
           >
-            🔗 {t('actions.share')}
+            <AppIcon name="icon-share" variant="brand" size={18} />
+            {t('actions.share')}
           </button>
           <button
             onClick={() => setShowStatsSheet(true)}
-            className="flex-1 bg-tg-secondary text-tg-text rounded-lg px-4 py-3 font-medium transition-all hover:scale-105 active:scale-95 hover:bg-opacity-80"
+            className="flex-1 bg-tg-secondary text-tg-text rounded-lg px-4 py-3 font-medium transition-all hover:scale-105 active:scale-95 hover:bg-opacity-80 flex items-center justify-center gap-2"
           >
-            📊 {t('actions.statistics')}
+            <AppIcon name="icon-analytics" variant="brand" size={18} />
+            {t('actions.statistics')}
           </button>
         </div>
 
@@ -420,17 +441,19 @@ export default function GiveawayDetailsPage() {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {tabs.filter(t => t.show).map((tab) => (
+          {tabs.filter(tab => tab.show).map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 ${
                 activeTab === tab.key
                   ? 'bg-tg-button text-tg-button-text'
                   : 'bg-tg-secondary text-tg-text'
               }`}
             >
+              <AppIcon name={tab.icon} variant="brand" size={15} />
               {tab.label}
+              {tab.count !== undefined && <span className="opacity-70">({tab.count})</span>}
             </button>
           ))}
         </div>
@@ -442,20 +465,23 @@ export default function GiveawayDetailsPage() {
             {stats && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <StatCard
-                  icon="👥"
+                  icon="icon-participant"
                   label={t('stats.participants')}
                   value={stats.participantsCount}
                   subValue={stats.participantsToday > 0 ? `+${stats.participantsToday} ${t('stats.today')}` : undefined}
                 />
-                <StatCard icon="🎫" label={t('stats.tickets')} value={stats.ticketsTotal} />
-                <StatCard icon="👥" label={t('stats.invites')} value={stats.invitesCount} />
-                <StatCard icon="⚡" label={t('stats.boosts')} value={stats.boostsCount} />
+                <StatCard icon="icon-ticket" label={t('stats.tickets')} value={stats.ticketsTotal} />
+                <StatCard icon="icon-referral" label={t('stats.invites')} value={stats.invitesCount} />
+                <StatCard icon="icon-boost" label={t('stats.boosts')} value={stats.boostsCount} />
               </div>
             )}
 
             {/* Информация */}
             <div className="bg-tg-secondary rounded-xl p-4 space-y-3">
-              <h3 className="font-medium mb-3">📋 {t('info.title')}</h3>
+              <h3 className="font-medium mb-3 flex items-center gap-2">
+                <AppIcon name="icon-info" variant="brand" size={18} />
+                {t('info.title')}
+              </h3>
               
               <div className="flex justify-between text-sm">
                 <span className="text-tg-hint">{t('info.winnersCount')}:</span>
@@ -543,7 +569,10 @@ export default function GiveawayDetailsPage() {
             {/* Топ инвайтеров */}
             {giveaway.condition?.inviteEnabled && (
               <div className="bg-tg-secondary rounded-xl p-4">
-                <h3 className="font-medium mb-3">🏆 {t('topInviters.title')}</h3>
+                <h3 className="font-medium mb-3 flex items-center gap-2">
+                  <AppIcon name="icon-winner" variant="brand" size={18} />
+                  {t('topInviters.title')}
+                </h3>
                 {topInviters.length === 0 ? (
                   <p className="text-sm text-tg-hint text-center py-2">{t('topInviters.empty')}</p>
                 ) : (
@@ -575,22 +604,32 @@ export default function GiveawayDetailsPage() {
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={handleCopyLink}
-                className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2 text-sm font-medium"
+                className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2"
               >
-                🔗 {t('actions.copyLink')}
+                <AppIcon name="icon-copy" variant="brand" size={16} />
+                {t('actions.copyLink')}
               </button>
               <button
                 onClick={handleDuplicate}
-                className="bg-tg-secondary text-tg-text rounded-lg px-4 py-2 text-sm font-medium"
+                className="bg-tg-secondary text-tg-text rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2"
               >
-                📋 {t('actions.duplicate')}
+                <AppIcon name="icon-giveaway" variant="brand" size={16} />
+                {t('actions.duplicate')}
+              </button>
+              <button
+                onClick={() => router.push(`/creator/giveaway/${giveawayId}/theme`)}
+                className="bg-tg-secondary text-tg-text rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2"
+              >
+                <AppIcon name="icon-theme" variant="brand" size={16} />
+                Тема
               </button>
               {giveaway.condition?.storiesEnabled && (
                 <button
                   onClick={() => router.push(`/creator/giveaway/${giveawayId}/stories`)}
-                  className="bg-tg-secondary text-tg-text rounded-lg px-4 py-2 text-sm font-medium"
+                  className="bg-tg-secondary text-tg-text rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2"
                 >
-                  📺 {t('actions.storiesModeration')}
+                  <AppIcon name="icon-story" variant="brand" size={16} />
+                  {t('actions.storiesModeration')}
                 </button>
               )}
             </div>
@@ -678,7 +717,9 @@ export default function GiveawayDetailsPage() {
               </div>
             ) : (
               <div className="text-center py-12 bg-tg-secondary rounded-xl">
-                <div className="text-4xl mb-4">👥</div>
+                <div className="flex justify-center mb-4">
+                  <AppIcon name="icon-participant" variant="brand" size={56} />
+                </div>
                 <p className="text-tg-hint">
                   {searchQuery ? t('participantsTab.notFound') : t('participantsTab.empty')}
                 </p>
@@ -713,7 +754,9 @@ export default function GiveawayDetailsPage() {
               </div>
             ) : (
               <div className="text-center py-12 bg-tg-secondary rounded-xl">
-                <div className="text-4xl mb-4">🏆</div>
+                <div className="flex justify-center mb-4">
+                  <AppIcon name="icon-winner" variant="brand" size={56} />
+                </div>
                 <p className="text-tg-hint">{t('winnersTab.notDetermined')}</p>
               </div>
             )}

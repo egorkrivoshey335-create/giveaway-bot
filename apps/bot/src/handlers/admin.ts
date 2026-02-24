@@ -50,9 +50,9 @@ export async function handleAdminBan(ctx: Context) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Internal-Secret': config.internalApiToken,
+        'X-Internal-Token': config.internalApiToken,
       },
-      body: JSON.stringify({ banned: true }),
+      body: JSON.stringify({ banned: true, adminId: ctx.from?.id }),
     });
 
     if (!response.ok) {
@@ -93,7 +93,7 @@ export async function handleAdminUnban(ctx: Context) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Internal-Secret': config.internalApiToken,
+        'X-Internal-Token': config.internalApiToken,
       },
       body: JSON.stringify({ banned: false }),
     });
@@ -122,7 +122,7 @@ export async function handleAdminStats(ctx: Context) {
   try {
     const response = await fetch(`${config.apiUrl}/internal/admin/stats`, {
       headers: {
-        'X-Internal-Secret': config.internalApiToken,
+        'X-Internal-Token': config.internalApiToken,
       },
     });
 
@@ -178,7 +178,7 @@ export async function handleAdminGiveaway(ctx: Context) {
   try {
     const response = await fetch(`${config.apiUrl}/internal/admin/giveaways/${giveawayId}`, {
       headers: {
-        'X-Internal-Secret': config.internalApiToken,
+        'X-Internal-Token': config.internalApiToken,
       },
     });
 

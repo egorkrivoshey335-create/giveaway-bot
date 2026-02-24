@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AppIcon } from './AppIcon';
 
 export interface FloatingIcon {
   id: number;
@@ -34,15 +33,15 @@ export interface FloatingIconsProps {
  */
 const ICON_POOL = [
   'icon-giveaway',
-  'icon-gift',
-  'icon-trophy',
+  'icon-winner',
   'icon-star',
   'icon-ticket',
   'icon-boost',
   'icon-crown',
   'icon-diamond',
   'icon-calendar',
-  'icon-winner',
+  'icon-invite',
+  'icon-success',
 ];
 
 /**
@@ -136,12 +135,13 @@ export function FloatingIcons({
             '--rotate-duration': `${icon.duration * 1.5}s`,
           }}
         >
-          <AppIcon
-            name={icon.name}
-            variant="lucide"
-            size={icon.size}
-            color="currentColor"
-            className="text-brand-300 dark:text-brand-400"
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`/icons/floating/${icon.name}.webp`}
+            alt=""
+            width={icon.size}
+            height={icon.size}
+            style={{ display: 'block', objectFit: 'contain' }}
           />
         </div>
       ))}

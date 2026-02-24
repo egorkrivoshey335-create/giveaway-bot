@@ -336,6 +336,54 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   /**
+   * GET /giveaways/:id/public
+   * Публичная информация о розыгрыше — доступна без авторизации.
+   * Используется страницей /giveaway/[id] для участников.
+   */
+  fastify.get<{ Params: { id: string } }>('/giveaways/:id/public', async (request, reply) => {
+    const { id } = request.params;
+
+    const giveaway = await prisma.giveaway.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        type: true,
+        winnersCount: true,
+        totalParticipants: true,
+        endAt: true,
+        owner: {
+          select: { username: true, firstName: true },
+        },
+      },
+    });
+
+    if (!giveaway) {
+      return reply.notFound('Giveaway not found');
+    }
+
+    // Не показываем DRAFT розыгрыши публично
+    if (giveaway.status === GiveawayStatus.DRAFT) {
+      return reply.notFound('Giveaway not found');
+    }
+
+    return reply.success({
+      giveaway: {
+        id: giveaway.id,
+        title: giveaway.title,
+        status: giveaway.status,
+        type: giveaway.type,
+        winnersCount: giveaway.winnersCount,
+        totalParticipants: giveaway.totalParticipants,
+        endAt: giveaway.endAt?.toISOString() || null,
+        creatorUsername: giveaway.owner.username,
+        creatorFirstName: giveaway.owner.firstName,
+      },
+    });
+  });
+
+  /**
    * GET /giveaways
    * Список розыгрышей текущего пользователя с фильтрами и пагинацией
    */
@@ -1543,5 +1591,137 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
     await setCache(cacheKey, data, 5);
 
     return reply.success(data);
+  });
+
+  // ============================================================================
+  // 9.6 Кастомизация темы (платная: PRO/BUSINESS)
+  // ============================================================================
+
+  /**
+   * GET /giveaways/:id/theme
+   * Получить тему розыгрыша (только владелец)
+   */
+  fastify.get<{ Params: { id: string } }>('/giveaways/:id/theme', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+
+    const { id } = request.params;
+
+    const giveaway = await prisma.giveaway.findFirst({
+      where: { id, ownerUserId: user.id },
+      select: { id: true },
+    });
+    if (!giveaway) return reply.notFound('Giveaway not found');
+
+    const theme = await prisma.giveawayTheme.findUnique({
+      where: { giveawayId: id },
+    });
+
+    return reply.success({
+      theme: theme
+        ? {
+            backgroundColor: theme.backgroundColor,
+            accentColor: theme.accentColor,
+            buttonStyle: theme.buttonStyle,
+            logoFileId: theme.logoFileId,
+            iconVariant: theme.iconVariant,
+            iconColor: theme.iconColor,
+          }
+        : null,
+    });
+  });
+
+  /**
+   * PUT /giveaways/:id/theme
+   * Сохранить/обновить тему (upsert). Требует PRO/BUSINESS подписку.
+   */
+  fastify.put<{ Params: { id: string } }>('/giveaways/:id/theme', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+
+    const { id } = request.params;
+
+    const giveaway = await prisma.giveaway.findFirst({
+      where: { id, ownerUserId: user.id },
+      select: { id: true },
+    });
+    if (!giveaway) return reply.notFound('Giveaway not found');
+
+    // Проверяем наличие активной PRO/BUSINESS подписки
+    const now = new Date();
+    const entitlement = await prisma.entitlement.findFirst({
+      where: {
+        userId: user.id,
+        code: { in: ['PRO', 'BUSINESS'] },
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+    });
+    if (!entitlement) {
+      return reply.forbidden('Theme customization requires PRO or BUSINESS subscription');
+    }
+
+    const body = request.body as {
+      backgroundColor?: string;
+      accentColor?: string;
+      buttonStyle?: string;
+      logoFileId?: string;
+      iconVariant?: string;
+      iconColor?: string;
+    };
+
+    const theme = await prisma.giveawayTheme.upsert({
+      where: { giveawayId: id },
+      create: {
+        giveawayId: id,
+        backgroundColor: body.backgroundColor || null,
+        accentColor: body.accentColor || null,
+        buttonStyle: body.buttonStyle || 'default',
+        logoFileId: body.logoFileId || null,
+        iconVariant: body.iconVariant || 'brand',
+        iconColor: body.iconColor || '#000000',
+      },
+      update: {
+        ...(body.backgroundColor !== undefined && { backgroundColor: body.backgroundColor }),
+        ...(body.accentColor !== undefined && { accentColor: body.accentColor }),
+        ...(body.buttonStyle !== undefined && { buttonStyle: body.buttonStyle }),
+        ...(body.logoFileId !== undefined && { logoFileId: body.logoFileId }),
+        ...(body.iconVariant !== undefined && { iconVariant: body.iconVariant }),
+        ...(body.iconColor !== undefined && { iconColor: body.iconColor }),
+      },
+    });
+
+    fastify.log.info({ userId: user.id, giveawayId: id }, 'Giveaway theme updated');
+
+    return reply.success({
+      theme: {
+        backgroundColor: theme.backgroundColor,
+        accentColor: theme.accentColor,
+        buttonStyle: theme.buttonStyle,
+        logoFileId: theme.logoFileId,
+        iconVariant: theme.iconVariant,
+        iconColor: theme.iconColor,
+      },
+    });
+  });
+
+  /**
+   * DELETE /giveaways/:id/theme
+   * Удалить тему (сброс к дефолту)
+   */
+  fastify.delete<{ Params: { id: string } }>('/giveaways/:id/theme', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+
+    const { id } = request.params;
+
+    const giveaway = await prisma.giveaway.findFirst({
+      where: { id, ownerUserId: user.id },
+      select: { id: true },
+    });
+    if (!giveaway) return reply.notFound('Giveaway not found');
+
+    await prisma.giveawayTheme.deleteMany({ where: { giveawayId: id } });
+
+    return reply.success({ ok: true });
   });
 };

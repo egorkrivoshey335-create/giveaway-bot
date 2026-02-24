@@ -37,6 +37,7 @@ interface CaptchaData {
 
 import { redis } from '../lib/redis.js';
 import { awardParticipationBadges } from '../lib/badges.js';
+import { notifyCatalogCandidate } from '../lib/admin-notify.js';
 
 // =========================================================================
 // Генерация уникального короткого реферального кода (URL-безопасный, без ambiguous chars)
@@ -761,12 +762,33 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     // Увеличиваем счётчик участников
-    await prisma.giveaway.update({
+    const updatedGiveaway = await prisma.giveaway.update({
       where: { id },
       data: {
         totalParticipants: { increment: 1 },
       },
+      select: {
+        totalParticipants: true,
+        title: true,
+        isPublicInCatalog: true,
+        catalogApproved: true,
+        owner: { select: { username: true } },
+      },
     });
+
+    // 17.2 Системные уведомления: розыгрыш достиг 100 участников (кандидат в каталог)
+    if (
+      updatedGiveaway.totalParticipants === 100 &&
+      updatedGiveaway.isPublicInCatalog &&
+      !updatedGiveaway.catalogApproved
+    ) {
+      notifyCatalogCandidate({
+        giveawayId: id,
+        title: updatedGiveaway.title || 'Без названия',
+        creatorUsername: updatedGiveaway.owner.username,
+        participantCount: updatedGiveaway.totalParticipants,
+      });
+    }
 
     // Если есть валидный реферер — добавляем ему билет
     if (validReferrerUserId) {

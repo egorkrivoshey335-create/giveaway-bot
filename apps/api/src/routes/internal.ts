@@ -5,6 +5,7 @@ import { POST_LIMITS, POST_TEMPLATE_UNDO_WINDOW_MS } from '@randombeast/shared';
 import { ErrorCode } from '@randombeast/shared';
 import { config } from '../config.js';
 import { getCache, setCache } from '../lib/redis.js';
+import { sendAdminNotification } from '../lib/admin-notify.js';
 
 // Schema for giveaway accept
 const internalGiveawayAcceptSchema = z.object({
@@ -1211,4 +1212,158 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
 
     return reply.success({ ok: true });
   });
+
+  // ============================================================================
+  // 17.4 Системный бан: управление блокировками
+  // ============================================================================
+
+  /**
+   * POST /internal/users/:telegramUserId/ban
+   * Забанить или разбанить пользователя (вызывается из бота командами /admin_ban, /admin_unban)
+   * Body: { banned: boolean, reason?: string, adminId?: number, expiresAt?: string }
+   */
+  fastify.post<{ Params: { telegramUserId: string } }>(
+    '/users/:telegramUserId/ban',
+    async (request, reply) => {
+      const body = z.object({
+        banned: z.boolean(),
+        reason: z.string().optional(),
+        adminId: z.number().optional(),
+        expiresAt: z.string().datetime().optional(),
+      }).parse(request.body);
+
+      const telegramUserId = BigInt(request.params.telegramUserId);
+
+      const user = await prisma.user.findUnique({
+        where: { telegramUserId },
+        select: { id: true, username: true, firstName: true },
+      });
+
+      if (!user) {
+        return reply.status(404).send({ ok: false, error: 'User not found' });
+      }
+
+      if (body.banned) {
+        // Создаём или обновляем бан (upsert)
+        await prisma.systemBan.upsert({
+          where: { userId: user.id },
+          create: {
+            userId: user.id,
+            reason: body.reason || 'Заблокирован администратором',
+            bannedBy: body.adminId?.toString() || null,
+            expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
+          },
+          update: {
+            reason: body.reason || 'Заблокирован администратором',
+            bannedBy: body.adminId?.toString() || null,
+            bannedAt: new Date(),
+            expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
+          },
+        });
+
+        fastify.log.info({ userId: user.id, telegramUserId: telegramUserId.toString() }, 'User banned');
+
+        // Уведомляем администраторов
+        const userStr = user.username ? `@${user.username}` : user.firstName || `ID:${telegramUserId}`;
+        sendAdminNotification(
+          `🔒 <b>Пользователь заблокирован</b>\n\n` +
+          `👤 ${userStr}\n` +
+          `📋 Причина: ${body.reason || 'не указана'}\n` +
+          (body.expiresAt ? `⏰ До: ${new Date(body.expiresAt).toLocaleString('ru-RU')}` : '⏰ Бессрочно')
+        ).catch(() => {});
+
+        return reply.success({ ok: true, banned: true });
+      } else {
+        // Удаляем бан
+        const existing = await prisma.systemBan.findUnique({ where: { userId: user.id } });
+        if (existing) {
+          await prisma.systemBan.delete({ where: { userId: user.id } });
+          fastify.log.info({ userId: user.id }, 'User unbanned');
+        }
+
+        return reply.success({ ok: true, banned: false });
+      }
+    }
+  );
+
+  // ============================================================================
+  // 17.2 Системные уведомления: admin endpoints для бот-команд
+  // ============================================================================
+
+  /**
+   * GET /internal/admin/stats
+   * Платформенная статистика для команды /admin_stats в боте
+   */
+  fastify.get('/admin/stats', async (_request, reply) => {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const [
+      totalUsers,
+      totalGiveaways,
+      totalChannels,
+      totalParticipations,
+      newUsersToday,
+      newGiveawaysToday,
+      activeGiveaways,
+      totalPurchases,
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.giveaway.count({ where: { status: { not: GiveawayStatus.DRAFT } } }),
+      prisma.channel.count(),
+      prisma.participation.count(),
+      prisma.user.count({ where: { createdAt: { gte: startOfDay } } }),
+      prisma.giveaway.count({ where: { createdAt: { gte: startOfDay } } }),
+      prisma.giveaway.count({ where: { status: GiveawayStatus.ACTIVE } }),
+      prisma.purchase.count({ where: { status: 'COMPLETED' } }),
+    ]);
+
+    return reply.success({
+      totalUsers,
+      totalGiveaways,
+      totalChannels,
+      totalParticipations,
+      newUsersToday,
+      newGiveawaysToday,
+      activeGiveaways,
+      totalPurchases,
+    });
+  });
+
+  /**
+   * GET /internal/admin/giveaways/:id
+   * Информация о конкретном розыгрыше для команды /admin_giveaway в боте
+   */
+  fastify.get<{ Params: { id: string } }>(
+    '/admin/giveaways/:id',
+    async (request, reply) => {
+      const { id } = request.params;
+
+      const giveaway = await prisma.giveaway.findUnique({
+        where: { id },
+        include: {
+          owner: {
+            select: { telegramUserId: true, username: true, firstName: true },
+          },
+          _count: { select: { participations: true } },
+        },
+      });
+
+      if (!giveaway) {
+        return reply.status(404).send({ ok: false, error: 'Giveaway not found' });
+      }
+
+      return reply.success({
+        id: giveaway.id,
+        title: giveaway.title,
+        status: giveaway.status,
+        creatorId: giveaway.owner.telegramUserId.toString(),
+        creatorUsername: giveaway.owner.username,
+        participantCount: giveaway._count.participations,
+        endsAt: giveaway.endAt?.toISOString() || null,
+        isSandbox: giveaway.isSandbox,
+        catalogApproved: giveaway.catalogApproved,
+      });
+    }
+  );
 };

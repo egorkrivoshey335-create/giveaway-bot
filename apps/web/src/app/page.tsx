@@ -7,6 +7,7 @@ import { DebugPanel } from '@/components/DebugPanel';
 import { ParticipantSection } from '@/components/ParticipantSection';
 import { CreatorSection } from '@/components/CreatorSection';
 import { useTelegramLocale, syncLocaleFromDb } from '@/hooks/useLocale';
+import { AppIcon } from '@/components/AppIcon';
 import {
   authenticateWithTelegram,
   getCurrentUser,
@@ -227,22 +228,24 @@ export default function HomePage() {
           <div className="max-w-xl mx-auto flex p-2 gap-2">
             <button
               onClick={() => setActiveTab('participant')}
-              className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-colors ${
+              className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
                 activeTab === 'participant'
                   ? 'bg-tg-button text-tg-button-text'
                   : 'bg-tg-secondary text-tg-text hover:bg-tg-secondary/80'
               }`}
             >
+              <AppIcon name="icon-participant" variant="brand" size={18} />
               {tNav('participant')}
             </button>
             <button
               onClick={() => setActiveTab('creator')}
-              className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-colors ${
+              className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
                 activeTab === 'creator'
                   ? 'bg-tg-button text-tg-button-text'
                   : 'bg-tg-secondary text-tg-text hover:bg-tg-secondary/80'
               }`}
             >
+              <AppIcon name="icon-giveaway" variant="brand" size={18} />
               {tNav('creator')}
             </button>
             <button
@@ -251,9 +254,7 @@ export default function HomePage() {
               className="py-3 px-3 rounded-xl font-medium text-sm transition-colors bg-tg-secondary text-tg-hint hover:bg-tg-secondary/80"
               aria-label="FAQ"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <AppIcon name="icon-faq" variant="brand" size={20} />
             </button>
           </div>
         </div>
