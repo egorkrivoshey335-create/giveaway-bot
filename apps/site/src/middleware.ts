@@ -1,24 +1,55 @@
 import createMiddleware from 'next-intl/middleware';
+import { NextRequest, NextResponse } from 'next/server';
 import { locales, defaultLocale } from './i18n/config';
 
-export default createMiddleware({
-  // All supported locales
+const intlMiddleware = createMiddleware({
   locales,
-
-  // Default locale
   defaultLocale,
-
-  // Prefix the default locale (e.g., /ru/...)
-  localePrefix: 'as-needed', // /ru/ not shown, /en/ and /kk/ shown
-
-  // Detect locale from Accept-Language header (browser language)
+  localePrefix: 'as-needed',
   localeDetection: true,
 });
 
+// Cookie set by POST /api/maintenance after correct password
+const ACCESS_COOKIE = 'rb_site_access';
+
+// Paths that are always accessible (maintenance page itself, API routes, static)
+const PUBLIC_PATHS = ['/maintenance', '/api/', '/_next/', '/favicon', '/robots', '/sitemap'];
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+}
+
+export default function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Check maintenance mode only when MAINTENANCE_PASSWORD is set in env
+  const maintenancePassword = process.env.MAINTENANCE_PASSWORD;
+  const isMaintenanceEnabled = maintenancePassword && maintenancePassword.trim() !== '';
+
+  if (isMaintenanceEnabled && !isPublicPath(pathname)) {
+    const accessCookie = request.cookies.get(ACCESS_COOKIE);
+    const hasAccess = accessCookie?.value === 'granted';
+
+    if (!hasAccess) {
+      // Detect locale from Accept-Language header for redirect
+      const acceptLang = request.headers.get('accept-language') || '';
+      let locale = defaultLocale;
+      if (acceptLang.includes('en')) locale = 'en';
+      else if (acceptLang.includes('kk')) locale = 'kk';
+      else if (acceptLang.includes('ru')) locale = 'ru';
+
+      const maintenanceUrl = new URL(
+        locale === defaultLocale ? '/maintenance' : `/${locale}/maintenance`,
+        request.url
+      );
+      return NextResponse.redirect(maintenanceUrl);
+    }
+  }
+
+  // Normal i18n routing
+  return intlMiddleware(request);
+}
+
 export const config = {
-  // Match all pathnames except for
-  // - API routes
-  // - _next (Next.js internals)
-  // - static files (images, etc.)
   matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
 };
