@@ -23,9 +23,15 @@
     "db:migrate:deploy": "pnpm --filter @randombeast/database migrate:deploy",
     "db:push": "pnpm --filter @randombeast/database push",
     "db:seed": "pnpm --filter @randombeast/database seed",
-    "db:studio": "pnpm --filter @randombeast/database studio"
+    "db:studio": "pnpm --filter @randombeast/database studio",
+    "test": "pnpm --filter @randombeast/api test",
+    "test:coverage": "pnpm --filter @randombeast/api test:coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/node": "^20.11.0",
     "prettier": "^3.2.4",
     "turbo": "^2.3.0",

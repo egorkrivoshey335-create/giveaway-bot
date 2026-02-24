@@ -4,6 +4,11 @@ import { config } from '../config.js';
 import { awardWinnerBadges } from '../lib/badges.js';
 import { checkContent } from '@randombeast/shared';
 import { notifyCatalogApproved } from '../lib/admin-notify.js';
+import {
+  buildCumulativePool,
+  weightedRandomSelect,
+  generateDrawSeed,
+} from '../utils/winners.js';
 
 // Имя бота для deep links
 const BOT_USERNAME = process.env.BOT_USERNAME || 'BeastRandomBot';
@@ -15,86 +20,8 @@ const FRAUD_SCORE_THRESHOLD = 80;
 const TG_MAX_MESSAGE_LENGTH = 4096;
 
 // ============================================================================
-// Weighted Random: cumulative sum + binary search + crypto.randomInt()
+// (Winner selection logic is in ../utils/winners.ts — imported above)
 // ============================================================================
-
-interface WeightedEntry {
-  userId: string;
-  participationId: string;
-  ticketsUsed: number;
-  cumulativeWeight: number;
-}
-
-/**
- * Строит массив с накопленными весами (cumulative sum)
- * для weighted random selection.
- */
-function buildCumulativePool(
-  participants: Array<{ userId: string; id: string; ticketsBase: number; ticketsExtra: number }>
-): WeightedEntry[] {
-  const pool: WeightedEntry[] = [];
-  let cumulative = 0;
-  for (const p of participants) {
-    const weight = Math.max(p.ticketsBase + p.ticketsExtra, 1);
-    cumulative += weight;
-    pool.push({
-      userId: p.userId,
-      participationId: p.id,
-      ticketsUsed: weight,
-      cumulativeWeight: cumulative,
-    });
-  }
-  return pool;
-}
-
-/**
- * Binary search: возвращает индекс первого элемента, у которого
- * cumulativeWeight >= target.
- */
-function binarySearchIndex(pool: WeightedEntry[], target: number): number {
-  let lo = 0;
-  let hi = pool.length - 1;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (pool[mid].cumulativeWeight < target) {
-      lo = mid + 1;
-    } else {
-      hi = mid;
-    }
-  }
-  return lo;
-}
-
-/**
- * Выбрать одного участника из пула с учётом весов (weighted random).
- * Использует Node.js crypto.randomInt() — криптографически безопасный.
- */
-function weightedRandomSelect(pool: WeightedEntry[]): WeightedEntry {
-  if (pool.length === 0) throw new Error('Empty weighted pool');
-  const totalWeight = pool[pool.length - 1].cumulativeWeight;
-  // crypto.randomInt(min, max) → [min, max) (max exclusive)
-  // Нам нужен [1, totalWeight] → crypto.randomInt(1, totalWeight + 1)
-  const target = crypto.randomInt(1, totalWeight + 1);
-  const idx = binarySearchIndex(pool, target);
-  return pool[idx];
-}
-
-/**
- * Генерация SHA256 audit seed для прозрачности выбора победителей.
- * Формат: SHA256("giveawayId|endAt|[{userId,tickets},...sorted]")
- * Опубликуйте seed + данные участников — и любой сможет верифицировать результат.
- */
-function generateDrawSeed(
-  giveawayId: string,
-  endAt: Date | null,
-  participants: Array<{ userId: string; ticketsBase: number; ticketsExtra: number }>
-): string {
-  const sorted = [...participants]
-    .sort((a, b) => a.userId.localeCompare(b.userId))
-    .map(p => ({ id: p.userId, tickets: p.ticketsBase + p.ticketsExtra }));
-  const payload = `${giveawayId}|${endAt?.toISOString() ?? ''}|${JSON.stringify(sorted)}`;
-  return crypto.createHash('sha256').update(payload).digest('hex');
-}
 
 /**
  * Обработка жизненного цикла розыгрышей
