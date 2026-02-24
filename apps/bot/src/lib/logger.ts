@@ -1,14 +1,12 @@
 import pino from 'pino';
-import { config } from '../config.js';
 
-/**
- * Pino logger configuration
- * Development: pretty print
- * Production: JSON format
- */
+// Use process.env directly to avoid circular dependency with config.ts
+// (config.ts imports createLogger, logger.ts must not import config)
+const isDev = process.env.NODE_ENV !== 'production';
+
 export const logger = pino({
-  level: process.env.LOG_LEVEL || (config.isDev ? 'debug' : 'info'),
-  transport: config.isDev
+  level: process.env.LOG_LEVEL || (isDev ? 'debug' : 'info'),
+  transport: isDev
     ? {
         target: 'pino-pretty',
         options: {
@@ -26,9 +24,6 @@ export const logger = pino({
   timestamp: pino.stdTimeFunctions.isoTime,
 });
 
-/**
- * Child logger для конкретных модулей
- */
 export const createLogger = (module: string) => {
   return logger.child({ module });
 };
