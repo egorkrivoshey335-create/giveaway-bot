@@ -219,7 +219,7 @@ export function SubscriptionBottomSheet({
     } finally {
       setLoading(false);
     }
-  }, [selectedTier, selectedTierConfig.productCode, t, tErrors]);
+  }, [selectedTierConfig.productCode, t, tErrors]);
 
   const isCurrent = (tierKey: TierKey) =>
     currentTier === tierKey;

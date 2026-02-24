@@ -283,11 +283,7 @@ export default function CatalogPage() {
   useEffect(() => {
     setCursor(undefined);
     loadCatalog(false, undefined);
-  }, [sortBy]);
-
-  useEffect(() => {
-    loadCatalog();
-  }, []);
+  }, [loadCatalog]);
 
   const handleLoadMore = () => {
     loadCatalog(true, cursor);

@@ -6,14 +6,14 @@ import { defaultLocale, locales, type Locale } from './config';
  * Get locale for server-side rendering
  * Priority: 1) URL segment, 2) cookie, 3) default
  */
-export default getRequestConfig(async ({ locale }) => {
-  // Validate locale from URL
-  const requestLocale = locale as Locale;
-  
+export default getRequestConfig(async ({ requestLocale }) => {
+  const localeFromRequest = await requestLocale;
+  const requestedLocale = localeFromRequest as Locale;
+
   // If no locale in URL, try cookie
-  let finalLocale: Locale = requestLocale || defaultLocale;
-  
-  if (!requestLocale) {
+  let finalLocale: Locale = requestedLocale || defaultLocale;
+
+  if (!requestedLocale) {
     const cookieStore = await cookies();
     const cookieLocale = cookieStore.get('NEXT_LOCALE')?.value as Locale | undefined;
     if (cookieLocale && locales.includes(cookieLocale)) {

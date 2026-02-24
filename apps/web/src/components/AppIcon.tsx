@@ -1,6 +1,7 @@
 'use client';
 
 import * as LucideIcons from 'lucide-react';
+import NextImage from 'next/image';
 import { CSSProperties, SVGProps, useState } from 'react';
 
 /**
@@ -199,11 +200,12 @@ function BrandIcon({
   const brandPath = `/icons/brand/${normalizedName}.${format}`;
 
   return (
-    <img
+    <NextImage
       src={brandPath}
       alt={ariaLabel || normalizedName}
       width={size}
       height={size}
+      unoptimized
       className={className}
       style={{
         display: 'inline-block',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { BottomSheet } from './ui/BottomSheet';
 import { Tabs } from './ui/Tabs';
@@ -31,14 +31,7 @@ export function ShareBottomSheet({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  // Загрузка трекинг-ссылок при открытии
-  useEffect(() => {
-    if (isOpen && activeTab === 'links') {
-      loadLinks();
-    }
-  }, [isOpen, activeTab]);
-
-  const loadLinks = async () => {
+  const loadLinks = useCallback(async () => {
     try {
       const res = await getTrackingLinks(giveawayId);
       if (res.ok && res.items) {
@@ -47,7 +40,14 @@ export function ShareBottomSheet({
     } catch (err) {
       console.error('Failed to load tracking links:', err);
     }
-  };
+  }, [giveawayId]);
+
+  // Загрузка трекинг-ссылок при открытии
+  useEffect(() => {
+    if (isOpen && activeTab === 'links') {
+      loadLinks();
+    }
+  }, [isOpen, activeTab, loadLinks]);
 
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);

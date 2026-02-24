@@ -170,8 +170,9 @@ export default function GiveawayDetailsPage() {
   }, [activeTab, searchQuery, loadParticipants]);
 
   // Polling участников для активных розыгрышей
+  const giveawayStatus = giveaway?.status;
   useEffect(() => {
-    if (!giveaway || giveaway.status !== 'ACTIVE') {
+    if (giveawayStatus !== 'ACTIVE') {
       return;
     }
 
@@ -194,7 +195,7 @@ export default function GiveawayDetailsPage() {
         clearInterval(pollingIntervalRef.current);
       }
     };
-  }, [giveaway?.status, giveawayId]);
+  }, [giveawayStatus, giveawayId]);
 
   // Дублировать
   const handleDuplicate = async () => {

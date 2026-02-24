@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { BottomSheet } from './ui/BottomSheet';
 import { getGiveawayStats, type GiveawayStats } from '@/lib/api';
@@ -25,13 +25,7 @@ export function StatsBottomSheet({
   // Временно: показываем все статистику без проверки подписки
   const [hasAccess, setHasAccess] = useState(true); // Заглушка
 
-  useEffect(() => {
-    if (isOpen && hasAccess) {
-      loadStats();
-    }
-  }, [isOpen, hasAccess]);
-
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     setLoading(true);
     try {
       const res = await getGiveawayStats(giveawayId);
@@ -43,7 +37,13 @@ export function StatsBottomSheet({
     } finally {
       setLoading(false);
     }
-  };
+  }, [giveawayId]);
+
+  useEffect(() => {
+    if (isOpen && hasAccess) {
+      loadStats();
+    }
+  }, [isOpen, hasAccess, loadStats]);
 
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title={t('stats.title')}>
