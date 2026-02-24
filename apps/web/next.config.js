@@ -1,4 +1,5 @@
 const createNextIntlPlugin = require('next-intl/plugin');
+const path = require('path');
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -6,27 +7,29 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@randombeast/shared'],
-  
+
   // Enable instrumentation hook for Sentry
   experimental: {
     instrumentationHook: true,
   },
 
-  // Bundle analyzer (ANALYZE=true pnpm build)
-  ...(process.env.ANALYZE === 'true' && {
-    webpack: (config, { isServer }) => {
-      if (!isServer) {
-        const { BundleAnalyzerPlugin } = require('@next/bundle-analyzer')();
-        config.plugins.push(
-          new BundleAnalyzerPlugin({
-            analyzerMode: 'static',
-            openAnalyzer: true,
-          })
-        );
-      }
-      return config;
-    },
-  }),
+  webpack: (config, options) => {
+    // Explicit @/ alias so it always resolves regardless of tsconfig reading
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.resolve(__dirname, 'src'),
+    };
+
+    // Bundle analyzer (ANALYZE=true pnpm build)
+    if (process.env.ANALYZE === 'true' && !options.isServer) {
+      const { BundleAnalyzerPlugin } = require('@next/bundle-analyzer')();
+      config.plugins.push(
+        new BundleAnalyzerPlugin({ analyzerMode: 'static', openAnalyzer: true })
+      );
+    }
+
+    return config;
+  },
 };
 
 // Подключаем Sentry только если пакет установлен и DSN задан
