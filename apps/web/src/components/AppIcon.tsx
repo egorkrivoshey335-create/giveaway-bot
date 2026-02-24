@@ -87,9 +87,8 @@ const LUCIDE_ICON_MAP: Record<string, keyof typeof LucideIcons> = {
   'icon-phone': 'Phone',
   'icon-email': 'Mail',
 
-  // Referral & Engagement
+  // Referral & Engagement (extras)
   'icon-referral': 'UserPlus',
-  'icon-story': 'ImagePlus',
   'icon-report': 'Flag',
   'icon-ban': 'UserX',
   'icon-unban': 'UserCheck',
