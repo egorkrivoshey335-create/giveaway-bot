@@ -126,47 +126,5 @@ export const remindersRoutes: FastifyPluginAsync = async (fastify) => {
     }
   );
 
-  /**
-   * PATCH /users/me/notifications
-   * Настройки уведомлений пользователя
-   */
-  const notificationSettingsSchema = z.object({
-    notificationsEnabled: z.boolean().optional(),
-    creatorNotificationMode: z.enum(['MILESTONE', 'DAILY', 'OFF']).optional(),
-  });
-
-  fastify.patch('/users/me/notifications', async (request, reply) => {
-    const user = await requireUser(request, reply);
-    if (!user) return;
-
-    const parsed = notificationSettingsSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.badRequest('Ошибка валидации');
-    }
-
-    const data = parsed.data;
-    const updateData: Record<string, unknown> = {};
-
-    if (data.notificationsEnabled !== undefined) {
-      updateData.notificationsEnabled = data.notificationsEnabled;
-    }
-    if (data.creatorNotificationMode !== undefined) {
-      updateData.creatorNotificationMode = data.creatorNotificationMode;
-    }
-
-    if (Object.keys(updateData).length === 0) {
-      return reply.badRequest('Нет данных для обновления');
-    }
-
-    const updated = await prisma.user.update({
-      where: { id: user.id },
-      data: updateData,
-      select: {
-        notificationsEnabled: true,
-        creatorNotificationMode: true,
-      },
-    });
-
-    return reply.success(updated);
-  });
 };
+

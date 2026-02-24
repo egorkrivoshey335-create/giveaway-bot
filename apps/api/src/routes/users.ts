@@ -4,7 +4,9 @@ import { prisma, GiveawayStatus } from '@randombeast/database';
 import { requireUser } from '../plugins/auth.js';
 
 const updateNotificationsSchema = z.object({
-  notificationsBlocked: z.boolean(),
+  notificationsBlocked: z.boolean().optional(),
+  notificationsEnabled: z.boolean().optional(),
+  creatorNotificationMode: z.enum(['MILESTONE', 'DAILY', 'OFF']).optional(),
 });
 
 const updateCatalogNotificationsSchema = z.object({
@@ -140,20 +142,39 @@ export const usersRoutes: FastifyPluginAsync = async (fastify) => {
 
   /**
    * PATCH /users/me/notifications
-   * Включить/выключить уведомления от бота
+   * Управление настройками уведомлений пользователя
    */
   fastify.patch('/users/me/notifications', async (request, reply) => {
     const user = await requireUser(request, reply);
     if (!user) return;
 
-    const body = updateNotificationsSchema.parse(request.body);
+    const parsed = updateNotificationsSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.badRequest('Ошибка валидации');
+    }
 
-    await prisma.user.update({
+    const { notificationsBlocked, notificationsEnabled, creatorNotificationMode } = parsed.data;
+    const updateData: Record<string, unknown> = {};
+
+    if (notificationsBlocked !== undefined) updateData.notificationsBlocked = notificationsBlocked;
+    if (notificationsEnabled !== undefined) updateData.notificationsEnabled = notificationsEnabled;
+    if (creatorNotificationMode !== undefined) updateData.creatorNotificationMode = creatorNotificationMode;
+
+    if (Object.keys(updateData).length === 0) {
+      return reply.badRequest('Нет данных для обновления');
+    }
+
+    const updated = await prisma.user.update({
       where: { id: user.id },
-      data: { notificationsBlocked: body.notificationsBlocked },
+      data: updateData,
+      select: {
+        notificationsBlocked: true,
+        notificationsEnabled: true,
+        creatorNotificationMode: true,
+      },
     });
 
-    return reply.success({ notificationsBlocked: body.notificationsBlocked });
+    return reply.success(updated);
   });
 
   /**
