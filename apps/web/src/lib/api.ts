@@ -1824,6 +1824,10 @@ export async function updateGiveaway(
     winnersCount?: number;
     captchaMode?: 'OFF' | 'SUSPICIOUS_ONLY' | 'ALL';
     livenessEnabled?: boolean;
+    inviteEnabled?: boolean;
+    inviteMax?: number;
+    boostEnabled?: boolean;
+    storiesEnabled?: boolean;
   }
 ): Promise<{ok: boolean; error?: string}> {
   const response = await fetch(`${API_URL}/giveaways/${giveawayId}`, {

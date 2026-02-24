@@ -692,6 +692,7 @@
     },
     "info": {
       "title": "Information",
+      "giveawayTitle": "Giveaway title",
       "winnersCount": "Winners",
       "start": "Start",
       "end": "End",
@@ -700,10 +701,17 @@
       "noEndDate": "Not specified"
     },
     "edit": {
-      "title": "Edit",
+      "title": "Edit Giveaway",
+      "openButton": "Edit Settings",
       "change": "Change",
-      "saved": "✅ Saved",
-      "error": "Save error"
+      "save": "Save Changes",
+      "cancel": "Cancel",
+      "saved": "✅ Changes saved",
+      "error": "Save error",
+      "activeHint": "Limited editing",
+      "captchaOff": "Disabled",
+      "captchaSuspicious": "Suspicious only",
+      "captchaAll": "All participants"
     },
     "conditions": {
       "title": "Conditions",
@@ -711,6 +719,7 @@
       "boosts": "Boosts",
       "stories": "Stories",
       "captcha": "Captcha",
+      "liveness": "Identity check",
       "upTo": "up to"
     },
     "growth": {

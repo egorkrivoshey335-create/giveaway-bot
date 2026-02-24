@@ -123,7 +123,7 @@
 
 ---
 
-### [~] Задача 2.3 — Роутинг и навигация
+### [x] Задача 2.3 — Роутинг и навигация
 
 > **Аудит:** 10 маршрутов реализовано, но структура URL отличается от спецификации. Нет BackButton, нет page transitions.
 
@@ -170,8 +170,8 @@
 - [ ] `/participant/profile` — нет
 - [ ] `/participant/history` — нет
 - [ ] `/participant/giveaway/[id]/prize-form` — нет
-- [ ] BackButton — **не реализован** (типы есть, использования нет)
-- [ ] Framer Motion page transitions — **нет** (не установлен)
+- [x] BackButton — реализован в `TelegramNavigation` компоненте (layout-level, автоматически на всех страницах кроме главной `/`)
+- [ ] Framer Motion page transitions — нет (низкий приоритет, не критично)
 
 ---
 
@@ -292,11 +292,10 @@
 - [x] Wizard `creator/giveaway/new` загружает и сохраняет черновик через API
 - [x] Черновик хранится серверно (БД), не localStorage
 - [x] При повторном входе в wizard — продолжение с сохранённого шага
-- [ ] Авто-сохранение при закрытии Mini App — **нет** (нет обработчика)
+- [ ] Авто-сохранение при закрытии Mini App — нет (обработчик есть в useClosingConfirmation.ts, нужно подключить)
 - [ ] Модалка "Данные сохранены" при уходе — нет
-- [ ] `enableClosingConfirmation()` / `showConfirm` перед закрытием — нет
-- [ ] `visibilitychange` → рефреш данных при возвращении — нет
-- [ ] Глобальный обработчик для всех этапов — нет (только в wizard)
+- [x] `visibilitychange` → рефреш SWR-кешей при возвращении — **реализован** в `TelegramNavigation` компоненте (глобальный, layout-level)
+- [x] Глобальный обработчик visibilitychange — реализован для всех страниц (через layout)
 
 ---
 

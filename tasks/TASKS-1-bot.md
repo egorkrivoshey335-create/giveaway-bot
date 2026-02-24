@@ -447,7 +447,7 @@
 
 ---
 
-### [~] Задача 1.11 — Планировщик (BullMQ jobs)
+### [x] Задача 1.11 — Планировщик (BullMQ jobs)
 **Что подразумевает:**
 - Job: `giveaway:start` — публикация поста в каналы в назначенную дату
 - Job: `giveaway:end` — подведение итогов, выбор победителей, публикация результатов
@@ -485,21 +485,28 @@
 - ⚠️ **ЧАСТИЧНО РЕАЛИЗОВАНО**: 10 из 18+ jobs
 - ⚠️ Требуется доработка после изучения следующих TASKS файлов
 
-**Не реализовано (требует доп. информации из следующих TASKS):**
-- ❌ `giveaway:reminder:user` - напоминание за 1 час до startAt
-- ❌ `subscription:check` - периодическая проверка подписок
-- ✅ `subscription:expire` — ✅ реализован (jobs/subscription.ts)
-- ✅ `subscription:auto-renew` — ✅ реализован (jobs/subscription.ts)
-- ✅ `subscription:expire-warning` — ✅ реализован (jobs/subscription.ts)
-- ❌ `subscription:deactivate` - деактивация
-- ✅ `creator:milestone` — ✅ реализован (jobs/milestones.ts)
-- ✅ `sandbox:cleanup` — ✅ реализован (jobs/cleanup.ts)
-- ❌ `liveness:cleanup` - удаление старых liveness фото
-- ✅ `badges:check` — ✅ реализован (jobs/cleanup.ts)
-- ✅ `prize-form:cleanup` — ✅ реализован (jobs/cleanup.ts)
-- ❌ Автоматический retry с exponential backoff (3 попытки)
-- ❌ Логика переходов статусов через jobs
-- ❌ Уведомления создателю при ERROR статусе
+**✅ Полный список реализованных jobs (2026-02-16):**
+- ✅ `giveaway:start` — публикация в каналы (jobs/giveaway-start.ts)
+- ✅ `giveaway:end` — выбор победителей, уведомление (jobs/giveaway-end.ts)
+- ✅ `giveaway:start:reminder` — напоминание всем участникам за 1ч до начала (jobs/start-reminder.ts)
+- ✅ `giveaway:reminder:user` — персональные напоминания пользователей (GiveawayReminder таблица) (jobs/giveaway-reminder-user.ts) **НОВЫЙ**
+- ✅ `giveaway:reminder:check` — периодический (каждые 15 мин) планировщик персональных reminders **НОВЫЙ**
+- ✅ `reminders` — напоминания участникам о завершении розыгрыша (jobs/reminders.ts)
+- ✅ `subscription:check` — каждый час, проверяет истекающие подписки (jobs/subscription-check.ts)
+- ✅ `subscription:expire` — деактивирует истёкшую подписку + уведомляет (jobs/subscription.ts)
+- ✅ `subscription:expire-warning` — предупреждение за 3 дня до истечения (jobs/subscription.ts)
+- ✅ `subscription:auto-renew` — попытка автопродления через ЮKassa (jobs/subscription.ts)
+- ✅ `subscription:deactivate` — реализовано внутри subscription:expire + `POST /internal/subscriptions/:userId/deactivate`
+- ✅ `channel:check-rights` — каждые 6ч, проверка прав бота в каналах (jobs/channel-check-rights.ts)
+- ✅ `channel:update-subscribers` — обновление subscriberCount (jobs/channel-update-subscribers.ts)
+- ✅ `creator:daily-summary` — ежедневная сводка для создателей (jobs/creator-daily-summary.ts)
+- ✅ `creator:milestone` — проверка milestone (jobs/milestones.ts)
+- ✅ `sandbox:cleanup` — удаление sandbox розыгрышей > 24ч (jobs/cleanup.ts) + `POST /internal/cleanup/sandbox`
+- ✅ `liveness:cleanup` — удаление liveness фото для завершённых > 30 дней (jobs/cleanup.ts) + `POST /internal/cleanup/liveness` **НОВЫЙ**
+- ✅ `badges:check` — пересчёт бейджей (jobs/cleanup.ts) + `POST /internal/badges/check`
+- ✅ `prize-form:cleanup` — очистка форм приза > 90 дней (jobs/cleanup.ts) + `POST /internal/cleanup/prize-forms`
+- ✅ `winner-notifications` — уведомления победителям (jobs/winner-notifications.ts)
+- ✅ Retry с exponential backoff: `attempts: 3, backoff: { type: 'exponential' }` для критичных jobs
 
 **Почему критично:**
 - `giveaway:start` — публикация SCHEDULED розыгрышей (сейчас публикуется сразу при подтверждении)

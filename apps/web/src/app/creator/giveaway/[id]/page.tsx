@@ -122,10 +122,24 @@ export default function GiveawayDetailsPage() {
   // Subscription tier (for stats gating)
   const [userTier, setUserTier] = useState<'FREE' | 'PLUS' | 'PRO' | 'BUSINESS'>('FREE');
 
-  // Inline editing state
+  // Legacy inline editing state (endAt only)
   const [editingEndAt, setEditingEndAt] = useState(false);
   const [editEndAtValue, setEditEndAtValue] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Full edit mode (task 5.3)
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editData, setEditData] = useState<{
+    title: string;
+    winnersCount: number;
+    endAt: string;
+    captchaMode: 'OFF' | 'SUSPICIOUS_ONLY' | 'ALL';
+    livenessEnabled: boolean;
+    inviteEnabled: boolean;
+    inviteMax: number;
+    boostEnabled: boolean;
+    storiesEnabled: boolean;
+  } | null>(null);
 
   // Polling
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -251,6 +265,63 @@ export default function GiveawayDetailsPage() {
   }, [giveawayStatus, giveawayId]);
 
   // Дублировать
+  // ── Full edit mode handlers (task 5.3) ──────────────────────────────────────
+
+  const EDITABLE_STATUSES = ['DRAFT', 'PENDING_CONFIRM', 'SCHEDULED', 'ACTIVE'];
+  const ACTIVE_ONLY_FIELDS = giveaway?.status === 'ACTIVE'; // true => only endAt, captchaMode, livenessEnabled
+
+  const openEditMode = () => {
+    if (!giveaway) return;
+    setEditData({
+      title: giveaway.title,
+      winnersCount: giveaway.winnersCount,
+      endAt: giveaway.endAt ? new Date(giveaway.endAt).toISOString().slice(0, 16) : '',
+      captchaMode: (giveaway.condition?.captchaMode as 'OFF' | 'SUSPICIOUS_ONLY' | 'ALL') ?? 'OFF',
+      livenessEnabled: giveaway.condition?.livenessEnabled ?? false,
+      inviteEnabled: giveaway.condition?.inviteEnabled ?? false,
+      inviteMax: giveaway.condition?.inviteMax ?? 1,
+      boostEnabled: giveaway.condition?.boostEnabled ?? false,
+      storiesEnabled: giveaway.condition?.storiesEnabled ?? false,
+    });
+    setIsEditMode(true);
+  };
+
+  const cancelEditMode = () => {
+    setIsEditMode(false);
+    setEditData(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!giveaway || !editData) return;
+    setSaving(true);
+    try {
+      const payload: Parameters<typeof updateGiveaway>[1] = {
+        captchaMode: editData.captchaMode,
+        livenessEnabled: editData.livenessEnabled,
+        endAt: editData.endAt ? new Date(editData.endAt).toISOString() : null,
+      };
+      if (!ACTIVE_ONLY_FIELDS) {
+        payload.title = editData.title;
+        payload.winnersCount = editData.winnersCount;
+      }
+
+      const res = await updateGiveaway(giveaway.id, payload);
+      if (res.ok) {
+        setMessage(t('edit.saved'));
+        setIsEditMode(false);
+        setEditData(null);
+        await loadGiveaway();
+      } else {
+        setMessage(res.error || t('edit.error'));
+      }
+    } catch {
+      setMessage(t('edit.error'));
+    } finally {
+      setSaving(false);
+    }
+    setTimeout(() => setMessage(null), 4000);
+  };
+
   const handleDuplicate = async () => {
     try {
       const res = await duplicateGiveaway(giveawayId);
@@ -633,67 +704,125 @@ export default function GiveawayDetailsPage() {
               </div>
             )}
 
-            {/* Редактирование даты окончания (для ACTIVE/SCHEDULED) */}
-            {giveaway && ['ACTIVE', 'SCHEDULED'].includes(giveaway.status) && (
-              <div className="bg-tg-secondary rounded-xl p-4">
-                <h3 className="font-medium mb-3">✏️ {t('edit.title')}</h3>
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <label className="block text-tg-hint mb-1">{t('info.end')}:</label>
-                    {editingEndAt ? (
-                      <div className="flex gap-2">
-                        <input
-                          type="datetime-local"
-                          value={editEndAtValue}
-                          onChange={(e) => setEditEndAtValue(e.target.value)}
-                          className="flex-1 bg-tg-bg rounded-lg px-3 py-2 text-tg-text text-sm"
-                        />
-                        <button
-                          onClick={async () => {
-                            setSaving(true);
-                            const isoValue = editEndAtValue ? new Date(editEndAtValue).toISOString() : null;
-                            const res = await updateGiveaway(giveaway.id, { endAt: isoValue });
-                            setSaving(false);
-                            if (res.ok) {
-                              setMessage(t('edit.saved'));
-                              setEditingEndAt(false);
-                              loadGiveaway();
-                            } else {
-                              setMessage(res.error || t('edit.error'));
-                            }
-                            setTimeout(() => setMessage(null), 3000);
-                          }}
-                          disabled={saving}
-                          className="bg-tg-button text-tg-button-text rounded-lg px-3 py-2 text-sm disabled:opacity-50"
-                        >
-                          {saving ? '...' : '✓'}
-                        </button>
-                        <button
-                          onClick={() => setEditingEndAt(false)}
-                          className="bg-tg-secondary text-tg-hint rounded-lg px-3 py-2 text-sm"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between">
-                        <span>{giveaway.endAt ? formatDate(giveaway.endAt) : t('info.noEndDate')}</span>
-                        <button
-                          onClick={() => {
-                            setEditEndAtValue(giveaway.endAt
-                              ? new Date(giveaway.endAt).toISOString().slice(0, 16)
-                              : '');
-                            setEditingEndAt(true);
-                          }}
-                          className="text-xs text-tg-button underline"
-                        >
-                          ✏️ {t('edit.change')}
-                        </button>
-                      </div>
+            {/* Редактирование розыгрыша (task 5.3) */}
+            {giveaway && EDITABLE_STATUSES.includes(giveaway.status) && (
+              isEditMode && editData ? (
+                /* ── Edit mode: полная форма редактирования ── */
+                <div className="bg-tg-secondary rounded-xl p-4 space-y-4 border-2 border-tg-button/30">
+                  <h3 className="font-medium flex items-center gap-2">
+                    <AppIcon name="icon-settings" variant="brand" size={18} />
+                    ✏️ {t('edit.title')}
+                    {ACTIVE_ONLY_FIELDS && (
+                      <span className="ml-auto text-xs bg-yellow-500/20 text-yellow-500 px-2 py-0.5 rounded">
+                        {t('edit.activeHint')}
+                      </span>
                     )}
+                  </h3>
+
+                  {/* Название — только для не-ACTIVE */}
+                  {!ACTIVE_ONLY_FIELDS && (
+                    <div>
+                      <label className="block text-xs text-tg-hint mb-1">{t('info.giveawayTitle')}:</label>
+                      <input
+                        type="text"
+                        value={editData.title}
+                        onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+                        maxLength={255}
+                        className="w-full bg-tg-bg rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-tg-button outline-none"
+                      />
+                    </div>
+                  )}
+
+                  {/* Количество победителей — только для не-ACTIVE */}
+                  {!ACTIVE_ONLY_FIELDS && (
+                    <div>
+                      <label className="block text-xs text-tg-hint mb-1">{t('info.winnersCount')}:</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={100}
+                        value={editData.winnersCount}
+                        onChange={(e) => setEditData({ ...editData, winnersCount: parseInt(e.target.value) || 1 })}
+                        className="w-full bg-tg-bg rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-tg-button outline-none"
+                      />
+                    </div>
+                  )}
+
+                  {/* Дата окончания */}
+                  <div>
+                    <label className="block text-xs text-tg-hint mb-1">{t('info.end')}:</label>
+                    <input
+                      type="datetime-local"
+                      value={editData.endAt}
+                      onChange={(e) => setEditData({ ...editData, endAt: e.target.value })}
+                      className="w-full bg-tg-bg rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-tg-button outline-none"
+                    />
+                  </div>
+
+                  {/* Капча */}
+                  <div>
+                    <label className="block text-xs text-tg-hint mb-1">{t('conditions.captcha')}:</label>
+                    <select
+                      value={editData.captchaMode}
+                      onChange={(e) => setEditData({ ...editData, captchaMode: e.target.value as typeof editData.captchaMode })}
+                      className="w-full bg-tg-bg rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-tg-button outline-none"
+                    >
+                      <option value="OFF">{t('edit.captchaOff')}</option>
+                      <option value="SUSPICIOUS_ONLY">{t('edit.captchaSuspicious')}</option>
+                      <option value="ALL">{t('edit.captchaAll')}</option>
+                    </select>
+                  </div>
+
+                  {/* Liveness */}
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm">{t('conditions.liveness')}:</label>
+                    <button
+                      type="button"
+                      onClick={() => setEditData({ ...editData, livenessEnabled: !editData.livenessEnabled })}
+                      className={`relative w-12 h-6 rounded-full transition-colors ${
+                        editData.livenessEnabled ? 'bg-tg-button' : 'bg-tg-hint/40'
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                          editData.livenessEnabled ? 'translate-x-7' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Кнопки Сохранить / Отменить */}
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={cancelEditMode}
+                      disabled={saving}
+                      className="flex-1 bg-tg-bg text-tg-text rounded-lg py-2.5 text-sm font-medium transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      {t('edit.cancel')}
+                    </button>
+                    <button
+                      onClick={handleSaveEdit}
+                      disabled={saving}
+                      className="flex-1 bg-tg-button text-tg-button-text rounded-lg py-2.5 text-sm font-medium transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {saving ? (
+                        <span className="animate-spin">⏳</span>
+                      ) : (
+                        <>💾 {t('edit.save')}</>
+                      )}
+                    </button>
                   </div>
                 </div>
-              </div>
+              ) : (
+                /* ── View mode: кнопка открытия редактирования ── */
+                <button
+                  onClick={openEditMode}
+                  className="w-full bg-tg-secondary rounded-xl p-3 flex items-center justify-center gap-2 text-sm text-tg-button font-medium transition-all active:scale-95 hover:bg-tg-secondary/80"
+                >
+                  <AppIcon name="icon-settings" variant="brand" size={16} />
+                  ✏️ {t('edit.openButton')}
+                </button>
+              )
             )}
 
             {/* Топ инвайтеров */}

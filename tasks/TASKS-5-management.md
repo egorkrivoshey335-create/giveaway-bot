@@ -147,8 +147,8 @@
 
 ---
 
-### [~] Задача 5.3 — Редактирование розыгрыша после создания
-**Статус:** ЧАСТИЧНО РЕАЛИЗОВАНО (API есть, UI нет)
+### [x] Задача 5.3 — Редактирование розыгрыша после создания
+**Статус:** РЕАЛИЗОВАНО (2026-02-16)
 
 **✅ Что сделано:**
 - [x] API endpoint: `PATCH /giveaways/:id` существует и полностью реализован
@@ -164,29 +164,20 @@
   - condition: captchaMode, livenessEnabled, inviteEnabled, inviteMax, boostEnabled, boostChannelIds, storiesEnabled, catalogEnabled
   - channels: requiredSubscriptionChannelIds, publishChannelIds, resultsChannelIds
 
-**❌ Что НЕ сделано:**
-- [ ] UI для редактирования на странице управления:
-  - [ ] Полный блок настроек (как на финальном этапе мастера)
-  - [ ] Кнопки "Редактировать" для каждого раздела настроек
-  - [ ] Sticky footer "Сохранить изменения" | "Отменить изменения"
-  - [ ] Валидация на клиенте (что поля разрешены к изменению по статусу)
-- [ ] Блокировка запрещённых полей:
-  - Тип розыгрыша (не меняется)
-  - Каналы для подписки (не добавляются/удаляются после создания)
-  - Маскот (не меняется)
-- [ ] Дополнительные поля (из спецификации):
-  - Описание приза (prizeDescription)
-  - Способ получения приза (prizeDeliveryMethod)
-  - Минимум участников (minParticipants)
-  - Поведение при недоборе (cancelIfNotEnough, autoExtendDays)
-
-**⚠️ Другой подход:**
-- Редактирование через дублирование (кнопка "📋 Дублировать" создаёт новый draft на основе текущего)
-- Прямого редактирования на странице управления нет
+**✅ Что сделано (2026-02-16):**
+- [x] UI для редактирования на странице управления (`creator/giveaway/[id]/page.tsx`):
+  - [x] Кнопка "✏️ Редактировать настройки" в разделе overview для разрешённых статусов
+  - [x] Полная форма редактирования: title, winnersCount, endAt, captchaMode, livenessEnabled
+  - [x] Для ACTIVE гiveaway — ограниченный набор полей (endAt, captchaMode, livenessEnabled) с бейджем предупреждения
+  - [x] Кнопки "Сохранить изменения" и "Отменить"
+  - [x] Блокировка для статусов не из EDITABLE_STATUSES
+  - [x] Пересоздание данных при открытии edit mode из текущего giveaway
+- [x] i18n ключи добавлены в ru/en/kk.json
 
 **Файлы:**
 - `apps/api/src/routes/giveaways.ts` — `PATCH /giveaways/:id` (строки 1100-1270)
-- `apps/web/src/app/creator/giveaway/[id]/page.tsx` — страница управления (нет UI редактирования)
+- `apps/web/src/app/creator/giveaway/[id]/page.tsx` — полный edit mode UI
+- `apps/web/messages/{ru,en,kk}.json` — новые ключи edit.*, conditions.liveness, info.giveawayTitle
 
 ---
 

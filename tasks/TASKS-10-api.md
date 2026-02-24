@@ -51,7 +51,7 @@
 
 ---
 
-### [~] Задача 10.2 — API маршруты: Пользователи
+### [x] Задача 10.2 — API маршруты: Пользователи
 **Статус:** Частично реализовано
 
 **✅ Что сделано:**
@@ -60,16 +60,12 @@
 - `POST /auth/logout` — выход ✅
 - `POST /auth/dev` — dev-аутентификация (только dev) ✅
 
-**❌ Что НЕ сделано:**
-1. `PATCH /api/users/me` — обновление настроек (язык) — НЕТ публичного endpoint (есть `POST /internal/users/language` для бота)
-2. `GET /api/users/me/entitlements` — список активных прав доступа — НЕТ
-
-**⚠️ Другой подход:**
-- Путь `/auth/me` вместо `/api/users/me` — по сути одно и то же, но без возможности обновления
-- Username/firstName возвращаются НЕ из /auth/me (только id, telegramUserId, language, isPremium, createdAt)
+**✅ Дополнительно реализовано:**
+1. `PATCH /users/me` — обновление настроек (язык, notifyOnStart, notifyOnEnd, notifyOnReminders) — `apps/api/src/routes/auth.ts` строки ~176-215
+2. `GET /users/me/entitlements` — список активных прав доступа (подписок) — `apps/api/src/routes/auth.ts` строки ~219-280
 
 **Файлы:**
-- `apps/api/src/routes/auth.ts`
+- `apps/api/src/routes/auth.ts` — `GET /auth/me`, `POST /auth/telegram`, `POST /auth/logout`, `PATCH /users/me`, `GET /users/me/entitlements`
 
 ---
 

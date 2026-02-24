@@ -6,6 +6,7 @@
  * Очереди:
  *   - `sandbox:cleanup`     — удаление sandbox розыгрышей старше 24ч
  *   - `prize-form:cleanup`  — очистка форм получения призов старше 90 дней
+ *   - `liveness:cleanup`    — удаление liveness фото для завершённых розыгрышей > 30 дней
  *   - `badges:check`        — пересчёт бейджей пользователей
  */
 
@@ -22,6 +23,10 @@ export interface SandboxCleanupData {
 }
 
 export interface PrizeFormCleanupData {
+  olderThanDays?: number;
+}
+
+export interface LivenessCleanupData {
   olderThanDays?: number;
 }
 
@@ -136,6 +141,63 @@ prizeFormCleanupWorker.on('completed', (job) => {
 
 prizeFormCleanupWorker.on('failed', (job, err) => {
   log.error({ jobId: job?.id, error: err.message }, 'Prize form cleanup job failed');
+});
+
+// ─── Worker: liveness:cleanup ─────────────────────────────────────────────────
+
+/**
+ * Удаляет liveness фото для розыгрышей завершённых > 30 дней назад
+ */
+export const livenessCleanupWorker = new Worker<LivenessCleanupData>(
+  'liveness:cleanup',
+  async (job: Job<LivenessCleanupData>) => {
+    const olderThanDays = job.data.olderThanDays ?? 30;
+
+    log.info({ olderThanDays }, 'Starting liveness photo cleanup');
+
+    try {
+      const response = await fetch(`${config.apiUrl}/internal/cleanup/liveness`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Token': config.internalApiToken,
+        },
+        body: JSON.stringify({ olderThanDays }),
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        log.error({ status: response.status, err }, 'Liveness cleanup API failed');
+        throw new Error(`API returned ${response.status}: ${err}`);
+      }
+
+      const result = await response.json() as { cleared: number; giveaways: number };
+      log.info(
+        { cleared: result.cleared, giveaways: result.giveaways },
+        'Liveness photo cleanup completed'
+      );
+
+      return { success: true, cleared: result.cleared, giveaways: result.giveaways };
+    } catch (error) {
+      log.error({ error }, 'Liveness cleanup failed');
+      throw error;
+    }
+  },
+  {
+    connection: {
+      host: new URL(config.redis.url).hostname,
+      port: parseInt(new URL(config.redis.url).port || '6379', 10),
+    },
+    concurrency: 1,
+  }
+);
+
+livenessCleanupWorker.on('completed', (job) => {
+  log.info({ jobId: job.id }, 'Liveness cleanup job completed');
+});
+
+livenessCleanupWorker.on('failed', (job, err) => {
+  log.error({ jobId: job?.id, error: err.message }, 'Liveness cleanup job failed');
 });
 
 // ─── Worker: badges:check ─────────────────────────────────────────────────────

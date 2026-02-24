@@ -1496,4 +1496,242 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
   );
+
+  // ─── Cleanup Endpoints ────────────────────────────────────────────────────────
+
+  /**
+   * POST /internal/cleanup/sandbox
+   * Delete sandbox giveaways older than N hours (default 24)
+   * Body: { olderThanHours?: number }
+   */
+  fastify.post('/cleanup/sandbox', async (request, reply) => {
+    const body = (request.body as { olderThanHours?: number }) || {};
+    const olderThanHours = body.olderThanHours ?? 24;
+    const cutoff = new Date(Date.now() - olderThanHours * 60 * 60 * 1000);
+
+    const deleted = await prisma.giveaway.deleteMany({
+      where: {
+        isSandbox: true,
+        createdAt: { lt: cutoff },
+        status: {
+          in: [GiveawayStatus.DRAFT, GiveawayStatus.FINISHED, GiveawayStatus.CANCELLED],
+        },
+      },
+    });
+
+    fastify.log.info({ deleted: deleted.count, olderThanHours }, 'Sandbox cleanup completed');
+    return reply.success({ deleted: deleted.count });
+  });
+
+  /**
+   * POST /internal/cleanup/prize-forms
+   * Delete prize form data for giveaways finished > N days ago (default 90)
+   * Body: { olderThanDays?: number }
+   */
+  fastify.post('/cleanup/prize-forms', async (request, reply) => {
+    const body = (request.body as { olderThanDays?: number }) || {};
+    const olderThanDays = body.olderThanDays ?? 90;
+    const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000);
+
+    const deleted = await prisma.prizeForm.deleteMany({
+      where: {
+        submittedAt: { lt: cutoff },
+      },
+    });
+
+    fastify.log.info({ deleted: deleted.count, olderThanDays }, 'Prize form cleanup completed');
+    return reply.success({ deleted: deleted.count });
+  });
+
+  /**
+   * POST /internal/cleanup/liveness
+   * Delete liveness photo records for giveaways finished > N days ago (default 30)
+   * Body: { olderThanDays?: number }
+   */
+  fastify.post('/cleanup/liveness', async (request, reply) => {
+    const body = (request.body as { olderThanDays?: number }) || {};
+    const olderThanDays = body.olderThanDays ?? 30;
+    const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000);
+
+    // Find giveaways finished before cutoff that have liveness enabled
+    const giveaways = await prisma.giveaway.findMany({
+      where: {
+        status: GiveawayStatus.FINISHED,
+        endAt: { lt: cutoff },
+        condition: { livenessEnabled: true },
+      },
+      select: { id: true },
+    });
+
+    if (giveaways.length === 0) {
+      return reply.success({ cleared: 0, giveaways: 0 });
+    }
+
+    const giveawayIds = giveaways.map((g) => g.id);
+
+    // Clear liveness photo data from participations
+    const updated = await prisma.participation.updateMany({
+      where: {
+        giveawayId: { in: giveawayIds },
+        livenessPhotoPath: { not: null },
+      },
+      data: {
+        livenessPhotoPath: null,
+      },
+    });
+
+    fastify.log.info(
+      { cleared: updated.count, giveaways: giveaways.length, olderThanDays },
+      'Liveness photo cleanup completed'
+    );
+    return reply.success({ cleared: updated.count, giveaways: giveaways.length });
+  });
+
+  // ─── Badges Check Endpoint ────────────────────────────────────────────────────
+
+  /**
+   * POST /internal/badges/check
+   * Check and award badges for a user or batch of users
+   * Body: { userId?: string, batchSize?: number }
+   */
+  fastify.post('/badges/check', async (request, reply) => {
+    const body = (request.body as { userId?: string; batchSize?: number }) || {};
+    const { userId, batchSize = 100 } = body;
+
+    // Badge definitions: { code, condition }
+    const BADGE_DEFINITIONS = [
+      { code: 'FIRST_GIVEAWAY', description: 'Created first giveaway' },
+      { code: 'TEN_GIVEAWAYS', description: 'Created 10 giveaways' },
+      { code: 'FIFTY_GIVEAWAYS', description: 'Created 50 giveaways' },
+      { code: 'FIRST_WIN', description: 'Won first giveaway' },
+      { code: 'TEN_WINS', description: 'Won 10 giveaways' },
+      { code: 'FIRST_PARTICIPATION', description: 'First giveaway participation' },
+      { code: 'HUNDRED_PARTICIPANTS', description: 'Reached 100 participants in a giveaway' },
+      { code: 'THOUSAND_PARTICIPANTS', description: 'Reached 1000 participants in a giveaway' },
+    ];
+
+    // Fetch users to check
+    const users = await prisma.user.findMany({
+      where: userId ? { id: userId } : undefined,
+      take: batchSize,
+      select: {
+        id: true,
+        _count: {
+          select: {
+            giveaways: { where: { status: { in: [GiveawayStatus.FINISHED, GiveawayStatus.ACTIVE] } } },
+            participations: true,
+            wins: true,
+          },
+        },
+      },
+    });
+
+    let checkedCount = 0;
+    let awardedCount = 0;
+
+    for (const user of users) {
+      checkedCount++;
+      const existingBadges = await prisma.userBadge.findMany({
+        where: { userId: user.id },
+        select: { badgeCode: true },
+      });
+      const existingCodes = new Set(existingBadges.map((b) => b.badgeCode));
+
+      const badgesToAward: string[] = [];
+
+      if (!existingCodes.has('FIRST_PARTICIPATION') && user._count.participations >= 1)
+        badgesToAward.push('FIRST_PARTICIPATION');
+      if (!existingCodes.has('FIRST_WIN') && user._count.wins >= 1)
+        badgesToAward.push('FIRST_WIN');
+      if (!existingCodes.has('TEN_WINS') && user._count.wins >= 10)
+        badgesToAward.push('TEN_WINS');
+      if (!existingCodes.has('FIRST_GIVEAWAY') && user._count.giveaways >= 1)
+        badgesToAward.push('FIRST_GIVEAWAY');
+      if (!existingCodes.has('TEN_GIVEAWAYS') && user._count.giveaways >= 10)
+        badgesToAward.push('TEN_GIVEAWAYS');
+      if (!existingCodes.has('FIFTY_GIVEAWAYS') && user._count.giveaways >= 50)
+        badgesToAward.push('FIFTY_GIVEAWAYS');
+
+      if (badgesToAward.length > 0) {
+        await prisma.userBadge.createMany({
+          data: badgesToAward.map((code) => ({
+            userId: user.id,
+            badgeCode: code,
+            earnedAt: new Date(),
+          })),
+          skipDuplicates: true,
+        });
+        awardedCount += badgesToAward.length;
+      }
+    }
+
+    fastify.log.info({ checkedCount, awardedCount }, 'Badge check completed');
+    return reply.success({ checked: checkedCount, awarded: awardedCount });
+  });
+
+  // ─── Giveaway User Reminders ───────────────────────────────────────────────────
+
+  /**
+   * GET /internal/giveaway-reminders/pending
+   * Returns reminders that are due to be sent (remindAt <= now, sentAt IS NULL)
+   * Query: { limit?: number }
+   */
+  fastify.get('/giveaway-reminders/pending', async (request, reply) => {
+    const query = (request.query as { limit?: string }) || {};
+    const limit = Math.min(parseInt(query.limit || '100', 10), 500);
+    const now = new Date();
+
+    const reminders = await prisma.giveawayReminder.findMany({
+      where: {
+        sentAt: null,
+        remindAt: { lte: now },
+      },
+      include: {
+        giveaway: {
+          select: {
+            id: true,
+            title: true,
+            startAt: true,
+            status: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            telegramUserId: true,
+          },
+        },
+      },
+      take: limit,
+      orderBy: { remindAt: 'asc' },
+    });
+
+    return reply.success({
+      reminders: reminders.map((r) => ({
+        id: r.id,
+        giveawayId: r.giveawayId,
+        giveawayTitle: r.giveaway.title,
+        giveawayStartAt: r.giveaway.startAt?.toISOString() || null,
+        giveawayStatus: r.giveaway.status,
+        userId: r.userId,
+        telegramUserId: r.user.telegramUserId.toString(),
+        remindAt: r.remindAt.toISOString(),
+      })),
+    });
+  });
+
+  /**
+   * POST /internal/giveaway-reminders/:id/mark-sent
+   * Marks a reminder as sent
+   */
+  fastify.post('/giveaway-reminders/:id/mark-sent', async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    await prisma.giveawayReminder.update({
+      where: { id },
+      data: { sentAt: new Date() },
+    });
+
+    return reply.success({ ok: true });
+  });
 };

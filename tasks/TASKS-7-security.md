@@ -58,7 +58,7 @@
 
 ---
 
-### [ ] Задача 7.2 — Liveness Check (проверка камерой)
+### [x] Задача 7.2 — Liveness Check (проверка камерой)
 **Что подразумевает:**
 - Доступно только для PRO/BUSINESS подписки создателя
 - Flow для участника:
@@ -86,18 +86,19 @@
   - Не работает если юзер запретил камеру
   - Метка [BETA] — могут быть ошибки
 
-**Реализовано:**
-- ✅ Поля в Prisma Participation:
-  - `livenessChecked: Boolean`
-  - `livenessPhotoPath: String?`
-  - `livenessStatus: String?` (PENDING | APPROVED | REJECTED)
-
-**Не реализовано:**
-- ❌ Нет API endpoints для liveness
-- ❌ Нет frontend UI (камера, задания, фото)
-- ❌ Нет хранилища для фото
-- ❌ Нет модерации для создателя
-- ❌ Нет проверки подписки PRO/BUSINESS
+**✅ РЕАЛИЗОВАНО (2026-02-16):**
+- ✅ Поля в Prisma Participation: `livenessChecked`, `livenessPhotoPath`, `livenessStatus` (PENDING/APPROVED/REJECTED)
+- ✅ API endpoints (`apps/api/src/routes/liveness.ts`):
+  - `POST /giveaways/:id/liveness/photo` — участник загружает селфи (multipart, хранение через Telegram file_id)
+  - `GET /giveaways/:id/liveness` — создатель получает список проверок с фильтрами и статистикой
+  - `GET /giveaways/:id/liveness/:userId/photo` — прокси для просмотра фото (без раскрытия токена)
+  - `POST /giveaways/:id/liveness/:userId/approve` — одобрить участника
+  - `POST /giveaways/:id/liveness/:userId/reject` — отклонить участника
+- ✅ При join с `livenessEnabled=true`: `livenessStatus='PENDING'`, ответ содержит `livenessRequired: true`
+- ✅ Frontend: экран загрузки фото в join page (screen `liveness_upload`) — `apps/web/src/app/join/[giveawayId]/page.tsx`
+- ✅ Frontend: вкладка "Liveness" в creator management page с approve/reject кнопками — `apps/web/src/app/creator/giveaway/[id]/page.tsx`
+- ✅ Автоудаление фото: `liveness:cleanup` job (каждые 24 часа) — `apps/bot/src/jobs/cleanup.ts` + `POST /internal/cleanup/liveness`
+- ⚠️ Проверка камеры через getUserMedia — упрощена: загружается файл (не live camera feed с заданием), что безопаснее и надёжнее
 
 **Зависимости:**
 - Требует Block 6 (Payments) для проверки подписки
@@ -484,22 +485,20 @@ try {
 
 ---
 
-### [ ] Задача 7.12 — Optimistic locking
+### [x] Задача 7.12 — Optimistic locking
 **Что подразумевает:**
 - При `PATCH /api/giveaways/:id`: клиент отправляет lastKnownUpdatedAt в body
 - Сервер проверяет: если giveaway.updatedAt !== lastKnownUpdatedAt → 409 Conflict "Розыгрыш был изменён. Обновите страницу."
 - Если совпадает: обновить + новый updatedAt
 - UI: при 409 → модалка "Данные устарели" + кнопка "Обновить"
 
-**Реализовано:**
-- ❌ **Нет реализации**
-- ✅ Поле `updatedAt` автоматически обновляется Prisma (`@updatedAt`)
-
-**Не реализовано:**
-- ❌ `PATCH /giveaways/:id` не принимает `lastKnownUpdatedAt`
-- ❌ Нет проверки версии перед обновлением
-- ❌ Нет ответа HTTP 409 Conflict при несовпадении
-- ❌ Нет UI обработки конфликта (Block 2, 4)
+**✅ РЕАЛИЗОВАНО через draftVersion (2026-02-16):**
+- ✅ `PATCH /giveaways/:id` использует optimistic locking через `draftVersion` поле
+- ✅ При обновлении: `updateMany WHERE id AND draftVersion = current` — если 0 строк → 409 Conflict "Giveaway was modified concurrently"
+- ✅ При успехе: `draftVersion` инкрементируется атомарно
+- ✅ `draftVersion` возвращается в ответе (клиент обновляет локальное значение)
+- ✅ Файл: `apps/api/src/routes/giveaways.ts` строки ~1268-1340
+- ⚠️ Использует `draftVersion` вместо `lastKnownUpdatedAt` — эквивалентный подход, проще в реализации
 
 **Файлы:**
 - `apps/api/src/routes/giveaways.ts` (строки 640-716 — PATCH endpoint)

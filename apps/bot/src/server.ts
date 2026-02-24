@@ -39,7 +39,13 @@ if (config.botEnabled) {
     // Cleanup & milestone workers
     await import('./jobs/cleanup.js');
     await import('./jobs/milestones.js');
-    log.info('[BullMQ] ✅ All 12 workers started');
+    // Giveaway user reminders (personal "remind me" button)
+    const { giveawayReminderUserWorker, giveawayReminderCheckWorker, scheduleGiveawayReminderCheck } = await import('./jobs/giveaway-reminder-user.js');
+    await scheduleGiveawayReminderCheck();
+    log.info('[BullMQ] ✅ Giveaway user reminder check scheduled');
+    void giveawayReminderUserWorker;
+    void giveawayReminderCheckWorker;
+    log.info('[BullMQ] ✅ All 14 workers started');
     void subscriptionCheckWorker; // prevent unused warning
   } catch (err) {
     console.error('[BullMQ] Failed to start workers:', err);

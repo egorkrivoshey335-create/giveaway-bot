@@ -10,6 +10,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { NetworkErrorHandler } from '@/components/NetworkErrorHandler';
 import { SWRProvider } from '@/components/SWRProvider';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { TelegramNavigation } from '@/components/TelegramNavigation';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
@@ -44,6 +45,7 @@ export default async function RootLayout({
       <body className={`${inter.className} bg-tg-bg text-tg-text`}>
         <LoadingScreen />
         <FullscreenInit />
+        <TelegramNavigation />
         <ErrorBoundary>
           <NextIntlClientProvider locale={locale} messages={messages}>
             <SWRProvider>
