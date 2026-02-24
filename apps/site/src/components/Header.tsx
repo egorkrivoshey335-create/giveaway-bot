@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { config } from '@/lib/config';
 import { getMe, logout } from '@/lib/api';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 // Данные пользователя из cookie
 interface UserData {
@@ -156,7 +157,9 @@ export function Header({ isAuthenticated: initialAuth, darkMode = false }: Heade
           </nav>
 
           {/* Кнопка входа / профиль */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Переключатель языка */}
+            <LanguageSwitcher darkMode={darkMode} />
             {isAuth ? (
               <div className="relative" ref={dropdownRef}>
                 {/* Аватарка / кнопка профиля */}

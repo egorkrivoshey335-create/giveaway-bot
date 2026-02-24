@@ -6,7 +6,9 @@ const intlMiddleware = createMiddleware({
   locales,
   defaultLocale,
   localePrefix: 'as-needed',
-  localeDetection: true,
+  // Don't auto-detect from browser — user picks language manually via switcher
+  // Default is Russian which is the primary audience
+  localeDetection: false,
 });
 
 // Cookie set by POST /api/maintenance after correct password
