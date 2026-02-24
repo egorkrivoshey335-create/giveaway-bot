@@ -668,6 +668,43 @@ export default function GiveawayDetailsPage() {
               </div>
             )}
 
+            {/* PLUS+ расширенная статистика — источники билетов */}
+            {stats && (stats.ticketsFromInvites > 0 || stats.ticketsFromBoosts > 0 || stats.ticketsFromStories > 0 || stats.storiesPending > 0) && (
+              <div className="bg-tg-secondary rounded-xl p-4 relative">
+                <h3 className="font-medium mb-3">🎫 {t('stats.ticketSources')}</h3>
+                <div className={`space-y-2 text-sm ${userTier === 'FREE' ? 'blur-sm select-none pointer-events-none' : ''}`}>
+                  <div className="flex justify-between">
+                    <span className="text-tg-hint">🔗 {t('stats.fromInvites')}:</span>
+                    <span className="font-medium">{stats.ticketsFromInvites}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-tg-hint">⚡ {t('stats.fromBoosts')}:</span>
+                    <span className="font-medium">{stats.ticketsFromBoosts}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-tg-hint">📱 {t('stats.fromStories')}:</span>
+                    <span className="font-medium">{stats.ticketsFromStories}
+                      {stats.storiesPending > 0 && (
+                        <span className="ml-1 text-xs text-yellow-500">(⏳ {stats.storiesPending} {t('stats.pending')})</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+                {userTier === 'FREE' && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-tg-secondary/60 rounded-xl">
+                    <div className="text-2xl mb-1">🔒</div>
+                    <p className="text-xs font-medium text-tg-text">PLUS+</p>
+                    <button
+                      onClick={() => router.push('/creator/subscription')}
+                      className="mt-2 text-xs text-tg-button underline"
+                    >
+                      {t('stats.upgrade')}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Рост участников — PLUS+ только */}
             {stats && stats.participantsGrowth.length > 0 && (
               <div className="bg-tg-secondary rounded-xl p-4 relative">

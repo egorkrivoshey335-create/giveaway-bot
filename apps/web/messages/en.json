@@ -166,6 +166,7 @@
       "noTemplates": "No templates. Create a post in bot → 📝 Posts",
       "buttonText": "Button Text",
       "buttonPlaceholder": "🎁 Participate",
+      "buttonPresets": ["🎁 Participate", "Join Now", "I'm In!", "Enter Giveaway", "🎯 Let's Go"],
       "prizeDescription": "🎁 Prize Description (optional)",
       "prizeDescriptionPlaceholder": "iPhone 16 Pro Max 256GB Titanium",
       "characters": "characters",
@@ -179,7 +180,8 @@
       "description": "Select channels participants must subscribe to:",
       "noChannels": "No channels. Add a channel in bot → 📣 My Channels",
       "channelLimit": "Channel limit",
-      "limitReached": "Limit reached. Upgrade your subscription to add more channels."
+      "limitReached": "Limit reached. Upgrade your subscription to add more channels.",
+      "subscribers": "subscribers"
     },
     "publish": {
       "description": "Select channels for publishing the giveaway (minimum 1):",
@@ -327,7 +329,10 @@
         "buttonText": "Button text",
         "postTemplate": "Post template",
         "publishChannel": "At least 1 publish channel"
-      }
+      },
+      "customTasks": "Custom Tasks",
+      "mascot": "Mascot",
+      "mascotSelected": "Mascot #{id} selected"
     }
   },
   "join": {
@@ -680,7 +685,8 @@
       "overview": "Overview",
       "participants": "Participants",
       "winners": "Winners",
-      "stories": "Stories"
+      "stories": "Stories",
+      "liveness": "Liveness"
     },
     "stats": {
       "participants": "Participants",
@@ -688,6 +694,11 @@
       "invites": "Invites",
       "boosts": "Boosts",
       "today": "today",
+      "ticketSources": "Ticket Sources",
+      "fromInvites": "From invites",
+      "fromBoosts": "From boosts",
+      "fromStories": "From stories",
+      "pending": "pending",
       "upgrade": "Upgrade to PLUS+"
     },
     "info": {

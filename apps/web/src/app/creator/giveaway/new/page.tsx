@@ -637,6 +637,23 @@ export default function GiveawayWizardPage() {
                   placeholder={t('basics.buttonPlaceholder')}
                   className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text placeholder:text-tg-hint/50"
                 />
+                {/* Пресеты текста кнопки */}
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {(t.raw('basics.buttonPresets') as string[]).map((preset: string) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => updatePayload({ buttonText: preset })}
+                      className={`text-xs px-3 py-1 rounded-full transition-colors ${
+                        payload.buttonText === preset
+                          ? 'bg-tg-button text-tg-button-text'
+                          : 'bg-tg-bg text-tg-hint hover:text-tg-text'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Описание приза (опционально) */}
@@ -746,9 +763,14 @@ export default function GiveawayWizardPage() {
                           <div className="font-medium truncate">
                             {channel.type === 'CHANNEL' ? '📢' : '👥'} {channel.title}
                           </div>
-                          {channel.username && (
-                            <div className="text-xs text-tg-hint">@{channel.username}</div>
-                          )}
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {channel.username && (
+                              <span className="text-xs text-tg-hint">@{channel.username}</span>
+                            )}
+                            {channel.memberCount != null && channel.memberCount > 0 && (
+                              <span className="text-xs text-tg-hint">· {channel.memberCount.toLocaleString()} {t('subscriptions.subscribers')}</span>
+                            )}
+                          </div>
                         </div>
                       </button>
                     );
@@ -800,9 +822,14 @@ export default function GiveawayWizardPage() {
                           <div className="font-medium truncate">
                             {channel.type === 'CHANNEL' ? '📢' : '👥'} {channel.title}
                           </div>
-                          {channel.username && (
-                            <div className="text-xs text-tg-hint">@{channel.username}</div>
-                          )}
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {channel.username && (
+                              <span className="text-xs text-tg-hint">@{channel.username}</span>
+                            )}
+                            {channel.memberCount != null && channel.memberCount > 0 && (
+                              <span className="text-xs text-tg-hint">· {channel.memberCount.toLocaleString()} {t('subscriptions.subscribers')}</span>
+                            )}
+                          </div>
                         </div>
                       </button>
                     );
@@ -1765,6 +1792,34 @@ export default function GiveawayWizardPage() {
                   <span className="text-yellow-600">🔒 PRO</span>
                 </div>
               </div>
+
+              {/* Свои задания (только для CUSTOM типа) */}
+              {payload.type === 'CUSTOM' && (payload.customTasks || []).length > 0 && (
+                <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-tg-hint text-xs font-medium">✅ {t('review.customTasks')}</span>
+                    <button onClick={() => { hapticNavigation(); goToStep('CUSTOM_TASKS'); }} className="text-xs text-tg-button underline">✏️ {t('review.edit')}</button>
+                  </div>
+                  {(payload.customTasks || []).map((task, idx) => (
+                    <div key={idx} className="flex justify-between items-start gap-2">
+                      <span className="text-tg-hint text-xs">#{idx + 1}</span>
+                      <span className="flex-1 text-xs truncate">{task.description || '—'}</span>
+                      {task.tickets && <span className="text-xs text-tg-button">+{task.tickets} 🎫</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Маскот розыгрыша */}
+              {payload.mascotId && (
+                <div className="bg-tg-bg rounded-lg p-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-tg-hint text-xs font-medium">🐾 {t('review.mascot')}</span>
+                    <button onClick={() => { hapticNavigation(); goToStep('MASCOT'); }} className="text-xs text-tg-button underline">✏️ {t('review.edit')}</button>
+                  </div>
+                  <div className="mt-1 text-xs">{t('review.mascotSelected', { id: payload.mascotId })}</div>
+                </div>
+              )}
 
               {/* Кнопка отмены черновика */}
               <button

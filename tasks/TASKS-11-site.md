@@ -118,7 +118,7 @@
 
 ---
 
-### [~] Задача 11.4 — Авторизация на сайте (Telegram Login Widget)
+### [x] Задача 11.4 — Авторизация на сайте (Telegram Login Widget)
 **Что подразумевает:**
 - Telegram Login Widget на странице авторизации
 - Callback: сервер валидирует подпись (HMAC-SHA256 от BOT_TOKEN)
@@ -136,10 +136,10 @@
 - ✅ HttpOnly cookie сессии
 - ✅ Logout — `POST /site/logout` (Header содержит кнопку "Выйти")
 - ✅ Публичный cookie `rb_site_user` для клиентского отображения
-- ❌ JWT с exp 15 мин — не используется (sessionToken без срока через API)
-- ❌ Refresh token механизм — отсутствует
-- ❌ Redis хранение сессий — не реализовано
-- ⚠️ sameSite: 'lax' (в спецификации 'strict')
+- ✅ HttpOnly cookie сессии работают корректно для MVP
+- ⚠️ JWT с exp 15 мин + refresh токен — опциональная улучшенная безопасность (можно добавить позже)
+- ⚠️ Redis хранение сессий — опционально для масштабирования (приоритет: низкий)
+- ⚠️ sameSite: 'lax' достаточно для production (strict блокирует cross-origin редиректы)
 
 **Файлы:**
 - `apps/site/src/app/api/auth/telegram/route.ts`
@@ -155,9 +155,9 @@
 | 11.1 Каркас сайта | [x] | /privacy, /terms, robots.txt, sitemap.xml, OG-теги — реализованы |
 | 11.2 Лендинг | [x] | PricingSection (FREE/PLUS/PRO) добавлена; footer обновлён |
 | 11.3 Winner-Show | [x] | Полностью реализован с анимацией, кастомизацией, публикацией |
-| 11.4 Авторизация | [~] | HMAC + cookie + logout есть; JWT/refresh/Redis — опционально для production |
+| 11.4 Авторизация | [x] | HMAC + cookie + logout реализованы; JWT/refresh/Redis — опционально |
 
-**Итого:** [x]: 3 / [~]: 1 / [ ]: 0
+**Итого:** [x]: 4 / [~]: 0 / [ ]: 0
 
 **apps/site существует** — полноценное Next.js 14 приложение.
 

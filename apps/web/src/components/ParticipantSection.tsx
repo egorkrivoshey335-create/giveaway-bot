@@ -129,19 +129,37 @@ export function ParticipantSection() {
   const tCommon = useTranslations('common');
   const tErrors = useTranslations('errors');
   
+  const PAGE_SIZE = 20;
+
   const [filter, setFilter] = useState<ParticipationFilterStatus>('all');
   const [participations, setParticipations] = useState<MyParticipation[]>([]);
   const [counts, setCounts] = useState({ all: 0, active: 0, finished: 0, won: 0, cancelled: 0 });
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [offset, setOffset] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const loadParticipations = useCallback(async () => {
-    setLoading(true);
+  const loadParticipations = useCallback(async (reset = true) => {
+    const currentOffset = reset ? 0 : offset;
+    if (reset) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
     setError(null);
     try {
-      const res = await getMyParticipations({ status: filter, limit: 50 });
+      const res = await getMyParticipations({ status: filter, limit: PAGE_SIZE, offset: currentOffset });
       if (res.ok) {
-        setParticipations(res.participations || []);
+        const newItems = res.participations || [];
+        if (reset) {
+          setParticipations(newItems);
+          setOffset(PAGE_SIZE);
+        } else {
+          setParticipations(prev => [...prev, ...newItems]);
+          setOffset(currentOffset + PAGE_SIZE);
+        }
+        setHasMore(newItems.length === PAGE_SIZE);
         if (res.counts) {
           setCounts(res.counts);
         }
@@ -152,12 +170,16 @@ export function ParticipantSection() {
       setError(tErrors('connectionError'));
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, tErrors]);
 
   useEffect(() => {
-    loadParticipations();
-  }, [loadParticipations]);
+    setOffset(0);
+    loadParticipations(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
 
   // Эмодзи для фильтров
   const filterEmojis: Record<ParticipationFilterStatus, string | undefined> = {
@@ -217,7 +239,7 @@ export function ParticipantSection() {
           <div className="text-4xl mb-4">❌</div>
           <p className="text-tg-hint mb-4">{error}</p>
           <button
-            onClick={loadParticipations}
+            onClick={() => loadParticipations(true)}
             className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2"
           >
             {tCommon('tryAgain')}
@@ -226,11 +248,29 @@ export function ParticipantSection() {
       ) : participations.length === 0 ? (
         <EmptyState filter={filter} />
       ) : (
-        <div className="grid gap-4">
-          {participations.map((p) => (
-            <ParticipationCard key={p.id} participation={p} />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-4">
+            {participations.map((p) => (
+              <ParticipationCard key={p.id} participation={p} />
+            ))}
+          </div>
+          {hasMore && (
+            <button
+              onClick={() => loadParticipations(false)}
+              disabled={loadingMore}
+              className="w-full mt-4 py-3 bg-tg-secondary rounded-xl text-sm text-tg-hint hover:text-tg-text transition-colors disabled:opacity-50"
+            >
+              {loadingMore ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="animate-spin w-4 h-4 border-2 border-tg-button border-t-transparent rounded-full" />
+                  {tCommon('loading')}
+                </span>
+              ) : (
+                tCommon('loadMore')
+              )}
+            </button>
+          )}
+        </>
       )}
     </div>
   );

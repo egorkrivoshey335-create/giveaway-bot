@@ -301,7 +301,12 @@ export default function CreatorDashboardPage() {
   const tCommon = useTranslations('common');
   const tErrors = useTranslations('errors');
 
+  const GIVEAWAY_PAGE_SIZE = 20;
+
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [giveawayOffset, setGiveawayOffset] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [giveaways, setGiveaways] = useState<GiveawaySummary[]>([]);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -309,11 +314,18 @@ export default function CreatorDashboardPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   // Загрузка розыгрышей
-  const loadGiveaways = useCallback(async () => {
+  const loadGiveaways = useCallback(async (reset = true) => {
+    const currentOffset = reset ? 0 : giveawayOffset;
+    if (reset) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
     try {
       const res = await getGiveawaysList({
         status: statusFilter === 'all' ? undefined : statusFilter,
-        limit: 50,
+        limit: GIVEAWAY_PAGE_SIZE,
+        offset: currentOffset,
       });
 
       if (!res.ok) {
@@ -321,7 +333,16 @@ export default function CreatorDashboardPage() {
         return;
       }
 
-      setGiveaways(res.giveaways || []);
+      const newItems = res.giveaways || [];
+      if (reset) {
+        setGiveaways(newItems);
+        setGiveawayOffset(GIVEAWAY_PAGE_SIZE);
+      } else {
+        setGiveaways(prev => [...prev, ...newItems]);
+        setGiveawayOffset(currentOffset + GIVEAWAY_PAGE_SIZE);
+      }
+      setHasMore(newItems.length === GIVEAWAY_PAGE_SIZE);
+
       if (res.counts) {
         setCounts({
           all: res.counts.all,
@@ -339,12 +360,16 @@ export default function CreatorDashboardPage() {
       setError(tErrors('loadFailed'));
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, tErrors]);
 
   useEffect(() => {
-    loadGiveaways();
-  }, [loadGiveaways]);
+    setGiveawayOffset(0);
+    loadGiveaways(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter]);
 
   // Дублировать розыгрыш
   const handleDuplicate = async (id: string) => {
@@ -560,19 +585,37 @@ export default function CreatorDashboardPage() {
 
         {/* Список розыгрышей */}
         {giveaways.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            {giveaways.map((g) => (
-              <GiveawayCard
-                key={g.id}
-                giveaway={g}
-                onDuplicate={handleDuplicate}
-                onDelete={handleDelete}
-                onOpenDetails={handleOpenDetails}
-                onCopyLink={handleCopyLink}
-                onEdit={handleEdit}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid gap-4 md:grid-cols-2">
+              {giveaways.map((g) => (
+                <GiveawayCard
+                  key={g.id}
+                  giveaway={g}
+                  onDuplicate={handleDuplicate}
+                  onDelete={handleDelete}
+                  onOpenDetails={handleOpenDetails}
+                  onCopyLink={handleCopyLink}
+                  onEdit={handleEdit}
+                />
+              ))}
+            </div>
+            {hasMore && (
+              <button
+                onClick={() => loadGiveaways(false)}
+                disabled={loadingMore}
+                className="w-full mt-4 py-3 bg-tg-secondary rounded-xl text-sm text-tg-hint hover:text-tg-text transition-colors disabled:opacity-50"
+              >
+                {loadingMore ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="animate-spin w-4 h-4 border-2 border-tg-button border-t-transparent rounded-full" />
+                    {tCommon('loading')}
+                  </span>
+                ) : (
+                  tCommon('loadMore')
+                )}
+              </button>
+            )}
+          </>
         ) : (
           <div className="text-center py-12 bg-tg-secondary rounded-xl">
             <div className="flex justify-center mb-4">

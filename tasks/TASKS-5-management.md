@@ -100,8 +100,8 @@
 
 ---
 
-### [~] Задача 5.2 — Статистика розыгрыша
-**Статус:** ЧАСТИЧНО РЕАЛИЗОВАНО
+### [x] Задача 5.2 — Статистика розыгрыша
+**Статус:** ✅ РЕАЛИЗОВАНО (2026-02-17: добавлена расширенная PLUS+ статистика)
 
 **✅ Что сделано:**
 - [x] API endpoint: `GET /giveaways/:id/stats` существует
@@ -111,7 +111,13 @@
   - [x] Билетов всего (ticketsTotal)
   - [x] Инвайтов (invitesCount)
   - [x] Бустов (boostsCount)
-  - [x] Динамика по дням (график роста participantsGrowth)
+  - [x] Динамика по дням (график роста participantsGrowth) — **PLUS+ gating с блюром**
+- [x] **PLUS+ статистика — Источники билетов** **ДОБАВЛЕНО 2026-02-17**:
+  - [x] ticketsFromInvites — кол-во билетов за приглашения
+  - [x] ticketsFromBoosts — кол-во билетов за бусты
+  - [x] ticketsFromStories — кол-во билетов за сторис (+ pending count)
+  - [x] Блюр + overlay "🔒 PLUS+" для FREE пользователей
+  - [x] Кнопка "Повысить до PLUS+" → `/creator/subscription`
 - [x] Статистика загружается один раз при открытии страницы
 - [x] GiveawayStats interface в API включает:
   - ticketsFromInvites, ticketsFromBoosts, ticketsFromStories

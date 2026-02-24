@@ -166,6 +166,7 @@
       "noTemplates": "Үлгілер жоқ. Ботта жазба жасаңыз → 📝 Жазбалар",
       "buttonText": "Түйме мәтіні",
       "buttonPlaceholder": "🎁 Қатысу",
+      "buttonPresets": ["🎁 Қатысу", "Қатысамын", "Жеңгім келеді!", "Ойынға қосыл", "🎯 Кіру"],
       "prizeDescription": "🎁 Жүлде сипаттамасы (міндетті емес)",
       "prizeDescriptionPlaceholder": "iPhone 16 Pro Max 256GB Titanium",
       "characters": "таңба",
@@ -179,7 +180,8 @@
       "description": "Қатысушылар жазылуы керек арналарды таңдаңыз:",
       "noChannels": "Арналар жоқ. Ботта арна қосыңыз → 📣 Менің арналарым",
       "channelLimit": "Арна шегі",
-      "limitReached": "Шек жетті. Арналарды қосу үшін жазылымды жаңартыңыз."
+      "limitReached": "Шек жетті. Арналарды қосу үшін жазылымды жаңартыңыз.",
+      "subscribers": "жазылушы"
     },
     "publish": {
       "description": "Ұтыс ойынын жариялау үшін арналарды таңдаңыз (кемінде 1):",
@@ -327,7 +329,10 @@
         "buttonText": "Түйме мәтіні",
         "postTemplate": "Жазба үлгісі",
         "publishChannel": "Кемінде 1 жариялау арнасы"
-      }
+      },
+      "customTasks": "Жеке тапсырмалар",
+      "mascot": "Маскот",
+      "mascotSelected": "#{id} маскоты таңдалды"
     }
   },
   "join": {
@@ -680,7 +685,8 @@
       "overview": "Шолу",
       "participants": "Қатысушылар",
       "winners": "Жеңімпаздар",
-      "stories": "Сторис"
+      "stories": "Сторис",
+      "liveness": "Тексеру"
     },
     "stats": {
       "participants": "Қатысушылар",
@@ -688,6 +694,11 @@
       "invites": "Шақырулар",
       "boosts": "Бусттар",
       "today": "бүгін",
+      "ticketSources": "Билет көздері",
+      "fromInvites": "Шақырулардан",
+      "fromBoosts": "Бусттардан",
+      "fromStories": "Сторислардан",
+      "pending": "тексеруде",
       "upgrade": "PLUS+-ке жаңарту"
     },
     "info": {
