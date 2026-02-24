@@ -15,10 +15,15 @@ import {
   getParticipantCount,
   getTopInviters,
   banParticipant,
+  getLivenessChecks,
+  approveLiveness,
+  rejectLiveness,
+  getLivenessPhotoUrl,
   GiveawayFull,
   GiveawayStats,
   GiveawayParticipant,
   TopInviter,
+  LivenessCheck,
 } from '@/lib/api';
 import { InlineToast } from '@/components/Toast';
 import { ShareBottomSheet } from '@/components/ShareBottomSheet';
@@ -29,7 +34,7 @@ import { AppIcon } from '@/components/AppIcon';
 // Берём username бота из env
 const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
 
-type TabType = 'overview' | 'participants' | 'winners' | 'stories';
+type TabType = 'overview' | 'participants' | 'winners' | 'stories' | 'liveness';
 
 // Получить метку статуса
 function getStatusLabel(status: string, t: ReturnType<typeof useTranslations<'giveawayDetails'>>): string {
@@ -96,6 +101,14 @@ export default function GiveawayDetailsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [message, setMessage] = useState<string | null>(null);
+
+  // Liveness check (10.19)
+  const [livenessChecks, setLivenessChecks] = useState<LivenessCheck[]>([]);
+  const [livenessStats, setLivenessStats] = useState<{
+    pending: number; approved: number; rejected: number; notSubmitted: number;
+  } | null>(null);
+  const [livenessFilter, setLivenessFilter] = useState<string>('PENDING');
+  const [livenessLoading, setLivenessLoading] = useState(false);
 
   // BottomSheet states
   const [showShareSheet, setShowShareSheet] = useState(false);
@@ -167,6 +180,27 @@ export default function GiveawayDetailsPage() {
       console.error('Failed to load participants:', err);
     }
   }, [giveawayId]);
+
+  const loadLivenessChecks = useCallback(async (status?: string) => {
+    setLivenessLoading(true);
+    try {
+      const res = await getLivenessChecks(giveawayId, status);
+      if (res.ok) {
+        setLivenessChecks(res.checks || []);
+        if (res.stats) setLivenessStats(res.stats);
+      }
+    } catch (err) {
+      console.error('Failed to load liveness checks:', err);
+    } finally {
+      setLivenessLoading(false);
+    }
+  }, [giveawayId]);
+
+  useEffect(() => {
+    if (activeTab === 'liveness') {
+      loadLivenessChecks(livenessFilter);
+    }
+  }, [activeTab, livenessFilter, loadLivenessChecks]);
 
   useEffect(() => {
     loadGiveaway();
@@ -331,6 +365,7 @@ export default function GiveawayDetailsPage() {
     { key: 'participants', icon: 'icon-participant', label: t('tabs.participants'), count: giveaway.participantsCount, show: true },
     { key: 'winners',      icon: 'icon-winner',     label: t('tabs.winners'),      count: giveaway.winners.length, show: giveaway.status === 'FINISHED' && giveaway.winners.length > 0 },
     { key: 'stories',      icon: 'icon-story',      label: t('tabs.stories'),                                    show: giveaway.condition?.storiesEnabled || false },
+    { key: 'liveness',     icon: 'icon-participant', label: '🔍 Liveness',   count: livenessStats?.pending,       show: giveaway.condition?.livenessEnabled || false },
   ];
 
   return (
@@ -872,6 +907,138 @@ export default function GiveawayDetailsPage() {
           </div>
         )}
       </div>
+
+      {/* Tab: Liveness Check (10.19) */}
+      {activeTab === 'liveness' && (
+        <div className="space-y-4">
+          {/* Статистика */}
+          {livenessStats && (
+            <div className="grid grid-cols-4 gap-3">
+              {[
+                { label: 'Ожидают', value: livenessStats.pending, color: 'text-yellow-500', filter: 'PENDING' },
+                { label: 'Одобрены', value: livenessStats.approved, color: 'text-green-500', filter: 'APPROVED' },
+                { label: 'Отклонены', value: livenessStats.rejected, color: 'text-red-500', filter: 'REJECTED' },
+                { label: 'Без фото', value: livenessStats.notSubmitted, color: 'text-tg-hint', filter: '' },
+              ].map((stat) => (
+                <button
+                  key={stat.filter}
+                  onClick={() => stat.filter && setLivenessFilter(stat.filter)}
+                  className={`bg-tg-secondary rounded-xl p-3 text-center transition-all ${
+                    livenessFilter === stat.filter ? 'ring-2 ring-tg-button' : ''
+                  }`}
+                >
+                  <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
+                  <div className="text-xs text-tg-hint mt-1">{stat.label}</div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Список проверок */}
+          {livenessLoading ? (
+            <div className="text-center py-8 text-tg-hint">⏳ Загружаем...</div>
+          ) : livenessChecks.length === 0 ? (
+            <div className="text-center py-12 bg-tg-secondary rounded-xl">
+              <div className="text-4xl mb-3">🔍</div>
+              <p className="text-tg-hint text-sm">
+                {livenessFilter === 'PENDING' ? 'Нет ожидающих проверок' : 'Нет записей'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {livenessChecks.map((check) => (
+                <div key={check.participationId} className="bg-tg-secondary rounded-xl p-4">
+                  <div className="flex items-start gap-4">
+                    {/* Фото */}
+                    {check.hasPhoto && check.photoUrl && (
+                      <a
+                        href={getLivenessPhotoUrl(giveawayId, check.userId)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0"
+                      >
+                        <img
+                          src={getLivenessPhotoUrl(giveawayId, check.userId)}
+                          alt="Фото"
+                          className="w-16 h-16 rounded-lg object-cover border border-tg-bg hover:opacity-80 transition-opacity"
+                        />
+                      </a>
+                    )}
+                    {!check.hasPhoto && (
+                      <div className="w-16 h-16 rounded-lg bg-tg-bg flex items-center justify-center flex-shrink-0">
+                        <span className="text-2xl">📷</span>
+                      </div>
+                    )}
+
+                    {/* Инфо */}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium">
+                        {check.user.firstName || 'User'} {check.user.lastName || ''}
+                      </div>
+                      {check.user.username && (
+                        <div className="text-xs text-tg-hint">@{check.user.username}</div>
+                      )}
+                      <div className="text-xs text-tg-hint mt-1">
+                        {new Date(check.joinedAt).toLocaleDateString('ru-RU')}
+                      </div>
+                      <div className="mt-1">
+                        {check.livenessStatus === 'PENDING' && (
+                          <span className="text-xs bg-yellow-500/10 text-yellow-600 px-2 py-0.5 rounded-full">⏳ Ожидает</span>
+                        )}
+                        {check.livenessStatus === 'APPROVED' && (
+                          <span className="text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded-full">✅ Одобрен</span>
+                        )}
+                        {check.livenessStatus === 'REJECTED' && (
+                          <span className="text-xs bg-red-500/10 text-red-600 px-2 py-0.5 rounded-full">❌ Отклонён</span>
+                        )}
+                        {check.livenessStatus === 'NOT_SUBMITTED' && (
+                          <span className="text-xs bg-gray-500/10 text-gray-500 px-2 py-0.5 rounded-full">— Без фото</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Кнопки действий (только если фото есть и ожидает) */}
+                    {check.livenessStatus === 'PENDING' && check.hasPhoto && (
+                      <div className="flex flex-col gap-2 flex-shrink-0">
+                        <button
+                          onClick={async () => {
+                            const res = await approveLiveness(giveawayId, check.userId);
+                            if (res.ok) {
+                              setMessage('✅ Участник одобрен');
+                              loadLivenessChecks(livenessFilter);
+                            } else {
+                              setMessage(res.error || 'Ошибка');
+                            }
+                            setTimeout(() => setMessage(null), 3000);
+                          }}
+                          className="bg-green-500 text-white text-xs rounded-lg px-3 py-1.5 hover:bg-green-600 transition-colors"
+                        >
+                          ✓ Одобрить
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const res = await rejectLiveness(giveawayId, check.userId);
+                            if (res.ok) {
+                              setMessage('❌ Участник отклонён');
+                              loadLivenessChecks(livenessFilter);
+                            } else {
+                              setMessage(res.error || 'Ошибка');
+                            }
+                            setTimeout(() => setMessage(null), 3000);
+                          }}
+                          className="bg-red-500 text-white text-xs rounded-lg px-3 py-1.5 hover:bg-red-600 transition-colors"
+                        >
+                          ✗ Отклонить
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Модалка: Запустить сейчас */}
       {showStartModal && (

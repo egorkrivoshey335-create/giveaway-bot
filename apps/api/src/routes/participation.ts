@@ -733,6 +733,9 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
+    // Liveness check: если требуется — участие создаётся со статусом PENDING
+    const livenessEnabled = giveaway.condition?.livenessEnabled ?? false;
+
     // 🔒 ЗАДАЧА 7.11: Создаём участие с displayName и fraudScore
     const participation = await prisma.participation.create({
       data: {
@@ -745,6 +748,8 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
         referrerUserId: validReferrerUserId,
         fraudScore, // Сохраняем fraud score
         displayName: fullUser.firstName || fullUser.username || `User${fullUser.telegramUserId}`, // Имя на момент участия
+        // 10.19 Liveness: если включена — сразу ставим PENDING, пока фото не загружено
+        ...(livenessEnabled ? { livenessStatus: 'PENDING' } : {}),
         conditionsSnapshot: {
           subscriptionsChecked: requiredSubIds.length,
           captchaPassed: body.captchaPassed,
@@ -853,6 +858,8 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
         ticketsTotal: participation.ticketsBase + participation.ticketsExtra,
         joinedAt: participation.joinedAt.toISOString(),
       },
+      // 10.19 Liveness: фронтенд покажет UI загрузки фото
+      livenessRequired: livenessEnabled,
     });
     } catch (error) {
       // 🔒 Освобождаем lock в случае ошибки

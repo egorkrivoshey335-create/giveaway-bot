@@ -26,6 +26,7 @@ import {
   getCustomTasks,
   completeCustomTask,
   getMyCustomTaskCompletions,
+  uploadLivenessPhoto,
   PublicGiveaway,
   Participation,
   InvitedFriend,
@@ -41,6 +42,7 @@ type ScreenState =
   | 'info'
   | 'check_subscription'
   | 'captcha'
+  | 'liveness_upload'
   | 'success'
   | 'already_joined'
   | 'finished'
@@ -140,6 +142,13 @@ export default function JoinGiveawayPage() {
   const [customTasks, setCustomTasks] = useState<CustomTask[]>([]);
   const [customTaskCompletions, setCustomTaskCompletions] = useState<Map<string, boolean>>(new Map());
   const [completingTask, setCompletingTask] = useState<string | null>(null);
+
+  // Liveness check (10.19)
+  const [livenessRequired, setLivenessRequired] = useState(false);
+  const [livenessPhoto, setLivenessPhoto] = useState<File | null>(null);
+  const [livenessUploading, setLivenessUploading] = useState(false);
+  const [livenessStatus, setLivenessStatus] = useState<'idle' | 'pending' | 'approved' | 'rejected'>('idle');
+  const [livenessMessage, setLivenessMessage] = useState<string | null>(null);
 
   // Авторизация и загрузка данных
   useEffect(() => {
@@ -516,9 +525,15 @@ export default function JoinGiveawayPage() {
         setParticipation(res.participation);
         // Загружаем реферальные данные, бусты и кастомные задания
         await Promise.all([loadReferralData(), loadBoostData(), loadStoryRequestStatus(), loadCustomTasks()]);
-        setScreen('success');
-        // Запускаем конфетти при успешном участии
-        setShowConfetti(true);
+        // 10.19 Liveness: если требуется — сначала показываем экран загрузки фото
+        if (res.livenessRequired) {
+          setLivenessRequired(true);
+          setScreen('liveness_upload');
+        } else {
+          setScreen('success');
+          // Запускаем конфетти при успешном участии
+          setShowConfetti(true);
+        }
       } else if (res.code === 'SUBSCRIPTION_REQUIRED') {
         setError(res.error || tErrors('subscriptionRequired'));
         setScreen('check_subscription');
@@ -1518,6 +1533,111 @@ export default function JoinGiveawayPage() {
           >
             {tCommon('goHome')}
           </button>
+        </div>
+      </main>
+    );
+  }
+
+  // ---- Экран загрузки фото для Liveness Check (10.19) ----
+  if (screen === 'liveness_upload') {
+    const handleLivenessUpload = async () => {
+      if (!livenessPhoto) return;
+      setLivenessUploading(true);
+      setLivenessMessage(null);
+      try {
+        const res = await uploadLivenessPhoto(giveawayId, livenessPhoto);
+        if (res.ok) {
+          setLivenessStatus('pending');
+          setLivenessMessage('Фото загружено. Ожидайте подтверждения от создателя.');
+          setTimeout(() => {
+            setScreen('success');
+            setShowConfetti(true);
+          }, 2000);
+        } else {
+          setLivenessMessage(res.error || 'Ошибка загрузки фото');
+        }
+      } catch {
+        setLivenessMessage('Ошибка соединения');
+      } finally {
+        setLivenessUploading(false);
+      }
+    };
+
+    return (
+      <main className="min-h-screen p-4 bg-tg-bg">
+        <div className="max-w-md mx-auto">
+          <div className="text-center mb-8">
+            <div className="text-5xl mb-4">🔍</div>
+            <h1 className="text-2xl font-bold mb-2">Проверка живости</h1>
+            <p className="text-tg-hint text-sm">
+              Создатель этого розыгрыша требует проверить, что вы реальный человек.
+              Загрузите своё фото (селфи), чтобы завершить участие.
+            </p>
+          </div>
+
+          {/* Превью загруженного фото */}
+          {livenessPhoto && (
+            <div className="mb-4 flex justify-center">
+              <img
+                src={URL.createObjectURL(livenessPhoto)}
+                alt="Ваше фото"
+                className="w-32 h-32 rounded-xl object-cover border-2 border-tg-button"
+              />
+            </div>
+          )}
+
+          {/* Поле выбора фото */}
+          <label className="block w-full mb-4">
+            <div className="w-full border-2 border-dashed border-tg-button/50 rounded-xl p-6 text-center cursor-pointer hover:border-tg-button transition-colors">
+              <span className="text-3xl block mb-2">📷</span>
+              <span className="text-sm text-tg-hint">
+                {livenessPhoto ? livenessPhoto.name : 'Нажмите, чтобы выбрать фото'}
+              </span>
+            </div>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) setLivenessPhoto(file);
+              }}
+            />
+          </label>
+
+          {/* Сообщение */}
+          {livenessMessage && (
+            <div className={`p-3 rounded-lg text-sm text-center mb-4 ${
+              livenessStatus === 'pending'
+                ? 'bg-green-500/10 text-green-600'
+                : 'bg-red-500/10 text-red-600'
+            }`}>
+              {livenessMessage}
+            </div>
+          )}
+
+          {/* Кнопки */}
+          <button
+            onClick={handleLivenessUpload}
+            disabled={!livenessPhoto || livenessUploading}
+            className="w-full bg-tg-button text-tg-button-text rounded-xl py-4 font-semibold mb-3 disabled:opacity-50 transition-opacity"
+          >
+            {livenessUploading ? '⏳ Загружаем...' : '✅ Отправить фото'}
+          </button>
+
+          <button
+            onClick={() => {
+              setScreen('success');
+              setShowConfetti(true);
+            }}
+            className="w-full bg-transparent text-tg-hint text-sm py-2"
+          >
+            Пропустить (отправить позже)
+          </button>
+
+          <p className="text-xs text-tg-hint text-center mt-4">
+            🔒 Фото видит только создатель розыгрыша. После проверки участие будет подтверждено.
+          </p>
         </div>
       </main>
     );

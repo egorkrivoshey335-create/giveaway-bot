@@ -40,6 +40,7 @@ import { banListRoutes } from './routes/ban-list.js';
 import { remindersRoutes } from './routes/reminders.js';
 import { usersRoutes } from './routes/users.js';
 import { prizeFormsRoutes } from './routes/prize-forms.js';
+import { livenessRoutes } from './routes/liveness.js';
 import { startGiveawayScheduler } from './scheduler/giveaway-lifecycle.js';
 import { processSubscriptionLifecycle } from './scheduler/subscription-lifecycle.js';
 import { RATE_LIMITS } from './config/rate-limits.js';
@@ -168,6 +169,7 @@ async function main() {
         await instance.register(remindersRoutes);
         await instance.register(usersRoutes);
         await instance.register(prizeFormsRoutes);
+        await instance.register(livenessRoutes);
       },
       { prefix: '/api/v1' }
     );

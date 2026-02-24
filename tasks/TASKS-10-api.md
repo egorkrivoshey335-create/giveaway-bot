@@ -419,16 +419,27 @@
 
 ---
 
-### [ ] Задача 10.19 — API маршруты: Liveness Check
-**Статус:** НЕ реализовано
+### [x] Задача 10.19 — API маршруты: Liveness Check
+**Статус:** ✅ ПОЛНОСТЬЮ РЕАЛИЗОВАНО (2026-02-24)
 
-**Что требуется по задаче:**
-- `POST /api/giveaways/:id/liveness/upload`
-- `GET /api/giveaways/:id/liveness`
-- `POST /api/giveaways/:id/liveness/:participantId/approve`
-- `POST /api/giveaways/:id/liveness/:participantId/reject`
+**✅ Что сделано:**
+- `POST /giveaways/:id/liveness/photo` — участник загружает селфи (multipart, Telegram file_id storage) ✅
+- `GET /giveaways/:id/liveness` — создатель получает список проверок с фильтрами и статистикой ✅
+- `GET /giveaways/:id/liveness/:userId/photo` — проксирует фото из Telegram (без раскрытия токена) ✅
+- `POST /giveaways/:id/liveness/:userId/approve` — одобрить участника ✅
+- `POST /giveaways/:id/liveness/:userId/reject` — отклонить участника ✅
+- `participation.ts`: при join с `livenessEnabled=true` устанавливается `livenessStatus='PENDING'` ✅
+- join response содержит `livenessRequired: boolean` ✅
+- `apps/web`: экран загрузки фото в join page (после успешного участия) ✅
+- `apps/web`: вкладка "Liveness" в creator management page с approve/reject кнопками ✅
 
-**Примечание:** Поля `livenessChecked`, `livenessPhotoPath`, `livenessStatus` уже добавлены в Prisma (Participation) в блоке 0. Потребуется `@fastify/multipart` для загрузки фото.
+**Файлы:**
+- `apps/api/src/routes/liveness.ts` — все endpoint'ы
+- `apps/api/src/routes/participation.ts` — join handler обновлён
+- `apps/api/src/server.ts` — `livenessRoutes` зарегистрировано
+- `apps/web/src/lib/api.ts` — `getLivenessChecks`, `uploadLivenessPhoto`, `approveLiveness`, `rejectLiveness`, `getLivenessPhotoUrl`
+- `apps/web/src/app/join/[giveawayId]/page.tsx` — экран `liveness_upload`
+- `apps/web/src/app/creator/giveaway/[id]/page.tsx` — вкладка `liveness`
 
 ---
 

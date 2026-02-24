@@ -535,6 +535,7 @@ interface JoinGiveawayResponse {
   participation?: Participation;
   error?: string;
   code?: string;
+  livenessRequired?: boolean;
 }
 
 interface CaptchaGenerateResponse {
@@ -2174,4 +2175,99 @@ export async function deleteGiveawayTheme(
     credentials: 'include',
   });
   return res.json();
+}
+
+// ====================================
+// Liveness Check (задача 10.19)
+// ====================================
+
+export interface LivenessCheck {
+  participationId: string;
+  userId: string;
+  user: {
+    id: string;
+    username: string | null;
+    firstName: string | null;
+    lastName: string | null;
+    telegramUserId: string;
+  };
+  livenessStatus: 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  livenessChecked: boolean;
+  hasPhoto: boolean;
+  photoUrl: string | null;
+  joinedAt: string;
+}
+
+export interface LivenessListResponse {
+  ok: boolean;
+  livenessEnabled?: boolean;
+  stats?: { pending: number; approved: number; rejected: number; notSubmitted: number };
+  checks?: LivenessCheck[];
+  error?: string;
+}
+
+/**
+ * Получить список liveness-проверок для розыгрыша (для создателя).
+ * Можно фильтровать по status: PENDING | APPROVED | REJECTED
+ */
+export async function getLivenessChecks(
+  giveawayId: string,
+  status?: string
+): Promise<LivenessListResponse> {
+  const url = new URL(`${API_URL}/giveaways/${giveawayId}/liveness`);
+  if (status) url.searchParams.set('status', status);
+  const res = await fetch(url.toString(), { credentials: 'include' });
+  return res.json();
+}
+
+/**
+ * Участник загружает фото для liveness-проверки.
+ */
+export async function uploadLivenessPhoto(
+  giveawayId: string,
+  photo: File
+): Promise<{ ok: boolean; status?: string; message?: string; error?: string }> {
+  const formData = new FormData();
+  formData.append('photo', photo);
+  const res = await fetch(`${API_URL}/giveaways/${giveawayId}/liveness/photo`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  });
+  return res.json();
+}
+
+/**
+ * Создатель одобряет liveness-проверку участника.
+ */
+export async function approveLiveness(
+  giveawayId: string,
+  userId: string
+): Promise<{ ok: boolean; status?: string; error?: string }> {
+  const res = await fetch(`${API_URL}/giveaways/${giveawayId}/liveness/${userId}/approve`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  return res.json();
+}
+
+/**
+ * Создатель отклоняет liveness-проверку участника.
+ */
+export async function rejectLiveness(
+  giveawayId: string,
+  userId: string
+): Promise<{ ok: boolean; status?: string; error?: string }> {
+  const res = await fetch(`${API_URL}/giveaways/${giveawayId}/liveness/${userId}/reject`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  return res.json();
+}
+
+/**
+ * URL для просмотра фото (проксируется через API без раскрытия токена бота).
+ */
+export function getLivenessPhotoUrl(giveawayId: string, userId: string): string {
+  return `${API_URL}/giveaways/${giveawayId}/liveness/${userId}/photo`;
 }
