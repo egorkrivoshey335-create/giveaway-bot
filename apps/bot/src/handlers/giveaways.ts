@@ -6,6 +6,7 @@ import { createLogger } from '../lib/logger.js';
 const log = createLogger('handlers:giveaways');
 import { buildMiniAppLink } from '@randombeast/shared';
 import { getUserLocale, t, type Locale } from '../i18n/index.js';
+import { addNavigationButtons } from '../lib/navigation.js';
 
 // Helper functions for type/captcha labels
 function getTypeLabel(locale: Locale, type: string): string {
@@ -147,10 +148,12 @@ ${formatChannels(channels?.results || [])}`;
 
   await ctx.reply(infoMessage, { parse_mode: 'HTML' });
 
-  // Send confirmation prompt with buttons
+  // Send confirmation prompt with buttons + navigation
   const confirmKeyboard = new InlineKeyboard()
     .text(t(locale, 'giveawayConfirm.acceptBtn'), `giveaway_accept:${giveawayId}`)
     .text(t(locale, 'giveawayConfirm.rejectBtn'), `giveaway_reject:${giveawayId}`);
+
+  addNavigationButtons(confirmKeyboard, locale, { back: false });
 
   await ctx.reply(t(locale, 'giveawayConfirm.confirmMsg'), {
     parse_mode: 'HTML',
@@ -294,6 +297,7 @@ export function registerGiveawayHandlers(bot: Bot): void {
 
     const openAppKeyboard = new InlineKeyboard()
       .webApp(t(locale, 'giveawayConfirm.openApp'), config.webappUrl);
+    addNavigationButtons(openAppKeyboard, locale, { back: false });
 
     await ctx.editMessageText(successText, {
       parse_mode: 'HTML',
@@ -337,6 +341,7 @@ export function registerGiveawayHandlers(bot: Bot): void {
 
     const openAppKeyboard = new InlineKeyboard()
       .webApp(t(locale, 'giveawayConfirm.editInApp'), `${config.webappUrl}?startapp=edit_${giveawayId}`);
+    addNavigationButtons(openAppKeyboard, locale, { back: false });
 
     await ctx.editMessageText(t(locale, 'giveawayConfirm.publicationCancelled'), {
       parse_mode: 'HTML',

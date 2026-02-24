@@ -440,6 +440,7 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
           active: countByStatus.ACTIVE || 0,
           finished: countByStatus.FINISHED || 0,
           cancelled: countByStatus.CANCELLED || 0,
+          error: countByStatus.ERROR || 0,
         },
       })),
       { total, hasMore: offset + giveaways.length < total }

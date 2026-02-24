@@ -213,6 +213,69 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   /**
+   * GET /users/me/entitlements
+   * Returns active entitlements (subscriptions) for the current user
+   */
+  fastify.get('/users/me/entitlements', async (request, reply) => {
+    const sessionToken = request.cookies[config.auth.cookieName];
+    if (!sessionToken) {
+      return reply.unauthorized('Not authenticated');
+    }
+
+    const userId = verifySessionToken(sessionToken);
+    if (!userId) {
+      reply.clearCookie(config.auth.cookieName, getSessionCookieOptions());
+      return reply.unauthorized('Invalid or expired session');
+    }
+
+    const now = new Date();
+    const entitlements = await prisma.entitlement.findMany({
+      where: {
+        userId,
+        revokedAt: null,
+        cancelledAt: null,
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: now } },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Determine effective subscription tier
+    const tierCodes = ['BUSINESS', 'PRO', 'PLUS'];
+    let tier = 'FREE';
+    let activeTierEntitlement = null;
+
+    for (const code of tierCodes) {
+      const found = entitlements.find((e) => e.code === code);
+      if (found) {
+        tier = code;
+        activeTierEntitlement = found;
+        break;
+      }
+    }
+
+    return reply.success({
+      tier,
+      entitlements: entitlements.map((e) => ({
+        id: e.id,
+        code: e.code,
+        sourceType: e.sourceType,
+        expiresAt: e.expiresAt?.toISOString() || null,
+        autoRenew: e.autoRenew,
+        createdAt: e.createdAt.toISOString(),
+      })),
+      activeTier: activeTierEntitlement ? {
+        id: activeTierEntitlement.id,
+        code: activeTierEntitlement.code,
+        expiresAt: activeTierEntitlement.expiresAt?.toISOString() || null,
+        autoRenew: activeTierEntitlement.autoRenew,
+      } : null,
+    });
+  });
+
+  /**
    * POST /auth/logout
    * Clears the session cookie
    */

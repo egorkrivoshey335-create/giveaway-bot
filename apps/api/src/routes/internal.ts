@@ -1366,4 +1366,134 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
   );
+
+  // ============================================================================
+  // Subscription lifecycle endpoints (used by BullMQ workers in bot)
+  // ============================================================================
+
+  /**
+   * GET /internal/subscriptions/expiring
+   * Returns subscriptions expiring within `days` days (default 4)
+   * Used by subscription:check periodic job
+   */
+  fastify.get('/subscriptions/expiring', async (request, reply) => {
+    const query = (request.query as { days?: string });
+    const days = parseInt(query.days || '4', 10);
+    const now = new Date();
+    const cutoff = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+
+    const entitlements = await prisma.entitlement.findMany({
+      where: {
+        expiresAt: { not: null, lte: cutoff },
+        revokedAt: null,
+        cancelledAt: null,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            telegramUserId: true,
+          },
+        },
+      },
+    });
+
+    const result = entitlements.map((e) => ({
+      id: e.id,
+      userId: e.user.id,
+      telegramUserId: e.user.telegramUserId.toString(),
+      code: e.code,
+      expiresAt: e.expiresAt!.toISOString(),
+      autoRenew: e.autoRenew,
+      warningSentAt: e.warningSentAt?.toISOString() || null,
+      isExpired: e.expiresAt! < now,
+    }));
+
+    return reply.success(result);
+  });
+
+  /**
+   * POST /internal/subscriptions/:userId/deactivate
+   * Deactivates all active entitlements for a user
+   * Body: { reason?: string }
+   */
+  fastify.post(
+    '/subscriptions/:userId/deactivate',
+    async (request, reply) => {
+      const { userId } = request.params as { userId: string };
+      const body = (request.body as { reason?: string }) || {};
+
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        return reply.notFound('User not found');
+      }
+
+      await prisma.entitlement.updateMany({
+        where: {
+          userId,
+          revokedAt: null,
+          expiresAt: { lte: new Date() },
+        },
+        data: {
+          revokedAt: new Date(),
+          metadata: { reason: body.reason || 'expired' } as unknown as Prisma.InputJsonValue,
+        },
+      });
+
+      fastify.log.info({ userId, reason: body.reason }, 'Subscription deactivated');
+      return reply.success({ ok: true });
+    }
+  );
+
+  /**
+   * POST /internal/subscriptions/:userId/mark-warning-sent
+   * Marks that an expiry warning was sent for a specific entitlement
+   * Body: { entitlementId: string }
+   */
+  fastify.post(
+    '/subscriptions/:userId/mark-warning-sent',
+    async (request, reply) => {
+      const { userId } = request.params as { userId: string };
+      const body = request.body as { entitlementId: string };
+
+      await prisma.entitlement.updateMany({
+        where: {
+          id: body.entitlementId,
+          userId,
+        },
+        data: {
+          warningSentAt: new Date(),
+        },
+      });
+
+      return reply.success({ ok: true });
+    }
+  );
+
+  /**
+   * POST /internal/subscriptions/:userId/auto-renew
+   * Placeholder for auto-renewal via YooKassa
+   * Body: { entitlementId, productId, amount, currency }
+   */
+  fastify.post(
+    '/subscriptions/:userId/auto-renew',
+    async (request, reply) => {
+      const { userId } = request.params as { userId: string };
+      const body = request.body as {
+        entitlementId: string;
+        productId: string;
+        amount: number;
+        currency: string;
+      };
+
+      fastify.log.info({ userId, ...body }, 'Auto-renew requested (not yet implemented)');
+
+      // Placeholder: real implementation would create a YooKassa payment
+      return reply.success({
+        ok: false,
+        error: 'auto_renew_not_configured',
+        message: 'Auto-renewal via YooKassa is not yet configured',
+      });
+    }
+  );
 };

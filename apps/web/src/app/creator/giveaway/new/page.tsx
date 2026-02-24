@@ -127,8 +127,27 @@ export default function GiveawayWizardPage() {
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [existingDraftId, setExistingDraftId] = useState<string | null>(null);
   
-  // TODO: TASKS-6 - проверка подписки пользователя
-  const userHasPremium = false;
+  // Subscription tier (fetched from API)
+  const [userTier, setUserTier] = useState<'FREE' | 'PLUS' | 'PRO' | 'BUSINESS'>('FREE');
+
+  useEffect(() => {
+    fetch('/api/users/me/entitlements', { credentials: 'include' })
+      .then(r => r.json())
+      .then((d: { data?: { tier?: string } }) => {
+        const tier = d?.data?.tier as string;
+        if (tier && ['PLUS', 'PRO', 'BUSINESS'].includes(tier)) {
+          setUserTier(tier as 'PLUS' | 'PRO' | 'BUSINESS');
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const userHasPremium = userTier !== 'FREE';
+
+  // Channel limit by tier
+  const subscriptionChannelLimit = userTier === 'BUSINESS' ? Infinity : userTier === 'PRO' ? 30 : userTier === 'PLUS' ? 10 : 3;
+  // Winner limit by tier
+  const winnerLimit = userTier === 'BUSINESS' ? 200 : userTier === 'PRO' ? 100 : userTier === 'PLUS' ? 50 : 10;
 
   // Helper: валидация URL
   const isValidURL = (url: string): boolean => {
@@ -675,6 +694,27 @@ export default function GiveawayWizardPage() {
               <p className="text-sm text-tg-hint mb-4">
                 {t('subscriptions.description')}
               </p>
+
+              {/* Subscription channel limit banner */}
+              <div className="mb-4 bg-tg-bg rounded-lg p-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-tg-hint">{t('subscriptions.channelLimit')}:</span>
+                  <span className="font-medium text-tg-button">
+                    {(payload.requiredSubscriptionChannelIds || []).length} / {subscriptionChannelLimit === Infinity ? '∞' : subscriptionChannelLimit}
+                  </span>
+                </div>
+                {(payload.requiredSubscriptionChannelIds || []).length >= subscriptionChannelLimit && subscriptionChannelLimit !== Infinity && (
+                  <p className="text-xs text-yellow-600 mt-1">
+                    ⚠️ {t('subscriptions.limitReached')}
+                  </p>
+                )}
+                {userTier === 'FREE' && (
+                  <p className="text-xs text-tg-hint mt-1">
+                    FREE: 3 · PLUS: 10 · PRO: 30 · BUSINESS: ∞
+                  </p>
+                )}
+              </div>
+
               {channels.length === 0 ? (
                 <p className="text-center text-tg-hint py-8">
                   {t('subscriptions.noChannels')}
@@ -978,22 +1018,22 @@ export default function GiveawayWizardPage() {
                 <input
                   type="number"
                   min={1}
-                  max={MAX_WINNERS_FREE}
+                  max={winnerLimit}
                   value={payload.winnersCount || 1}
                   onChange={(e) => {
                     const val = parseInt(e.target.value) || 1;
-                    updatePayload({ winnersCount: Math.min(Math.max(1, val), MAX_WINNERS_FREE) });
+                    updatePayload({ winnersCount: Math.min(Math.max(1, val), winnerLimit) });
                   }}
                   className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text text-center text-2xl font-bold"
                 />
               </div>
 
               {/* Быстрый выбор */}
-              <div className="flex gap-2 justify-center">
-                {[1, 3, 5, 10].map(n => (
+              <div className="flex gap-2 justify-center flex-wrap">
+                {[1, 3, 5, 10, ...(userTier !== 'FREE' ? [25, 50] : []), ...(userTier === 'PRO' || userTier === 'BUSINESS' ? [100] : [])].map(n => (
                   <button
                     key={n}
-                    onClick={() => updatePayload({ winnersCount: n })}
+                    onClick={() => updatePayload({ winnersCount: Math.min(n, winnerLimit) })}
                     className={`w-12 h-12 rounded-lg font-medium ${
                       payload.winnersCount === n
                         ? 'bg-tg-button text-tg-button-text'
@@ -1007,7 +1047,10 @@ export default function GiveawayWizardPage() {
 
               <div className="bg-tg-bg rounded-lg p-3 text-sm text-tg-hint">
                 <p className="mb-1">🎲 {t('winners.randomHint')}</p>
-                <p>📊 {t('winners.maxFree', { max: MAX_WINNERS_FREE })}</p>
+                <p>📊 {t('winners.maxFree', { max: winnerLimit })}</p>
+                {userTier === 'FREE' && (
+                  <p className="mt-1 text-xs">FREE: 10 · PLUS: 50 · PRO: 100 · BUSINESS: 200</p>
+                )}
               </div>
 
               {/* Минимальное количество участников */}
@@ -1583,7 +1626,12 @@ export default function GiveawayWizardPage() {
                 <Mascot type="wizard-review" size={160} loop={true} autoplay={true} />
               </div>
 
+              {/* Основное + кнопка Edit */}
               <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-tg-hint text-xs font-medium">📋 {t('review.basics')}</span>
+                  <button onClick={() => { hapticNavigation(); goToStep('BASICS'); }} className="text-xs text-tg-button underline">✏️ {t('review.edit')}</button>
+                </div>
                 <div className="flex justify-between">
                   <span className="text-tg-hint">{t('review.type')}:</span>
                   <span>{payload.type ? t(`types.${payload.type}.label`) : '—'}</span>
@@ -1604,11 +1652,20 @@ export default function GiveawayWizardPage() {
                   <span className="text-tg-hint">{t('review.postTemplate')}:</span>
                   <span>{payload.postTemplateId ? t('review.selected') : t('review.notSelected')}</span>
                 </div>
+                {payload.prizeDescription && (
+                  <div className="flex justify-between">
+                    <span className="text-tg-hint">{t('review.prize')}:</span>
+                    <span className="truncate max-w-[200px]">{payload.prizeDescription}</span>
+                  </div>
+                )}
               </div>
 
               {/* Даты */}
               <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
-                <div className="text-tg-hint text-xs font-medium mb-1">📆 {t('review.dates')}</div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-tg-hint text-xs font-medium">📆 {t('review.dates')}</span>
+                  <button onClick={() => { hapticNavigation(); goToStep('DATES'); }} className="text-xs text-tg-button underline">✏️ {t('review.edit')}</button>
+                </div>
                 <div className="flex justify-between">
                   <span className="text-tg-hint">{t('review.start')}:</span>
                   <span>{payload.startAt ? formatDisplayDate(payload.startAt) : t('review.afterConfirmation')}</span>
@@ -1621,16 +1678,28 @@ export default function GiveawayWizardPage() {
 
               {/* Победители */}
               <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
-                <div className="text-tg-hint text-xs font-medium mb-1">🏆 {t('review.winners')}</div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-tg-hint text-xs font-medium">🏆 {t('review.winners')}</span>
+                  <button onClick={() => { hapticNavigation(); goToStep('WINNERS'); }} className="text-xs text-tg-button underline">✏️ {t('review.edit')}</button>
+                </div>
                 <div className="flex justify-between">
                   <span className="text-tg-hint">{t('review.count')}:</span>
                   <span className="font-medium">{payload.winnersCount || 1}</span>
                 </div>
+                {(payload.minParticipants || 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-tg-hint">{t('review.minParticipants')}:</span>
+                    <span>{payload.minParticipants}</span>
+                  </div>
+                )}
               </div>
 
               {/* Каналы */}
               <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
-                <div className="text-tg-hint text-xs font-medium mb-1">📣 {t('review.channels')}</div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-tg-hint text-xs font-medium">📣 {t('review.channels')}</span>
+                  <button onClick={() => { hapticNavigation(); goToStep('SUBSCRIPTIONS'); }} className="text-xs text-tg-button underline">✏️ {t('review.edit')}</button>
+                </div>
                 <div className="flex justify-between">
                   <span className="text-tg-hint">{t('review.subscriptions')}:</span>
                   <span>{(payload.requiredSubscriptionChannelIds || []).length}</span>
@@ -1647,7 +1716,10 @@ export default function GiveawayWizardPage() {
 
               {/* Защита */}
               <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
-                <div className="text-tg-hint text-xs font-medium mb-1">🔒 {t('review.protection')}</div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-tg-hint text-xs font-medium">🔒 {t('review.protection')}</span>
+                  <button onClick={() => { hapticNavigation(); goToStep('PROTECTION'); }} className="text-xs text-tg-button underline">✏️ {t('review.edit')}</button>
+                </div>
                 <div className="flex justify-between">
                   <span className="text-tg-hint">{t('review.captcha')}:</span>
                   <span>{t(`protection.captcha.${payload.captchaMode || 'SUSPICIOUS_ONLY'}.label`)}</span>
@@ -1660,7 +1732,10 @@ export default function GiveawayWizardPage() {
 
               {/* Дополнительные билеты */}
               <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
-                <div className="text-tg-hint text-xs font-medium mb-1">🎫 {t('review.extraTickets')}</div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-tg-hint text-xs font-medium">🎫 {t('review.extraTickets')}</span>
+                  <button onClick={() => { hapticNavigation(); goToStep('EXTRAS'); }} className="text-xs text-tg-button underline">✏️ {t('review.edit')}</button>
+                </div>
                 <div className="flex justify-between">
                   <span className="text-tg-hint">{t('review.invites')}:</span>
                   <span>
@@ -1690,6 +1765,14 @@ export default function GiveawayWizardPage() {
                   <span className="text-yellow-600">🔒 PRO</span>
                 </div>
               </div>
+
+              {/* Кнопка отмены черновика */}
+              <button
+                onClick={() => { hapticError(); setShowExitConfirm(true); }}
+                className="w-full py-2 text-sm text-red-500 hover:text-red-600 transition-colors"
+              >
+                ❌ {t('review.cancelDraft')}
+              </button>
 
               {/* Validation warnings */}
               {(!payload.type || !payload.title || !payload.buttonText || !payload.postTemplateId || (payload.publishChannelIds || []).length === 0) && (

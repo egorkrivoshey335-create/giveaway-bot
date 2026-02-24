@@ -30,10 +30,17 @@ if (config.botEnabled) {
     await import('./jobs/creator-daily-summary.js');
     // Subscription lifecycle workers
     await import('./jobs/subscription.js');
+    // Subscription periodic check
+    const { subscriptionCheckWorker, scheduleSubscriptionCheck } = await import('./jobs/subscription-check.js');
+    await scheduleSubscriptionCheck();
+    log.info('[BullMQ] ✅ Subscription check scheduled');
+    // Giveaway start reminder
+    await import('./jobs/start-reminder.js');
     // Cleanup & milestone workers
     await import('./jobs/cleanup.js');
     await import('./jobs/milestones.js');
-    log.info('[BullMQ] ✅ All 10 workers started');
+    log.info('[BullMQ] ✅ All 12 workers started');
+    void subscriptionCheckWorker; // prevent unused warning
   } catch (err) {
     console.error('[BullMQ] Failed to start workers:', err);
     log.error({ err }, '[BullMQ] Failed to start workers — bot continues without job processing');

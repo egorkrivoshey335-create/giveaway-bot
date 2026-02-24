@@ -11,6 +11,7 @@ import {
   startGiveaway,
   cancelGiveaway,
   retryGiveaway,
+  updateGiveaway,
   getParticipantCount,
   getTopInviters,
   banParticipant,
@@ -105,6 +106,14 @@ export default function GiveawayDetailsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
+  // Subscription tier (for stats gating)
+  const [userTier, setUserTier] = useState<'FREE' | 'PLUS' | 'PRO' | 'BUSINESS'>('FREE');
+
+  // Inline editing state
+  const [editingEndAt, setEditingEndAt] = useState(false);
+  const [editEndAtValue, setEditEndAtValue] = useState('');
+  const [saving, setSaving] = useState(false);
+
   // Polling
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -161,6 +170,16 @@ export default function GiveawayDetailsPage() {
 
   useEffect(() => {
     loadGiveaway();
+    // Fetch user tier for statistics gating
+    fetch('/api/users/me/entitlements', { credentials: 'include' })
+      .then(r => r.json())
+      .then((d: { data?: { tier?: string } }) => {
+        const tier = d?.data?.tier as string;
+        if (tier && ['PLUS', 'PRO', 'BUSINESS'].includes(tier)) {
+          setUserTier(tier as 'PLUS' | 'PRO' | 'BUSINESS');
+        }
+      })
+      .catch(() => {});
   }, [loadGiveaway]);
 
   useEffect(() => {
@@ -543,11 +562,11 @@ export default function GiveawayDetailsPage() {
               </div>
             )}
 
-            {/* Рост участников */}
+            {/* Рост участников — PLUS+ только */}
             {stats && stats.participantsGrowth.length > 0 && (
-              <div className="bg-tg-secondary rounded-xl p-4">
+              <div className="bg-tg-secondary rounded-xl p-4 relative">
                 <h3 className="font-medium mb-3">📈 {t('growth.title')}</h3>
-                <div className="flex items-end gap-1 h-24">
+                <div className={`flex items-end gap-1 h-24 ${userTier === 'FREE' ? 'blur-sm select-none' : ''}`}>
                   {stats.participantsGrowth.map((day, i) => {
                     const maxCount = Math.max(...stats.participantsGrowth.map(d => d.count), 1);
                     const height = (day.count / maxCount) * 100;
@@ -564,12 +583,87 @@ export default function GiveawayDetailsPage() {
                     );
                   })}
                 </div>
+                {userTier === 'FREE' && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-tg-secondary/60 rounded-xl">
+                    <div className="text-2xl mb-1">🔒</div>
+                    <p className="text-xs font-medium text-tg-text">PLUS+</p>
+                    <button
+                      onClick={() => router.push('/creator/subscription')}
+                      className="mt-2 text-xs text-tg-button underline"
+                    >
+                      {t('stats.upgrade')}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Редактирование даты окончания (для ACTIVE/SCHEDULED) */}
+            {giveaway && ['ACTIVE', 'SCHEDULED'].includes(giveaway.status) && (
+              <div className="bg-tg-secondary rounded-xl p-4">
+                <h3 className="font-medium mb-3">✏️ {t('edit.title')}</h3>
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <label className="block text-tg-hint mb-1">{t('info.end')}:</label>
+                    {editingEndAt ? (
+                      <div className="flex gap-2">
+                        <input
+                          type="datetime-local"
+                          value={editEndAtValue}
+                          onChange={(e) => setEditEndAtValue(e.target.value)}
+                          className="flex-1 bg-tg-bg rounded-lg px-3 py-2 text-tg-text text-sm"
+                        />
+                        <button
+                          onClick={async () => {
+                            setSaving(true);
+                            const isoValue = editEndAtValue ? new Date(editEndAtValue).toISOString() : null;
+                            const res = await updateGiveaway(giveaway.id, { endAt: isoValue });
+                            setSaving(false);
+                            if (res.ok) {
+                              setMessage(t('edit.saved'));
+                              setEditingEndAt(false);
+                              loadGiveaway();
+                            } else {
+                              setMessage(res.error || t('edit.error'));
+                            }
+                            setTimeout(() => setMessage(null), 3000);
+                          }}
+                          disabled={saving}
+                          className="bg-tg-button text-tg-button-text rounded-lg px-3 py-2 text-sm disabled:opacity-50"
+                        >
+                          {saving ? '...' : '✓'}
+                        </button>
+                        <button
+                          onClick={() => setEditingEndAt(false)}
+                          className="bg-tg-secondary text-tg-hint rounded-lg px-3 py-2 text-sm"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <span>{giveaway.endAt ? formatDate(giveaway.endAt) : t('info.noEndDate')}</span>
+                        <button
+                          onClick={() => {
+                            setEditEndAtValue(giveaway.endAt
+                              ? new Date(giveaway.endAt).toISOString().slice(0, 16)
+                              : '');
+                            setEditingEndAt(true);
+                          }}
+                          className="text-xs text-tg-button underline"
+                        >
+                          ✏️ {t('edit.change')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
             {/* Топ инвайтеров */}
             {giveaway.condition?.inviteEnabled && (
-              <div className="bg-tg-secondary rounded-xl p-4">
+              <div className="bg-tg-secondary rounded-xl p-4 relative">
                 <h3 className="font-medium mb-3 flex items-center gap-2">
                   <AppIcon name="icon-winner" variant="brand" size={18} />
                   {t('topInviters.title')}

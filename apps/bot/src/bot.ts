@@ -52,6 +52,7 @@ import {
 } from './handlers/admin.js';
 import { handleInlineQuery } from './handlers/inline.js';
 import { registerPaymentHandlers } from './handlers/payments.js';
+import { NAV_CALLBACKS } from './lib/navigation.js';
 
 const log = createLogger('bot');
 
@@ -389,6 +390,28 @@ bot.hears(MENU.TO_MENU, async (ctx) => {
     clearAllUserStates(ctx.from.id);
   }
 
+  await ctx.reply(getMainMenuMessage(locale), {
+    reply_markup: createMainMenuKeyboard(locale),
+    parse_mode: 'HTML',
+  });
+});
+
+// Handle navigation: Back button (nav_back) → go to main menu
+bot.callbackQuery(NAV_CALLBACKS.BACK, async (ctx) => {
+  const userId = ctx.from?.id;
+  const locale = userId ? getUserLocale(userId) : 'ru';
+  await ctx.answerCallbackQuery();
+  await ctx.reply(getMainMenuMessage(locale), {
+    reply_markup: createMainMenuKeyboard(locale),
+    parse_mode: 'HTML',
+  });
+});
+
+// Handle navigation: Main Menu (nav_main_menu)
+bot.callbackQuery(NAV_CALLBACKS.MAIN_MENU, async (ctx) => {
+  const userId = ctx.from?.id;
+  const locale = userId ? getUserLocale(userId) : 'ru';
+  await ctx.answerCallbackQuery();
   await ctx.reply(getMainMenuMessage(locale), {
     reply_markup: createMainMenuKeyboard(locale),
     parse_mode: 'HTML',

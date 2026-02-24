@@ -1124,6 +1124,7 @@ interface GiveawaysListResponse {
     active: number;
     finished: number;
     cancelled: number;
+    error?: number;
   };
   error?: string;
 }
@@ -1804,6 +1805,31 @@ export async function cancelGiveaway(giveawayId: string): Promise<{ok: boolean; 
   const response = await fetch(`${API_URL}/giveaways/${giveawayId}/cancel`, {
     method: 'POST',
     credentials: 'include',
+  });
+
+  return response.json();
+}
+
+/**
+ * Обновить розыгрыш (PATCH /giveaways/:id)
+ * Для ACTIVE: только endAt, captchaMode, livenessEnabled
+ * Для DRAFT/SCHEDULED: все поля
+ */
+export async function updateGiveaway(
+  giveawayId: string,
+  data: {
+    endAt?: string | null;
+    title?: string;
+    winnersCount?: number;
+    captchaMode?: 'OFF' | 'SUSPICIOUS_ONLY' | 'ALL';
+    livenessEnabled?: boolean;
+  }
+): Promise<{ok: boolean; error?: string}> {
+  const response = await fetch(`${API_URL}/giveaways/${giveawayId}`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
   });
 
   return response.json();

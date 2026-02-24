@@ -177,7 +177,9 @@
     },
     "subscriptions": {
       "description": "Select channels participants must subscribe to:",
-      "noChannels": "No channels. Add a channel in bot → 📣 My Channels"
+      "noChannels": "No channels. Add a channel in bot → 📣 My Channels",
+      "channelLimit": "Channel limit",
+      "limitReached": "Limit reached. Upgrade your subscription to add more channels."
     },
     "publish": {
       "description": "Select channels for publishing the giveaway (minimum 1):",
@@ -283,6 +285,11 @@
     },
     "review": {
       "title": "Review Data",
+      "basics": "Basics",
+      "edit": "Edit",
+      "prize": "Prize description",
+      "minParticipants": "Min participants",
+      "cancelDraft": "Delete draft",
       "type": "Type",
       "name": "Name",
       "language": "Language",
@@ -680,7 +687,8 @@
       "tickets": "Tickets",
       "invites": "Invites",
       "boosts": "Boosts",
-      "today": "today"
+      "today": "today",
+      "upgrade": "Upgrade to PLUS+"
     },
     "info": {
       "title": "Information",
@@ -688,7 +696,14 @@
       "start": "Start",
       "end": "End",
       "created": "Created",
-      "publishChannels": "Publish channels"
+      "publishChannels": "Publish channels",
+      "noEndDate": "Not specified"
+    },
+    "edit": {
+      "title": "Edit",
+      "change": "Change",
+      "saved": "✅ Saved",
+      "error": "Save error"
     },
     "conditions": {
       "title": "Conditions",

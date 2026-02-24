@@ -17,7 +17,7 @@ import { AppIcon } from '@/components/AppIcon';
 const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
 
 // Статусы для фильтрации
-type StatusFilter = 'all' | 'DRAFT' | 'PENDING_CONFIRM' | 'SCHEDULED' | 'ACTIVE' | 'FINISHED' | 'CANCELLED';
+type StatusFilter = 'all' | 'DRAFT' | 'PENDING_CONFIRM' | 'SCHEDULED' | 'ACTIVE' | 'FINISHED' | 'CANCELLED' | 'ERROR';
 
 // Получить метку статуса (будет заменено на переводы в компоненте)
 function getStatusLabel(status: string, tGiveaway: ReturnType<typeof useTranslations<'giveaway'>>): string {
@@ -55,6 +55,7 @@ function getStatusBadgeClass(status: string): string {
     case 'ACTIVE': return 'bg-green-500/20 text-green-600';
     case 'FINISHED': return 'bg-purple-500/20 text-purple-600';
     case 'CANCELLED': return 'bg-red-500/20 text-red-600';
+    case 'ERROR': return 'bg-orange-500/20 text-orange-600';
     default: return 'bg-gray-500/20 text-gray-600';
   }
 }
@@ -330,6 +331,7 @@ export default function CreatorDashboardPage() {
           ACTIVE: res.counts.active,
           FINISHED: res.counts.finished,
           CANCELLED: res.counts.cancelled,
+          ERROR: res.counts.error || 0,
         });
       }
     } catch (err) {
@@ -408,6 +410,7 @@ export default function CreatorDashboardPage() {
     { key: 'SCHEDULED', label: t('filters.scheduled'), icon: 'icon-calendar' },
     { key: 'FINISHED',  label: t('filters.finished'),  icon: 'icon-completed' },
     { key: 'DRAFT',     label: t('filters.draft'),     icon: 'icon-edit' },
+    ...(counts['ERROR'] ? [{ key: 'ERROR' as StatusFilter, label: '⚠️ Ошибка', icon: '' }] : []),
   ];
 
   if (loading) {
