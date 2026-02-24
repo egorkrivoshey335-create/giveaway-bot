@@ -147,11 +147,11 @@ export function Header({ isAuthenticated: initialAuth, darkMode = false }: Heade
             >
               {t('bot')}
             </a>
-            <Link
-              href="/dashboard"
-              className={navTextClass}
-            >
+            <Link href="/dashboard" className={navTextClass}>
               {t('randomizer')}
+            </Link>
+            <Link href="/#pricing" className={navTextClass}>
+              {t('pricing')}
             </Link>
           </nav>
 

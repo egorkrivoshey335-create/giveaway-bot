@@ -1,13 +1,20 @@
-import { useTranslations } from 'next-intl';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { FeatureCard } from '@/components/FeatureCard';
 import { SmartLink } from '@/components/SmartLink';
+import { PricingSection } from '@/components/PricingSection';
 import { config } from '@/lib/config';
 
-export default function HomePage() {
-  const t = useTranslations('landing');
-  const tCommon = useTranslations('common');
+interface Props {
+  params: Promise<{ locale: string }>;
+}
+
+export default async function HomePage({ params }: Props) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: 'landing' });
+  const tCommon = await getTranslations({ locale, namespace: 'common' });
 
   const botLink = `https://t.me/${config.botUsername}`;
 
@@ -172,6 +179,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Pricing секция */}
+      <PricingSection />
 
       {/* CTA секция */}
       <section className="py-20 px-4 bg-brand-50">

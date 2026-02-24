@@ -1,0 +1,22 @@
+# RandomBeast — randombeast.ru
+# Allow public pages, disallow auth & dashboard
+
+User-agent: *
+Allow: /
+Allow: /en/
+Allow: /kk/
+Allow: /privacy
+Allow: /terms
+Allow: /results/
+
+# Запрещаем индексировать приватные разделы
+Disallow: /login
+Disallow: /dashboard
+Disallow: /winner/
+Disallow: /api/
+Disallow: /en/login
+Disallow: /en/dashboard
+Disallow: /kk/login
+Disallow: /kk/dashboard
+
+Sitemap: https://randombeast.ru/sitemap.xml

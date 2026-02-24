@@ -151,12 +151,157 @@
   "header": {
     "home": "Home",
     "dashboard": "Dashboard",
-    "randomizer": "Randomizer"
+    "randomizer": "Randomizer",
+    "pricing": "Pricing",
+    "bot": "Bot"
   },
   "footer": {
     "rights": "All rights reserved",
     "bot": "Bot",
     "support": "Support",
-    "channel": "Channel"
+    "channel": "Channel",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "legal": "Legal"
+  },
+  "pricing": {
+    "title": "Pricing",
+    "subtitle": "Choose the plan that fits your giveaways",
+    "free": {
+      "name": "FREE",
+      "price": "Free",
+      "period": "forever",
+      "description": "Basic features to get started",
+      "features": [
+        "Up to 3 active giveaways",
+        "Up to 1,000 participants",
+        "Basic statistics",
+        "Verify subscription to 1 channel"
+      ],
+      "cta": "Start for free"
+    },
+    "plus": {
+      "name": "PLUS",
+      "price": "299 ₽",
+      "period": "per month",
+      "description": "For active creators",
+      "features": [
+        "Up to 10 active giveaways",
+        "Up to 10,000 participants",
+        "Detailed statistics",
+        "Up to 5 channels",
+        "Giveaway catalog",
+        "Priority support"
+      ],
+      "cta": "Get PLUS",
+      "badge": "Popular"
+    },
+    "pro": {
+      "name": "PRO",
+      "price": "799 ₽",
+      "period": "per month",
+      "description": "Maximum capabilities",
+      "features": [
+        "Unlimited giveaways",
+        "Unlimited participants",
+        "Site randomizer",
+        "Custom theme",
+        "API access",
+        "Up to 20 channels",
+        "White-label randomizer"
+      ],
+      "cta": "Get PRO"
+    },
+    "openBot": "Open bot to subscribe"
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "lastUpdated": "Last updated",
+    "intro": "This Privacy Policy describes how RandomBeast (hereinafter — \"we\", \"our service\") collects, uses and protects your personal data when using our bot @BeastRandomBot and the website randombeast.ru.",
+    "sections": {
+      "dataCollected": {
+        "title": "What data we collect",
+        "content": "When using the service we receive from Telegram: Telegram ID, username, first and last name, Telegram Premium status, avatar (when logging in to the website). We also store: giveaway participation history, subscription purchase history, bot activity data."
+      },
+      "dataUsage": {
+        "title": "How we use your data",
+        "content": "Collected data is used exclusively for: user identification in the system, conducting giveaways and selecting winners, awarding bonus chances (Premium, boosts, referrals), displaying statistics to giveaway creators, processing payments via YooKassa and Telegram Stars, preventing fraud and abuse."
+      },
+      "liveness": {
+        "title": "Photos for verification (Liveness)",
+        "content": "If a giveaway creator has enabled Liveness verification, a participant may be asked to take a photo via camera. Photos are used only for \"liveness\" verification (bot protection) and are automatically deleted within 24 hours after the giveaway ends. We do not share photos with third parties."
+      },
+      "payments": {
+        "title": "Payment data",
+        "content": "Payments are processed via YooKassa (for ruble payments) and Telegram Stars. We do not store bank card data. Payment data is transmitted and processed directly by payment providers in accordance with their privacy policies."
+      },
+      "cookies": {
+        "title": "Cookies and sessions",
+        "content": "The randombeast.ru website uses HTTP-only cookies to store the authorization session. Cookies do not contain personal data, only a session token. You can manage cookies through your browser settings, however disabling cookies may prevent you from logging in to the website."
+      },
+      "thirdParty": {
+        "title": "Sharing data with third parties",
+        "content": "We do not sell or share your personal data with third parties, except: payment providers (YooKassa, Telegram) — to the extent necessary for payment processing; Telegram — to the extent necessary for bot operation; law enforcement — when required by law."
+      },
+      "userRights": {
+        "title": "Your rights",
+        "content": "You have the right to: request the data we store about you; request correction of incorrect data; request deletion of your data (right to be forgotten); withdraw consent to data processing. To exercise your rights, contact support: @Cosmolex_bot."
+      },
+      "dataRetention": {
+        "title": "Data retention",
+        "content": "Account data is stored until a deletion request is made. Giveaway and winner data is stored for 1 year after the giveaway ends. Payment records are stored for 5 years as required by law. Liveness photos are deleted within 24 hours."
+      },
+      "security": {
+        "title": "Security",
+        "content": "All connections to our service are protected by HTTPS. Data is stored on secure servers. Access to personal data is restricted to authorized personnel on a need-to-know basis. We use modern encryption methods."
+      },
+      "contact": {
+        "title": "Contact",
+        "content": "For privacy and data protection inquiries: Telegram: @Cosmolex_bot | Support bot: @BeastRandomBot"
+      }
+    }
+  },
+  "terms": {
+    "title": "Terms of Service",
+    "lastUpdated": "Last updated",
+    "intro": "These Terms of Service govern the relationship between the user and the RandomBeast service when using the @BeastRandomBot bot and the randombeast.ru website. By using the service, you agree to these terms.",
+    "sections": {
+      "service": {
+        "title": "Service description",
+        "content": "RandomBeast is a platform for running giveaways on Telegram. The service provides tools for creating giveaways, verifying participation conditions, selecting winners, and publishing results in Telegram channels. The service is available through the @BeastRandomBot bot and the randombeast.ru website."
+      },
+      "rules": {
+        "title": "Usage rules",
+        "content": "The giveaway creator is fully responsible for the accuracy of the giveaway description and the fairness of its conduct. The following is prohibited: running fake giveaways without real prizes; using the service for fraud; publishing giveaways with prohibited content; automatically participating using bots or scripts; circumventing service protection systems."
+      },
+      "prizes": {
+        "title": "Prize responsibility",
+        "content": "RandomBeast is not the giveaway organizer and is not responsible for prize delivery. The giveaway creator independently determines prizes and bears full responsibility for delivering them to winners. The service only provides technical tools for conducting giveaways."
+      },
+      "subscriptions": {
+        "title": "Subscriptions and payment",
+        "content": "The service offers paid plans (PLUS, PRO, BUSINESS). Payment is made via YooKassa (bank cards) or Telegram Stars. Subscriptions are on a monthly basis. Refunds are available within 14 days of payment if the service has not been used. Telegram Stars refunds are subject to Telegram's policy."
+      },
+      "prohibited": {
+        "title": "Prohibited content",
+        "content": "It is prohibited to create giveaways related to: gambling (without license); financial pyramids and Ponzi schemes; illegal goods or services; adult content without proper age verification; discrimination of any kind; copyright infringement."
+      },
+      "blocking": {
+        "title": "Blocking and restrictions",
+        "content": "We reserve the right to block accounts and remove giveaways without notice in case of violations, participant complaints, detection of fraudulent activity or other abuses. A blocked user loses access to the service without a refund for the unused subscription period."
+      },
+      "liability": {
+        "title": "Limitation of liability",
+        "content": "The service is provided \"as is\". We do not guarantee uninterrupted service operation and are not responsible for: technical failures; data loss; losses related to the use or inability to use the service; actions of third parties."
+      },
+      "changes": {
+        "title": "Changes to terms",
+        "content": "We may modify these terms. We will notify users of significant changes through the @BeastRandomBot bot at least 7 days before they take effect. Continued use of the service after changes means acceptance of the new terms."
+      },
+      "contact": {
+        "title": "Contact",
+        "content": "For questions regarding these terms: Telegram: @Cosmolex_bot | Support bot: @BeastRandomBot | Website: randombeast.ru"
+      }
+    }
   }
 }

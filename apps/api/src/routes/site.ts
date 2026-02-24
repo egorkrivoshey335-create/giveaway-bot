@@ -958,6 +958,34 @@ export async function siteRoutes(fastify: FastifyInstance) {
   );
 
   /**
+   * GET /site/public-results
+   * Список публичных завершённых розыгрышей для sitemap.xml
+   * Без авторизации
+   */
+  fastify.get('/site/public-results', async (_request, reply) => {
+    const giveaways = await prisma.giveaway.findMany({
+      where: {
+        status: 'FINISHED',
+        winnersPublished: true,
+        isPublicInCatalog: true,
+      },
+      select: {
+        id: true,
+        endAt: true,
+      },
+      orderBy: { endAt: 'desc' },
+      take: 200,
+    });
+
+    return reply.success({
+      giveaways: giveaways.map(g => ({
+        id: g.id,
+        finishedAt: g.endAt?.toISOString() ?? new Date().toISOString(),
+      })),
+    });
+  });
+
+  /**
    * POST /site/logout
    * Удаляет cookie сессии
    */
