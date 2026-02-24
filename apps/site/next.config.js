@@ -10,15 +10,21 @@ const nextConfig = {
   },
 };
 
+const hasSentryDsn = !!process.env.SENTRY_DSN_SITE;
+
 const sentryConfig = {
-  // Sentry source maps — отключаем если нет SENTRY_AUTH_TOKEN
   silent: true,
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   authToken: process.env.SENTRY_AUTH_TOKEN,
   hideSourceMaps: true,
   disableLogger: true,
-  // Не фейлим сборку если Sentry недоступен
+  // Disable source map generation if Sentry DSN is not configured
+  sourcemaps: {
+    disable: !hasSentryDsn,
+    deleteSourcemapsAfterUpload: true,
+  },
+  // Don't fail the build if Sentry is not configured
   errorHandler: (err) => {
     console.warn('[Sentry] Upload skipped:', err?.message || err);
   },
