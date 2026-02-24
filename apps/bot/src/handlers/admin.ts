@@ -212,6 +212,87 @@ ID: ${giveaway.id}
 }
 
 /**
+ * /admin_approve - Одобрить розыгрыш в каталоге
+ */
+export async function handleAdminApprove(ctx: Context) {
+  if (!isAdmin(ctx)) {
+    await ctx.reply('❌ У вас нет прав для выполнения этой команды');
+    return;
+  }
+
+  const args = ctx.message?.text?.split(' ').slice(1);
+  if (!args || args.length === 0) {
+    await ctx.reply('Использование: /admin_approve <giveaway_id>');
+    return;
+  }
+
+  const giveawayId = args[0];
+
+  try {
+    const response = await fetch(`${config.apiUrl}/internal/catalog/${giveawayId}/approve`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Token': config.internalApiToken,
+      },
+      body: JSON.stringify({ adminId: ctx.from?.id }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json() as { error?: string };
+      throw new Error(err.error || `API returned ${response.status}`);
+    }
+
+    await ctx.reply(`✅ Розыгрыш ${giveawayId} одобрен для каталога`);
+    log.info({ giveawayId, adminId: ctx.from?.id }, 'Giveaway approved for catalog');
+  } catch (error) {
+    log.error({ error, giveawayId }, 'Failed to approve giveaway');
+    await ctx.reply(`❌ Ошибка при одобрении: ${error instanceof Error ? error.message : 'неизвестная ошибка'}`);
+  }
+}
+
+/**
+ * /admin_reject - Отклонить розыгрыш из каталога
+ */
+export async function handleAdminReject(ctx: Context) {
+  if (!isAdmin(ctx)) {
+    await ctx.reply('❌ У вас нет прав для выполнения этой команды');
+    return;
+  }
+
+  const args = ctx.message?.text?.split(' ').slice(1);
+  if (!args || args.length < 1) {
+    await ctx.reply('Использование: /admin_reject <giveaway_id> [причина]');
+    return;
+  }
+
+  const giveawayId = args[0];
+  const reason = args.slice(1).join(' ') || 'Нарушение правил платформы';
+
+  try {
+    const response = await fetch(`${config.apiUrl}/internal/catalog/${giveawayId}/reject`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Token': config.internalApiToken,
+      },
+      body: JSON.stringify({ adminId: ctx.from?.id, reason }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json() as { error?: string };
+      throw new Error(err.error || `API returned ${response.status}`);
+    }
+
+    await ctx.reply(`✅ Розыгрыш ${giveawayId} отклонён. Причина: ${reason}`);
+    log.info({ giveawayId, reason, adminId: ctx.from?.id }, 'Giveaway rejected from catalog');
+  } catch (error) {
+    log.error({ error, giveawayId }, 'Failed to reject giveaway');
+    await ctx.reply(`❌ Ошибка при отклонении: ${error instanceof Error ? error.message : 'неизвестная ошибка'}`);
+  }
+}
+
+/**
  * /admin_broadcast - Рассылка всем пользователям
  */
 export async function handleAdminBroadcast(ctx: Context) {

@@ -8,6 +8,8 @@ import {
   createWebAppInlineKeyboard,
   createGiveawayMethodKeyboard,
   createLanguageKeyboard,
+  createNotificationKeyboard,
+  getSettingsWithNotificationsMessage,
   getWelcomeMessage,
   getOpenAppMessage,
   getCreateGiveawayMessage,
@@ -45,6 +47,8 @@ import {
   handleAdminStats,
   handleAdminGiveaway,
   handleAdminBroadcast,
+  handleAdminApprove,
+  handleAdminReject,
 } from './handlers/admin.js';
 import { handleInlineQuery } from './handlers/inline.js';
 import { registerPaymentHandlers } from './handlers/payments.js';
@@ -300,11 +304,43 @@ bot.hears(MENU.SETTINGS, async (ctx) => {
     clearAllUserStates(ctx.from.id);
   }
 
-  // Получаем текущий язык пользователя
   const locale = ctx.from?.id ? getUserLocale(ctx.from.id) : 'ru';
 
-  await ctx.reply(getSettingsMessage(locale), {
-    reply_markup: createLanguageKeyboard(),
+  // Получаем текущий режим уведомлений из API
+  let notificationMode = 'MILESTONE';
+  try {
+    const userId = ctx.from?.id;
+    if (userId) {
+      const res = await fetch(`${config.apiUrl}/internal/users/${userId}/notification-mode`, {
+        headers: { 'X-Internal-Token': config.internalApiToken },
+      });
+      if (res.ok) {
+        const data = await res.json() as { notificationMode?: string };
+        notificationMode = data.notificationMode || 'MILESTONE';
+      }
+    }
+  } catch {
+    // Не критично — используем дефолт
+  }
+
+  const settingsMessage = getSettingsWithNotificationsMessage(locale, notificationMode);
+
+  // Объединяем клавиатуру: язык + уведомления
+  const kb = new InlineKeyboard()
+    // Языки
+    .text('🇷🇺 Русский', 'lang_ru')
+    .text('🇬🇧 English', 'lang_en')
+    .text('🇰🇿 Қазақша', 'lang_kk')
+    .row()
+    // Разделитель + уведомления
+    .text(locale === 'ru' ? '📢 Уведомления:' : locale === 'en' ? '📢 Notifications:' : '📢 Хабарландырулар:', 'notif_section')
+    .row()
+    .text(`${notificationMode === 'MILESTONE' ? '✅ ' : ''}🎯 Milestone`, 'notif_MILESTONE')
+    .text(`${notificationMode === 'DAILY' ? '✅ ' : ''}📅 Daily`, 'notif_DAILY')
+    .text(`${notificationMode === 'OFF' ? '✅ ' : ''}🔕 Off`, 'notif_OFF');
+
+  await ctx.reply(settingsMessage, {
+    reply_markup: kb,
     parse_mode: 'HTML',
   });
 });
@@ -357,6 +393,80 @@ bot.hears(MENU.TO_MENU, async (ctx) => {
     reply_markup: createMainMenuKeyboard(locale),
     parse_mode: 'HTML',
   });
+});
+
+// Handle notification section button (no-op)
+bot.callbackQuery('notif_section', async (ctx) => {
+  await ctx.answerCallbackQuery();
+});
+
+// Handle notification mode selection
+bot.callbackQuery(/^notif_(MILESTONE|DAILY|OFF)$/, async (ctx) => {
+  const mode = ctx.callbackQuery.data.replace('notif_', '') as 'MILESTONE' | 'DAILY' | 'OFF';
+  const userId = ctx.from?.id;
+  const locale = userId ? getUserLocale(userId) : 'ru';
+
+  if (!userId) {
+    await ctx.answerCallbackQuery({ text: '❌ Error' });
+    return;
+  }
+
+  try {
+    // Обновляем режим уведомлений через API
+    const res = await fetch(`${config.apiUrl}/internal/users/${userId}/notification-mode`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Token': config.internalApiToken,
+      },
+      body: JSON.stringify({ notificationMode: mode }),
+    });
+
+    if (!res.ok) throw new Error(`API returned ${res.status}`);
+
+    const modeLabels: Record<string, Record<string, string>> = {
+      MILESTONE: { ru: 'Milestone', en: 'Milestone', kk: 'Milestone' },
+      DAILY: { ru: 'Ежедневная сводка', en: 'Daily summary', kk: 'Күнделікті жиынтық' },
+      OFF: { ru: 'Выключены', en: 'Disabled', kk: 'Өшірілді' },
+    };
+
+    const label = modeLabels[mode]?.[locale] || mode;
+    const confirmText = locale === 'ru'
+      ? `✅ Уведомления: ${label}`
+      : locale === 'en'
+      ? `✅ Notifications: ${label}`
+      : `✅ Хабарландырулар: ${label}`;
+
+    await ctx.answerCallbackQuery({ text: confirmText });
+
+    // Обновляем сообщение с новым состоянием
+    const settingsMessage = getSettingsWithNotificationsMessage(locale, mode);
+    const kb = new InlineKeyboard()
+      .text('🇷🇺 Русский', 'lang_ru')
+      .text('🇬🇧 English', 'lang_en')
+      .text('🇰🇿 Қазақша', 'lang_kk')
+      .row()
+      .text(locale === 'ru' ? '📢 Уведомления:' : locale === 'en' ? '📢 Notifications:' : '📢 Хабарландырулар:', 'notif_section')
+      .row()
+      .text(`${mode === 'MILESTONE' ? '✅ ' : ''}🎯 Milestone`, 'notif_MILESTONE')
+      .text(`${mode === 'DAILY' ? '✅ ' : ''}📅 Daily`, 'notif_DAILY')
+      .text(`${mode === 'OFF' ? '✅ ' : ''}🔕 Off`, 'notif_OFF');
+
+    try {
+      await ctx.editMessageText(settingsMessage, {
+        reply_markup: kb,
+        parse_mode: 'HTML',
+      });
+    } catch {
+      // Игнорируем если сообщение не изменилось
+    }
+  } catch (error) {
+    log.error({ error, userId, mode }, 'Failed to update notification mode');
+    await ctx.answerCallbackQuery({
+      text: locale === 'ru' ? '❌ Ошибка при сохранении' : '❌ Save error',
+      show_alert: true,
+    });
+  }
 });
 
 // Handle inline button "Create in bot" (stub)
@@ -510,12 +620,94 @@ bot.on('message:web_app_data', async (ctx) => {
 bot.on('my_chat_member', handleMyChatMember);
 bot.on('chat_member', handleChatMember);
 
-// 🔒 ЗАДАЧА: Admin commands
+// 🔒 ЗАДАЧА 1.13: /repost command — отправить розыгрыш по shortCode
+bot.hears(/^\/repost:?(.+)$/, async (ctx) => {
+  const userId = ctx.from?.id;
+  const locale = userId ? getUserLocale(userId) : 'ru';
+  const shortCode = ctx.match?.[1]?.trim();
+
+  if (!shortCode) {
+    await ctx.reply(locale === 'ru'
+      ? '❌ Укажите shortCode розыгрыша. Пример: /repost:abc12345'
+      : locale === 'en'
+      ? '❌ Please specify a giveaway shortCode. Example: /repost:abc12345'
+      : '❌ Ұтыс ойынының shortCode-ін көрсетіңіз. Мысал: /repost:abc12345'
+    );
+    return;
+  }
+
+  try {
+    // Получаем данные розыгрыша по shortCode через API
+    const res = await fetch(`${config.apiUrl}/internal/giveaways/by-code/${shortCode}`, {
+      headers: { 'X-Internal-Token': config.internalApiToken },
+    });
+
+    if (!res.ok) {
+      const notFoundMsg = locale === 'ru'
+        ? `❌ Розыгрыш с кодом <code>${shortCode}</code> не найден`
+        : locale === 'en'
+        ? `❌ Giveaway with code <code>${shortCode}</code> not found`
+        : `❌ <code>${shortCode}</code> кодымен ұтыс ойыны табылмады`;
+
+      await ctx.reply(notFoundMsg, { parse_mode: 'HTML' });
+      return;
+    }
+
+    const data = await res.json() as {
+      id: string;
+      title: string;
+      shortCode: string;
+      status: string;
+      postTemplate?: { text?: string };
+    };
+
+    if (data.status !== 'ACTIVE') {
+      const statusMsg = locale === 'ru'
+        ? `⚠️ Розыгрыш "${data.title}" не активен (статус: ${data.status})`
+        : locale === 'en'
+        ? `⚠️ Giveaway "${data.title}" is not active (status: ${data.status})`
+        : `⚠️ "${data.title}" ұтыс ойыны белсенді емес (күйі: ${data.status})`;
+
+      await ctx.reply(statusMsg, { parse_mode: 'HTML' });
+      return;
+    }
+
+    const postText = data.postTemplate?.text || data.title;
+    const buttonLabel = locale === 'ru' ? '🎁 Участвовать' : locale === 'en' ? '🎁 Participate' : '🎁 Қатысу';
+
+    await ctx.reply(postText, {
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [[
+          {
+            text: buttonLabel,
+            web_app: { url: `${config.webappUrl}?startapp=g_${data.shortCode}` },
+          },
+        ]],
+      },
+    });
+
+    log.info({ userId, shortCode, giveawayId: data.id }, 'Repost sent');
+  } catch (error) {
+    log.error({ error, shortCode }, 'Failed to repost giveaway');
+    const errMsg = locale === 'ru'
+      ? '❌ Ошибка при получении данных розыгрыша'
+      : locale === 'en'
+      ? '❌ Failed to fetch giveaway data'
+      : '❌ Ұтыс ойыны деректерін алу кезінде қате';
+
+    await ctx.reply(errMsg);
+  }
+});
+
+// 🔒 ЗАДАЧА 1.19: Admin commands
 bot.command('admin_ban', handleAdminBan);
 bot.command('admin_unban', handleAdminUnban);
 bot.command('admin_stats', handleAdminStats);
 bot.command('admin_giveaway', handleAdminGiveaway);
 bot.command('admin_broadcast', handleAdminBroadcast);
+bot.command('admin_approve', handleAdminApprove);
+bot.command('admin_reject', handleAdminReject);
 
 // 🔒 ЗАДАЧА: Inline mode
 bot.on('inline_query', handleInlineQuery);

@@ -28,7 +28,12 @@ if (config.botEnabled) {
     await import('./jobs/channel-check-rights.js');
     await import('./jobs/channel-update-subscribers.js');
     await import('./jobs/creator-daily-summary.js');
-    log.info('[BullMQ] ✅ Workers started');
+    // Subscription lifecycle workers
+    await import('./jobs/subscription.js');
+    // Cleanup & milestone workers
+    await import('./jobs/cleanup.js');
+    await import('./jobs/milestones.js');
+    log.info('[BullMQ] ✅ All 10 workers started');
   } catch (err) {
     console.error('[BullMQ] Failed to start workers:', err);
     log.error({ err }, '[BullMQ] Failed to start workers — bot continues without job processing');

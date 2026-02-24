@@ -78,6 +78,46 @@ export function createLanguageKeyboard(): InlineKeyboard {
 }
 
 /**
+ * Creates inline keyboard for notification mode selection
+ */
+export function createNotificationKeyboard(currentMode: string, locale: Locale = 'ru'): InlineKeyboard {
+  const modes = [
+    { id: 'MILESTONE', label: '🎯 Milestone', desc: { ru: 'Вехи (10/50/100/500)', en: 'Milestones (10/50/100/500)', kk: 'Белестер (10/50/100/500)' } },
+    { id: 'DAILY', label: '📅 Daily', desc: { ru: 'Ежедневная сводка', en: 'Daily summary', kk: 'Күнделікті жиынтық' } },
+    { id: 'OFF', label: '🔕 Off', desc: { ru: 'Выключить', en: 'Disabled', kk: 'Өшіру' } },
+  ];
+
+  const kb = new InlineKeyboard();
+  for (const mode of modes) {
+    const isActive = currentMode === mode.id;
+    const label = `${isActive ? '✅ ' : ''}${mode.label} — ${mode.desc[locale]}`;
+    kb.text(label, `notif_${mode.id}`).row();
+  }
+  return kb;
+}
+
+/**
+ * Settings message with notification mode section
+ */
+export function getSettingsWithNotificationsMessage(locale: Locale, notificationMode: string): string {
+  const modeLabels: Record<string, Record<string, string>> = {
+    MILESTONE: { ru: 'Вехи (10/50/100/500)', en: 'Milestones (10/50/100/500)', kk: 'Белестер (10/50/100/500)' },
+    DAILY: { ru: 'Ежедневная сводка', en: 'Daily summary', kk: 'Күнделікті жиынтық' },
+    OFF: { ru: 'Выключены', en: 'Disabled', kk: 'Өшірулі' },
+  };
+
+  const currentModeLabel = modeLabels[notificationMode]?.[locale] || notificationMode;
+
+  if (locale === 'ru') {
+    return `⚙️ <b>Настройки</b>\n\n🌐 <b>Язык интерфейса:</b>\n\n📢 <b>Уведомления создателя:</b>\nТекущий режим: <b>${currentModeLabel}</b>`;
+  } else if (locale === 'en') {
+    return `⚙️ <b>Settings</b>\n\n🌐 <b>Interface language:</b>\n\n📢 <b>Creator notifications:</b>\nCurrent mode: <b>${currentModeLabel}</b>`;
+  } else {
+    return `⚙️ <b>Баптаулар</b>\n\n🌐 <b>Интерфейс тілі:</b>\n\n📢 <b>Автор хабарландырулары:</b>\nАғымдағы режим: <b>${currentModeLabel}</b>`;
+  }
+}
+
+/**
  * Welcome message for /start command
  */
 export function getWelcomeMessage(firstName: string, locale: Locale = 'ru'): string {
