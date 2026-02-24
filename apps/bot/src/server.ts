@@ -20,14 +20,19 @@ if (config.botEnabled) {
   
   // 🔒 ЗАДАЧА 1.11: Запуск BullMQ workers
   log.info('[BullMQ] Starting workers...');
-  await import('./jobs/winner-notifications.js');
-  await import('./jobs/reminders.js');
-  await import('./jobs/giveaway-start.js');
-  await import('./jobs/giveaway-end.js');
-  await import('./jobs/channel-check-rights.js');
-  await import('./jobs/channel-update-subscribers.js');
-  await import('./jobs/creator-daily-summary.js');
-  log.info('[BullMQ] ✅ Workers started');
+  try {
+    await import('./jobs/winner-notifications.js');
+    await import('./jobs/reminders.js');
+    await import('./jobs/giveaway-start.js');
+    await import('./jobs/giveaway-end.js');
+    await import('./jobs/channel-check-rights.js');
+    await import('./jobs/channel-update-subscribers.js');
+    await import('./jobs/creator-daily-summary.js');
+    log.info('[BullMQ] ✅ Workers started');
+  } catch (err) {
+    console.error('[BullMQ] Failed to start workers:', err);
+    log.error({ err }, '[BullMQ] Failed to start workers — bot continues without job processing');
+  }
 }
 
 /**

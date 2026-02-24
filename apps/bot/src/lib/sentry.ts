@@ -50,17 +50,20 @@ export function initSentry() {
  */
 export function setupErrorHandlers() {
   process.on('uncaughtException', (error) => {
-    log.error({ error }, '[UncaughtException]');
+    // console.error goes directly to PM2 error log — always visible
+    console.error('[UncaughtException]', error);
+    // pino requires 'err' key to properly serialize Error objects (message, stack)
+    log.error({ err: error }, '[UncaughtException]');
     Sentry.captureException(error);
-    
-    // Даем Sentry время отправить ошибку
+
     setTimeout(() => {
       process.exit(1);
     }, 1000);
   });
 
-  process.on('unhandledRejection', (reason, promise) => {
-    log.error({ reason }, '[UnhandledRejection]');
+  process.on('unhandledRejection', (reason) => {
+    console.error('[UnhandledRejection]', reason);
+    log.error({ err: reason instanceof Error ? reason : new Error(String(reason)) }, '[UnhandledRejection]');
     Sentry.captureException(reason);
   });
 }
