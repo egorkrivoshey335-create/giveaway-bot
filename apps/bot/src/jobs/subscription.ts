@@ -50,7 +50,7 @@ export interface SubscriptionAutoRenewData {
  * Деактивирует истёкшую подписку и уведомляет пользователя
  */
 export const subscriptionExpireWorker = new Worker<SubscriptionExpireData>(
-  'subscription:expire',
+  'subscription-expire',
   async (job: Job<SubscriptionExpireData>) => {
     const { userId, telegramUserId, previousTier } = job.data;
 
@@ -132,7 +132,7 @@ subscriptionExpireWorker.on('failed', (job, err) => {
  * Предупреждает пользователя за 3 дня до истечения подписки
  */
 export const subscriptionExpireWarningWorker = new Worker<SubscriptionExpireWarningData>(
-  'subscription:expire-warning',
+  'subscription-expire-warning',
   async (job: Job<SubscriptionExpireWarningData>) => {
     const { userId, telegramUserId, tier, expiresAt, daysLeft, autoRenew } = job.data;
 
@@ -207,7 +207,7 @@ subscriptionExpireWarningWorker.on('failed', (job, err) => {
  * Попытка автоматического продления подписки через ЮKassa
  */
 export const subscriptionAutoRenewWorker = new Worker<SubscriptionAutoRenewData>(
-  'subscription:auto-renew',
+  'subscription-auto-renew',
   async (job: Job<SubscriptionAutoRenewData>) => {
     const { userId, telegramUserId, entitlementId, tier, productId, amount, currency } = job.data;
 

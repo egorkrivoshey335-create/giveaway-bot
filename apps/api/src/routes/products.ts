@@ -275,32 +275,5 @@ export const productsRoutes: FastifyPluginAsync = async (fastify) => {
     }
   );
 
-  /**
-   * GET /users/me/entitlements
-   * Список всех активных прав доступа текущего пользователя
-   */
-  fastify.get('/users/me/entitlements', async (request, reply) => {
-    const user = await requireUser(request, reply);
-    if (!user) return;
-
-    const entitlements = await prisma.entitlement.findMany({
-      where: {
-        userId: user.id,
-        revokedAt: null,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return reply.success({
-      items: entitlements.map(e => ({
-        id: e.id,
-        code: e.code,
-        expiresAt: e.expiresAt?.toISOString() || null,
-        autoRenew: e.autoRenew,
-        cancelledAt: e.cancelledAt?.toISOString() || null,
-        sourceType: e.sourceType,
-      })),
-    });
-  });
+  // Note: GET /users/me/entitlements is registered in auth.ts to avoid duplicate route error
 };

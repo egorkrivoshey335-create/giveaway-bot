@@ -28,7 +28,7 @@ export interface StartReminderData {
  * Worker для напоминаний о скором начале розыгрыша
  */
 export const startReminderWorker = new Worker<StartReminderData>(
-  'giveaway:start:reminder',
+  'giveaway-start-reminder',
   async (job: Job<StartReminderData>) => {
     const { giveawayId, giveawayTitle, startAt, participants } = job.data;
 

@@ -44,7 +44,7 @@ interface ExpiringEntitlement {
  * Worker for the periodic subscription check job
  */
 export const subscriptionCheckWorker = new Worker(
-  'subscription:check',
+  'subscription-check',
   async (_job: Job) => {
     log.info('Running periodic subscription check');
 
@@ -150,21 +150,21 @@ subscriptionCheckWorker.on('failed', (job, err) => {
  * Call this once during server startup
  */
 export async function scheduleSubscriptionCheck(): Promise<void> {
-  const checkQueue = new Queue('subscription:check', {
+  const checkQueue = new Queue('subscription-check', {
     connection: redisConnection,
   });
 
   // Remove existing repeatable jobs to avoid duplicates
   const existing = await checkQueue.getRepeatableJobs();
   for (const job of existing) {
-    if (job.name === 'subscription:check:hourly') {
+    if (job.name === 'subscription-check-hourly') {
       await checkQueue.removeRepeatableByKey(job.key);
     }
   }
 
   // Schedule hourly repeatable job
   await checkQueue.add(
-    'subscription:check:hourly',
+    'subscription-check-hourly',
     {},
     {
       repeat: { every: 60 * 60 * 1000 }, // Every hour

@@ -42,7 +42,7 @@ function getMilestoneEmoji(milestone: number): string {
  * Worker для milestone уведомлений
  */
 export const creatorMilestoneWorker = new Worker<CreatorMilestoneData>(
-  'creator:milestone',
+  'creator-milestone',
   async (job: Job<CreatorMilestoneData>) => {
     const { giveawayId, giveawayTitle, creatorTelegramId, milestone, participantCount } = job.data;
 

@@ -41,7 +41,7 @@ export interface BadgesCheckData {
  * Удаляет sandbox-розыгрыши старше 24 часов
  */
 export const sandboxCleanupWorker = new Worker<SandboxCleanupData>(
-  'sandbox:cleanup',
+  'sandbox-cleanup',
   async (job: Job<SandboxCleanupData>) => {
     const olderThanHours = job.data.olderThanHours ?? 24;
 
@@ -95,7 +95,7 @@ sandboxCleanupWorker.on('failed', (job, err) => {
  * Очищает формы получения призов старше 90 дней
  */
 export const prizeFormCleanupWorker = new Worker<PrizeFormCleanupData>(
-  'prize-form:cleanup',
+  'prize-form-cleanup',
   async (job: Job<PrizeFormCleanupData>) => {
     const olderThanDays = job.data.olderThanDays ?? 90;
 
@@ -149,7 +149,7 @@ prizeFormCleanupWorker.on('failed', (job, err) => {
  * Удаляет liveness фото для розыгрышей завершённых > 30 дней назад
  */
 export const livenessCleanupWorker = new Worker<LivenessCleanupData>(
-  'liveness:cleanup',
+  'liveness-cleanup',
   async (job: Job<LivenessCleanupData>) => {
     const olderThanDays = job.data.olderThanDays ?? 30;
 
@@ -207,7 +207,7 @@ livenessCleanupWorker.on('failed', (job, err) => {
  * Запускается после: создания розыгрыша, завершения розыгрыша, победы, покупки подписки
  */
 export const badgesCheckWorker = new Worker<BadgesCheckData>(
-  'badges:check',
+  'badges-check',
   async (job: Job<BadgesCheckData>) => {
     const { userId, batchSize = 100 } = job.data;
 

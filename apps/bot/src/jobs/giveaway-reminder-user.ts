@@ -25,7 +25,7 @@ const redisConnection = {
 };
 
 // Queue for sending individual reminders
-const reminderUserQueue = new Queue<GiveawayReminderUserData>('giveaway:reminder:user', {
+const reminderUserQueue = new Queue<GiveawayReminderUserData>('giveaway-reminder-user', {
   connection: redisConnection,
 });
 
@@ -43,7 +43,7 @@ export interface GiveawayReminderUserData {
  * Sends a personal reminder to a user about a giveaway starting soon
  */
 export const giveawayReminderUserWorker = new Worker<GiveawayReminderUserData>(
-  'giveaway:reminder:user',
+  'giveaway-reminder-user',
   async (job: Job<GiveawayReminderUserData>) => {
     const { reminderId, giveawayId, giveawayTitle, giveawayStartAt, telegramUserId } = job.data;
 
@@ -139,7 +139,7 @@ giveawayReminderUserWorker.on('failed', (job, err) => {
  * Runs every 15 minutes.
  */
 export const giveawayReminderCheckWorker = new Worker(
-  'giveaway:reminder:check',
+  'giveaway-reminder-check',
   async (_job: Job) => {
     log.info('Checking pending giveaway reminders');
 
@@ -186,7 +186,7 @@ export const giveawayReminderCheckWorker = new Worker(
         }
 
         await reminderUserQueue.add(
-          'giveaway:reminder:user',
+          'giveaway-reminder-user',
           {
             reminderId: reminder.id,
             giveawayId: reminder.giveawayId,
@@ -230,21 +230,21 @@ giveawayReminderCheckWorker.on('failed', (job, err) => {
  * Call once during server startup.
  */
 export async function scheduleGiveawayReminderCheck(): Promise<void> {
-  const checkQueue = new Queue('giveaway:reminder:check', {
+  const checkQueue = new Queue('giveaway-reminder-check', {
     connection: redisConnection,
   });
 
   // Remove existing repeatable jobs to avoid duplicates
   const existing = await checkQueue.getRepeatableJobs();
   for (const job of existing) {
-    if (job.name === 'giveaway:reminder:check:periodic') {
+    if (job.name === 'giveaway-reminder-check-periodic') {
       await checkQueue.removeRepeatableByKey(job.key);
     }
   }
 
   // Schedule every 15 minutes
   await checkQueue.add(
-    'giveaway:reminder:check:periodic',
+    'giveaway-reminder-check-periodic',
     {},
     {
       repeat: { every: 15 * 60 * 1000 },
