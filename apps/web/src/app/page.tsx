@@ -62,12 +62,18 @@ export default function HomePage() {
   const checkAuth = useCallback(async () => {
     try {
       const result = await getCurrentUser();
-      if (result.ok && result.user) {
-        setUser(result.user);
+      if (result.ok && result.id) {
+        const userData: AuthUser = {
+          id: result.id,
+          telegramUserId: result.telegramUserId || '',
+          language: result.language || 'RU',
+          isPremium: result.isPremium || false,
+          createdAt: result.createdAt || '',
+        };
+        setUser(userData);
         setAuthStatus('authenticated');
-        // Синхронизируем язык Mini App с языком из БД (выбранным в настройках бота)
-        if (result.user.language) {
-          syncLocaleFromDb(result.user.language);
+        if (userData.language) {
+          syncLocaleFromDb(userData.language);
         }
       } else {
         setUser(null);

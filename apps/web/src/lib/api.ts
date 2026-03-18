@@ -1,14 +1,53 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
+/**
+ * Wrapper around fetch that normalises API responses.
+ * Backend returns `{ success: true, data: T }` or `{ success: false, error: { code, message } }`.
+ * Frontend expects  `{ ok: boolean, ...data, error?: string }`.
+ */
+/**
+ * Normalises backend `{ success, data, error }` into frontend `{ ok, ...data, error? }`.
+ * Uses forced-any return so callers keep their declared response types without casts.
+ */
+// @ts-ignore return type is intentionally untyped to allow implicit casts in callers
+async function apiFetch(input, init?) {
+  const response = await fetch(input, init);
+
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    return { ok: false, error: `HTTP ${response.status}` };
+  }
+
+  const json = await response.json();
+
+  if (json && typeof json === 'object' && 'success' in json) {
+    const { success, data, error: apiError, meta, ...rest } = json;
+    const errorMsg = typeof apiError === 'object' && apiError !== null
+      ? apiError.message
+      : apiError;
+    return {
+      ok: success === true,
+      ...(data && typeof data === 'object' ? data : {}),
+      ...(meta && typeof meta === 'object' ? { meta } : {}),
+      ...rest,
+      ...(errorMsg ? { error: typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg) } : {}),
+    };
+  }
+
+  if ('ok' in json) {
+    return json;
+  }
+
+  return { ok: response.ok, ...json };
+}
+
 interface AuthMeResponse {
   ok: boolean;
-  user?: {
-    id: string;
-    telegramUserId: string;
-    language: string;
-    isPremium: boolean;
-    createdAt: string;
-  };
+  id?: string;
+  telegramUserId?: string;
+  language?: string;
+  isPremium?: boolean;
+  createdAt?: string;
   error?: string;
 }
 
@@ -91,7 +130,7 @@ export interface GiveawayDraftPayload {
  * Authenticate with Telegram initData
  */
 export async function authenticateWithTelegram(initData: string): Promise<AuthResponse> {
-  const response = await fetch(`${API_URL}/auth/telegram`, {
+  const response = await apiFetch(`${API_URL}/auth/telegram`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -100,19 +139,19 @@ export async function authenticateWithTelegram(initData: string): Promise<AuthRe
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Get current authenticated user
  */
 export async function getCurrentUser(): Promise<AuthMeResponse> {
-  const response = await fetch(`${API_URL}/auth/me`, {
+  const response = await apiFetch(`${API_URL}/auth/me`, {
     method: 'GET',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
@@ -155,31 +194,31 @@ export interface InitDataResponse {
 }
 
 export async function getInitData(): Promise<InitDataResponse> {
-  const response = await fetch(`${API_URL}/init`, {
+  const response = await apiFetch(`${API_URL}/init`, {
     method: 'GET',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Logout (clear session)
  */
 export async function logout(): Promise<AuthResponse> {
-  const response = await fetch(`${API_URL}/auth/logout`, {
+  const response = await apiFetch(`${API_URL}/auth/logout`, {
     method: 'POST',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Dev login (development only)
  */
 export async function devLogin(telegramUserId?: string): Promise<AuthResponse> {
-  const response = await fetch(`${API_URL}/auth/dev`, {
+  const response = await apiFetch(`${API_URL}/auth/dev`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -188,7 +227,7 @@ export async function devLogin(telegramUserId?: string): Promise<AuthResponse> {
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 // =============================================================================
@@ -215,19 +254,19 @@ interface DraftResponse {
  * Get current user's draft giveaway
  */
 export async function getDraft(): Promise<DraftResponse> {
-  const response = await fetch(`${API_URL}/drafts/giveaway`, {
+  const response = await apiFetch(`${API_URL}/drafts/giveaway`, {
     method: 'GET',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Create a new draft (or get existing one)
  */
 export async function createDraft(wizardStep?: string): Promise<DraftResponse> {
-  const response = await fetch(`${API_URL}/drafts/giveaway`, {
+  const response = await apiFetch(`${API_URL}/drafts/giveaway`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -236,7 +275,7 @@ export async function createDraft(wizardStep?: string): Promise<DraftResponse> {
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
@@ -247,7 +286,7 @@ export async function updateDraft(
   wizardStep: string,
   draftPayload: GiveawayDraftPayload
 ): Promise<DraftResponse> {
-  const response = await fetch(`${API_URL}/drafts/giveaway/${id}`, {
+  const response = await apiFetch(`${API_URL}/drafts/giveaway/${id}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -256,14 +295,14 @@ export async function updateDraft(
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Discard (soft-delete) a draft
  */
 export async function discardDraft(id: string): Promise<AuthResponse> {
-  const response = await fetch(`${API_URL}/drafts/giveaway/${id}/discard`, {
+  const response = await apiFetch(`${API_URL}/drafts/giveaway/${id}/discard`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -272,7 +311,7 @@ export async function discardDraft(id: string): Promise<AuthResponse> {
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 // =============================================================================
@@ -308,43 +347,43 @@ interface ChannelResponse {
  * Get all channels for the current user
  */
 export async function getChannels(): Promise<ChannelsResponse> {
-  const response = await fetch(`${API_URL}/channels`, {
+  const response = await apiFetch(`${API_URL}/channels`, {
     method: 'GET',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Get a specific channel by ID
  */
 export async function getChannel(id: string): Promise<ChannelResponse> {
-  const response = await fetch(`${API_URL}/channels/${id}`, {
+  const response = await apiFetch(`${API_URL}/channels/${id}`, {
     method: 'GET',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Delete a channel
  */
 export async function deleteChannel(id: string): Promise<AuthResponse> {
-  const response = await fetch(`${API_URL}/channels/${id}`, {
+  const response = await apiFetch(`${API_URL}/channels/${id}`, {
     method: 'DELETE',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Recheck channel status (bot/creator admin)
  */
 export async function recheckChannel(id: string): Promise<ChannelResponse> {
-  const response = await fetch(`${API_URL}/channels/${id}/recheck`, {
+  const response = await apiFetch(`${API_URL}/channels/${id}/recheck`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -353,7 +392,7 @@ export async function recheckChannel(id: string): Promise<ChannelResponse> {
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 // =============================================================================
@@ -385,31 +424,31 @@ interface DeletePostTemplateResponse {
  * Get all post templates for the current user
  */
 export async function getPostTemplates(): Promise<PostTemplatesResponse> {
-  const response = await fetch(`${API_URL}/post-templates`, {
+  const response = await apiFetch(`${API_URL}/post-templates`, {
     method: 'GET',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Delete a post template (soft delete)
  */
 export async function deletePostTemplate(id: string): Promise<DeletePostTemplateResponse> {
-  const response = await fetch(`${API_URL}/post-templates/${id}`, {
+  const response = await apiFetch(`${API_URL}/post-templates/${id}`, {
     method: 'DELETE',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Undo delete a post template
  */
 export async function undoDeletePostTemplate(id: string): Promise<AuthResponse> {
-  const response = await fetch(`${API_URL}/post-templates/${id}/undo-delete`, {
+  const response = await apiFetch(`${API_URL}/post-templates/${id}/undo-delete`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -418,7 +457,7 @@ export async function undoDeletePostTemplate(id: string): Promise<AuthResponse> 
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 // =============================================================================
@@ -438,7 +477,7 @@ interface ConfirmGiveawayResponse {
  * Confirm a draft giveaway
  */
 export async function confirmGiveaway(draftId: string): Promise<ConfirmGiveawayResponse> {
-  const response = await fetch(`${API_URL}/giveaways/from-draft/${draftId}/confirm`, {
+  const response = await apiFetch(`${API_URL}/giveaways/from-draft/${draftId}/confirm`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -447,7 +486,7 @@ export async function confirmGiveaway(draftId: string): Promise<ConfirmGiveawayR
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 // =============================================================================
@@ -554,12 +593,12 @@ interface CaptchaVerifyResponse {
  * Получить публичную информацию о розыгрыше
  */
 export async function getPublicGiveaway(giveawayId: string): Promise<PublicGiveawayResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/public`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/public`, {
     method: 'GET',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
@@ -581,19 +620,19 @@ export interface GiveawayByCodeResponse {
 }
 
 export async function getGiveawayByShortCode(shortCode: string): Promise<GiveawayByCodeResponse> {
-  const response = await fetch(`${API_URL}/giveaways/by-code/${shortCode}`, {
+  const response = await apiFetch(`${API_URL}/giveaways/by-code/${shortCode}`, {
     method: 'GET',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Проверить подписку на каналы
  */
 export async function checkSubscription(giveawayId: string): Promise<CheckSubscriptionResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/check-subscription`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/check-subscription`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -602,7 +641,7 @@ export async function checkSubscription(giveawayId: string): Promise<CheckSubscr
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
@@ -616,7 +655,7 @@ export async function joinGiveaway(
     referrerUserId?: string;
   }
 ): Promise<JoinGiveawayResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/join`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/join`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -629,26 +668,26 @@ export async function joinGiveaway(
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Сгенерировать капчу
  */
 export async function generateCaptcha(): Promise<CaptchaGenerateResponse> {
-  const response = await fetch(`${API_URL}/captcha/generate`, {
+  const response = await apiFetch(`${API_URL}/captcha/generate`, {
     method: 'GET',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Проверить ответ на капчу
  */
 export async function verifyCaptcha(token: string, answer: number): Promise<CaptchaVerifyResponse> {
-  const response = await fetch(`${API_URL}/captcha/verify`, {
+  const response = await apiFetch(`${API_URL}/captcha/verify`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -657,7 +696,7 @@ export async function verifyCaptcha(token: string, answer: number): Promise<Capt
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 // =============================================================================
@@ -737,31 +776,31 @@ interface MyResultResponse {
  * Получить статус розыгрыша
  */
 export async function getGiveawayStatus(giveawayId: string): Promise<GiveawayStatusResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/status`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/status`, {
     method: 'GET',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Получить список победителей
  */
 export async function getGiveawayWinners(giveawayId: string): Promise<GiveawayWinnersResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/winners`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/winners`, {
     method: 'GET',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Завершить розыгрыш вручную (только владелец)
  */
 export async function finishGiveaway(giveawayId: string): Promise<FinishGiveawayResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/finish`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/finish`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -770,19 +809,19 @@ export async function finishGiveaway(giveawayId: string): Promise<FinishGiveaway
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Проверить свой результат в розыгрыше
  */
 export async function getMyResult(giveawayId: string): Promise<MyResultResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/my-result`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/my-result`, {
     method: 'GET',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 // =============================================================================
@@ -845,55 +884,55 @@ export interface TopInvitersResponse {
  * Получить реферальную ссылку и статистику приглашений
  */
 export async function getMyReferral(giveawayId: string): Promise<MyReferralResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/my-referral`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/my-referral`, {
     method: 'GET',
     credentials: 'include',
   });
-  return response.json();
+  return response;
 }
 
 /**
  * Сгенерировать (или получить) реферальную ссылку с коротким кодом
  */
 export async function generateInvite(giveawayId: string): Promise<MyReferralResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/generate-invite`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/generate-invite`, {
     method: 'POST',
     credentials: 'include',
   });
-  return response.json();
+  return response;
 }
 
 /**
  * Разрешить короткий реферальный код → giveawayId + referrerUserId
  */
 export async function resolveReferralCode(code: string): Promise<ResolveReferralResponse> {
-  const response = await fetch(`${API_URL}/referral/resolve/${encodeURIComponent(code)}`, {
+  const response = await apiFetch(`${API_URL}/referral/resolve/${encodeURIComponent(code)}`, {
     method: 'GET',
     credentials: 'include',
   });
-  return response.json();
+  return response;
 }
 
 /**
  * Получить топ-10 инвайтеров для розыгрыша (только для создателя)
  */
 export async function getTopInviters(giveawayId: string): Promise<TopInvitersResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/top-inviters`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/top-inviters`, {
     method: 'GET',
     credentials: 'include',
   });
-  return response.json();
+  return response;
 }
 
 /**
  * Получить список приглашённых друзей
  */
 export async function getMyInvites(giveawayId: string): Promise<MyInvitesResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/my-invites`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/my-invites`, {
     method: 'GET',
     credentials: 'include',
   });
-  return response.json();
+  return response;
 }
 
 // =============================================================================
@@ -933,19 +972,19 @@ interface VerifyBoostResponse {
  * Получить статус бустов для участника
  */
 export async function getMyBoosts(giveawayId: string): Promise<MyBoostsResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/my-boosts`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/my-boosts`, {
     method: 'GET',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Проверить и засчитать буст для канала
  */
 export async function verifyBoost(giveawayId: string, channelId: string): Promise<VerifyBoostResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/verify-boost`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/verify-boost`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -954,7 +993,7 @@ export async function verifyBoost(giveawayId: string, channelId: string): Promis
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 // =============================================================================
@@ -978,7 +1017,7 @@ interface SubmitStoryResponse {
  * Отправить заявку на сторис
  */
 export async function submitStory(giveawayId: string): Promise<SubmitStoryResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/submit-story`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/submit-story`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -987,7 +1026,7 @@ export async function submitStory(giveawayId: string): Promise<SubmitStoryRespon
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 interface MyStoryRequestResponse {
@@ -1004,11 +1043,11 @@ interface MyStoryRequestResponse {
  * Получить статус своей заявки на сторис
  */
 export async function getMyStoryRequest(giveawayId: string): Promise<MyStoryRequestResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/my-story-request`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/my-story-request`, {
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 interface StoryRequestUser {
@@ -1044,11 +1083,11 @@ interface StoryRequestsResponse {
  * Получить список заявок на сторис (для админа)
  */
 export async function getStoryRequests(giveawayId: string): Promise<StoryRequestsResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/story-requests`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/story-requests`, {
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 interface ModerateStoryResponse {
@@ -1061,7 +1100,7 @@ interface ModerateStoryResponse {
  * Одобрить заявку на сторис
  */
 export async function approveStoryRequest(giveawayId: string, requestId: string): Promise<ModerateStoryResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/story-requests/${requestId}/approve`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/story-requests/${requestId}/approve`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1070,14 +1109,14 @@ export async function approveStoryRequest(giveawayId: string, requestId: string)
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Отклонить заявку на сторис
  */
 export async function rejectStoryRequest(giveawayId: string, requestId: string, reason?: string): Promise<ModerateStoryResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/story-requests/${requestId}/reject`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/story-requests/${requestId}/reject`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1086,7 +1125,7 @@ export async function rejectStoryRequest(giveawayId: string, requestId: string, 
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 // =============================================================================
@@ -1144,11 +1183,11 @@ export async function getGiveawaysList(params?: {
   if (params?.offset) searchParams.set('offset', params.offset.toString());
 
   const url = `${API_URL}/giveaways${searchParams.toString() ? `?${searchParams}` : ''}`;
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 export interface GiveawayStats {
@@ -1180,11 +1219,11 @@ interface GiveawayStatsResponse {
  * Получить статистику розыгрыша
  */
 export async function getGiveawayStats(giveawayId: string): Promise<GiveawayStatsResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/stats`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/stats`, {
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 export interface GiveawayParticipant {
@@ -1226,11 +1265,11 @@ export async function getGiveawayParticipants(
   if (params?.search) searchParams.set('search', params.search);
 
   const url = `${API_URL}/giveaways/${giveawayId}/participants${searchParams.toString() ? `?${searchParams}` : ''}`;
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 export interface GiveawayFull {
@@ -1286,11 +1325,11 @@ interface GiveawayFullResponse {
  * Получить полную информацию о розыгрыше
  */
 export async function getGiveawayFull(giveawayId: string): Promise<GiveawayFullResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/full`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/full`, {
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 interface DuplicateResponse {
@@ -1303,7 +1342,7 @@ interface DuplicateResponse {
  * Дублировать розыгрыш
  */
 export async function duplicateGiveaway(giveawayId: string): Promise<DuplicateResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/duplicate`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/duplicate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1312,7 +1351,7 @@ export async function duplicateGiveaway(giveawayId: string): Promise<DuplicateRe
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 interface DeleteResponse {
@@ -1324,12 +1363,12 @@ interface DeleteResponse {
  * Удалить розыгрыш (только DRAFT или CANCELLED)
  */
 export async function deleteGiveaway(giveawayId: string): Promise<DeleteResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}`, {
     method: 'DELETE',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 // =============================================================================
@@ -1389,11 +1428,11 @@ export async function getMyParticipations(params?: {
   if (params?.offset) searchParams.set('offset', params.offset.toString());
 
   const url = `${API_URL}/participations/my${searchParams.toString() ? `?${searchParams}` : ''}`;
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 // =============================================================================
@@ -1442,11 +1481,11 @@ export async function getCatalog(params?: {
   if (params?.sortBy) searchParams.set('sortBy', params.sortBy);
 
   const url = `${API_URL}/catalog${searchParams.toString() ? `?${searchParams}` : ''}`;
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 interface CatalogAccessResponse {
@@ -1462,11 +1501,11 @@ interface CatalogAccessResponse {
  * Проверить доступ к каталогу
  */
 export async function getCatalogAccess(): Promise<CatalogAccessResponse> {
-  const response = await fetch(`${API_URL}/catalog/access`, {
+  const response = await apiFetch(`${API_URL}/catalog/access`, {
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 interface ToggleCatalogResponse {
@@ -1482,7 +1521,7 @@ export async function toggleGiveawayCatalog(
   giveawayId: string,
   enabled: boolean
 ): Promise<ToggleCatalogResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/catalog`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/catalog`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1491,7 +1530,7 @@ export async function toggleGiveawayCatalog(
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 // =============================================================================
@@ -1511,7 +1550,7 @@ interface CreatePaymentResponse {
 export async function createPayment(params: {
   productCode: string;
 }): Promise<CreatePaymentResponse> {
-  const response = await fetch(`${API_URL}/payments/create`, {
+  const response = await apiFetch(`${API_URL}/payments/create`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1520,7 +1559,7 @@ export async function createPayment(params: {
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 interface PaymentStatusResponse {
@@ -1536,11 +1575,11 @@ interface PaymentStatusResponse {
 export async function checkPaymentStatus(
   purchaseId: string
 ): Promise<PaymentStatusResponse> {
-  const response = await fetch(`${API_URL}/payments/status/${purchaseId}`, {
+  const response = await apiFetch(`${API_URL}/payments/status/${purchaseId}`, {
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 interface PaymentHistoryItem {
@@ -1564,10 +1603,10 @@ interface PaymentHistoryResponse {
  * История покупок
  */
 export async function getPaymentHistory(): Promise<PaymentHistoryResponse> {
-  const response = await fetch(`${API_URL}/payments/history`, {
+  const response = await apiFetch(`${API_URL}/payments/history`, {
     credentials: 'include',
   });
-  return response.json();
+  return response;
 }
 
 interface EntitlementItem {
@@ -1589,10 +1628,10 @@ interface EntitlementsResponse {
  * Получить все активные права доступа
  */
 export async function getMyEntitlements(): Promise<EntitlementsResponse> {
-  const response = await fetch(`${API_URL}/users/me/entitlements`, {
+  const response = await apiFetch(`${API_URL}/users/me/entitlements`, {
     credentials: 'include',
   });
-  return response.json();
+  return response;
 }
 
 interface SubscriptionChangeResponse {
@@ -1609,13 +1648,13 @@ interface SubscriptionChangeResponse {
 export async function changeSubscription(
   newProductCode: string
 ): Promise<SubscriptionChangeResponse> {
-  const response = await fetch(`${API_URL}/subscriptions/change`, {
+  const response = await apiFetch(`${API_URL}/subscriptions/change`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ newProductCode }),
     credentials: 'include',
   });
-  return response.json();
+  return response;
 }
 
 interface CurrentSubscriptionResponse {
@@ -1633,10 +1672,10 @@ interface CurrentSubscriptionResponse {
  * Получить текущую активную подписку
  */
 export async function getCurrentSubscription(): Promise<CurrentSubscriptionResponse> {
-  const response = await fetch(`${API_URL}/subscriptions/current`, {
+  const response = await apiFetch(`${API_URL}/subscriptions/current`, {
     credentials: 'include',
   });
-  return response.json();
+  return response;
 }
 
 interface CancelSubscriptionResponse {
@@ -1648,11 +1687,11 @@ interface CancelSubscriptionResponse {
  * Отменить подписку (autoRenew=false, cancelledAt=now)
  */
 export async function cancelSubscription(): Promise<CancelSubscriptionResponse> {
-  const response = await fetch(`${API_URL}/subscriptions/cancel`, {
+  const response = await apiFetch(`${API_URL}/subscriptions/cancel`, {
     method: 'POST',
     credentials: 'include',
   });
-  return response.json();
+  return response;
 }
 
 export type { PaymentHistoryItem, EntitlementItem };
@@ -1673,11 +1712,11 @@ interface CustomTasksResponse {
 export async function getCustomTasks(
   giveawayId: string
 ): Promise<CustomTasksResponse> {
-  const response = await fetch(`${API_URL}/custom-tasks/giveaway/${giveawayId}`, {
+  const response = await apiFetch(`${API_URL}/custom-tasks/giveaway/${giveawayId}`, {
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 interface CompleteCustomTaskResponse {
@@ -1693,7 +1732,7 @@ export async function completeCustomTask(
   giveawayId: string,
   taskId: string
 ): Promise<CompleteCustomTaskResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/custom-tasks/${taskId}/complete`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/custom-tasks/${taskId}/complete`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1701,7 +1740,7 @@ export async function completeCustomTask(
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 interface CustomTaskCompletionStatus {
@@ -1722,11 +1761,11 @@ interface CustomTaskCompletionsResponse {
 export async function getMyCustomTaskCompletions(
   giveawayId: string
 ): Promise<CustomTaskCompletionsResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/my-custom-tasks`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/my-custom-tasks`, {
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 // === Трекинг-ссылки ===
@@ -1761,11 +1800,11 @@ interface CreateTrackingLinkResponse {
  * Получить список трекинг-ссылок розыгрыша
  */
 export async function getTrackingLinks(giveawayId: string): Promise<TrackingLinksResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/tracking-links`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/tracking-links`, {
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
@@ -1775,7 +1814,7 @@ export async function createTrackingLink(
   giveawayId: string,
   tag: string
 ): Promise<CreateTrackingLinkResponse> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/tracking-links`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/tracking-links`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1784,31 +1823,31 @@ export async function createTrackingLink(
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Запустить розыгрыш (SCHEDULED → ACTIVE)
  */
 export async function startGiveaway(giveawayId: string): Promise<{ok: boolean; error?: string}> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/start`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/start`, {
     method: 'POST',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Отменить розыгрыш
  */
 export async function cancelGiveaway(giveawayId: string): Promise<{ok: boolean; error?: string}> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/cancel`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/cancel`, {
     method: 'POST',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
@@ -1830,37 +1869,37 @@ export async function updateGiveaway(
     storiesEnabled?: boolean;
   }
 ): Promise<{ok: boolean; error?: string}> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}`, {
     method: 'PATCH',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Повторить ошибку (для статуса ERROR)
  */
 export async function retryGiveaway(giveawayId: string): Promise<{ok: boolean; error?: string}> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/retry`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/retry`, {
     method: 'POST',
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 /**
  * Получить количество участников (для polling)
  */
 export async function getParticipantCount(giveawayId: string): Promise<{ok: boolean; count?: number; error?: string}> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/participant-count`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/participant-count`, {
     credentials: 'include',
   });
 
-  return response.json();
+  return response;
 }
 
 // ====================================
@@ -1936,13 +1975,13 @@ export async function createSandboxGiveaway(params?: {
   message?: string;
   error?: string;
 }> {
-  const response = await fetch(`${API_URL}/giveaways/sandbox`, {
+  const response = await apiFetch(`${API_URL}/giveaways/sandbox`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params || {}),
   });
-  return response.json();
+  return response;
 }
 
 // ====================================
@@ -1950,23 +1989,23 @@ export async function createSandboxGiveaway(params?: {
 // ====================================
 
 export async function getMyProfile(): Promise<{ ok: boolean; profile?: UserProfile; error?: string }> {
-  const response = await fetch(`${API_URL}/users/me/profile`, { credentials: 'include' });
-  return response.json();
+  const response = await apiFetch(`${API_URL}/users/me/profile`, { credentials: 'include' });
+  return response;
 }
 
 export async function updateNotifications(notificationsBlocked: boolean): Promise<{ ok: boolean; error?: string }> {
-  const response = await fetch(`${API_URL}/users/me/notifications`, {
+  const response = await apiFetch(`${API_URL}/users/me/notifications`, {
     method: 'PATCH',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ notificationsBlocked }),
   });
-  return response.json();
+  return response;
 }
 
 export async function getPublicProfile(telegramId: string): Promise<{ ok: boolean; profile?: PublicUserProfile; error?: string }> {
-  const response = await fetch(`${API_URL}/users/${telegramId}/profile`, { credentials: 'include' });
-  return response.json();
+  const response = await apiFetch(`${API_URL}/users/${telegramId}/profile`, { credentials: 'include' });
+  return response;
 }
 
 /**
@@ -1977,7 +2016,7 @@ export async function banParticipant(
   userId: string,
   reason?: string
 ): Promise<{ ok: boolean; error?: string }> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/giveaways/${giveawayId}/participants/${userId}/ban`,
     {
       method: 'POST',
@@ -1986,7 +2025,7 @@ export async function banParticipant(
       body: JSON.stringify({ reason }),
     }
   );
-  return response.json();
+  return response;
 }
 
 /**
@@ -1996,14 +2035,14 @@ export async function unbanParticipant(
   giveawayId: string,
   userId: string
 ): Promise<{ ok: boolean; error?: string }> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/giveaways/${giveawayId}/participants/${userId}/unban`,
     {
       method: 'POST',
       credentials: 'include',
     }
   );
-  return response.json();
+  return response;
 }
 
 /**
@@ -2014,21 +2053,21 @@ export async function getBanList(): Promise<{
   entries?: BanEntry[];
   error?: string;
 }> {
-  const response = await fetch(`${API_URL}/ban-list`, {
+  const response = await apiFetch(`${API_URL}/ban-list`, {
     credentials: 'include',
   });
-  return response.json();
+  return response;
 }
 
 /**
  * Удалить запись из глобального бан-листа
  */
 export async function deleteBanEntry(entryId: string): Promise<{ ok: boolean; error?: string }> {
-  const response = await fetch(`${API_URL}/ban-list/${entryId}`, {
+  const response = await apiFetch(`${API_URL}/ban-list/${entryId}`, {
     method: 'DELETE',
     credentials: 'include',
   });
-  return response.json();
+  return response;
 }
 
 // ====================================
@@ -2058,10 +2097,10 @@ export async function getPrizeFormConfig(giveawayId: string): Promise<{
   processedAt?: string | null;
   error?: string;
 }> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/prize-form/config`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/prize-form/config`, {
     credentials: 'include',
   });
-  return response.json();
+  return response;
 }
 
 export async function submitPrizeForm(
@@ -2078,23 +2117,23 @@ export async function submitPrizeForm(
     };
   }
 ): Promise<{ ok: boolean; id?: string; submittedAt?: string; message?: string; error?: string }> {
-  const response = await fetch(`${API_URL}/giveaways/${giveawayId}/prize-form`, {
+  const response = await apiFetch(`${API_URL}/giveaways/${giveawayId}/prize-form`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  return response.json();
+  return response;
 }
 
 export async function updateNotificationsCatalog(catalogNotificationsEnabled: boolean): Promise<{ ok: boolean; error?: string }> {
-  const response = await fetch(`${API_URL}/users/me/catalog-notifications`, {
+  const response = await apiFetch(`${API_URL}/users/me/catalog-notifications`, {
     method: 'PATCH',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ catalogNotificationsEnabled }),
   });
-  return response.json();
+  return response;
 }
 
 // ============================================================================
@@ -2127,13 +2166,13 @@ export interface SubmitReportResult {
  * Отправить жалобу на розыгрыш или пользователя
  */
 export async function submitReport(params: SubmitReportParams): Promise<SubmitReportResult> {
-  const response = await fetch(`${API_URL}/reports`, {
+  const response = await apiFetch(`${API_URL}/reports`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
   });
-  return response.json();
+  return response;
 }
 
 // ============================================================================

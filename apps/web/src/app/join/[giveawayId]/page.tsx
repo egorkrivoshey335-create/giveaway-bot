@@ -157,8 +157,7 @@ export default function JoinGiveawayPage() {
         // Проверяем авторизацию
         const userRes = await getCurrentUser();
         
-        if (!userRes.ok || !userRes.user) {
-          // Пробуем авторизоваться через Telegram
+        if (!userRes.ok || !userRes.id) {
           const tg = (window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp;
           
           if (tg?.initData) {
@@ -167,18 +166,16 @@ export default function JoinGiveawayPage() {
               setScreen('auth_required');
               return;
             }
-            // Повторно получаем данные пользователя для синхронизации языка
             const freshUser = await getCurrentUser();
-            if (freshUser.ok && freshUser.user?.language) {
-              syncLocaleFromDb(freshUser.user.language);
+            if (freshUser.ok && freshUser.language) {
+              syncLocaleFromDb(freshUser.language);
             }
           } else {
             setScreen('auth_required');
             return;
           }
-        } else if (userRes.user.language) {
-          // Синхронизируем язык из БД
-          syncLocaleFromDb(userRes.user.language);
+        } else if (userRes.language) {
+          syncLocaleFromDb(userRes.language);
         }
         
         setIsAuthenticated(true);
