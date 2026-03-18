@@ -2,6 +2,16 @@ import { config } from '../config.js';
 import { createLogger } from '../lib/logger.js';
 
 const log = createLogger('api');
+const DEFAULT_INTERNAL_API_TIMEOUT_MS = 8000;
+
+function parsePositiveInt(value: string | undefined, fallback: number): number {
+  const parsed = Number.parseInt(value || '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError';
+}
 
 interface Draft {
   id: string;
@@ -148,10 +158,15 @@ interface GiveawayRejectResponse {
 export class ApiService {
   private baseUrl: string;
   private internalToken: string;
+  private requestTimeoutMs: number;
 
   constructor() {
     this.baseUrl = config.apiUrl;
     this.internalToken = config.internalApiToken;
+    this.requestTimeoutMs = parsePositiveInt(
+      process.env.BOT_INTERNAL_API_TIMEOUT_MS,
+      DEFAULT_INTERNAL_API_TIMEOUT_MS
+    );
   }
 
   private getHeaders(): Record<string, string> {
@@ -161,6 +176,24 @@ export class ApiService {
     };
   }
 
+  private async fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.requestTimeoutMs);
+
+    try {
+      return await fetch(url, { ...init, signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  private mapNetworkError(error: unknown): string {
+    if (isAbortError(error)) {
+      return `API timeout after ${this.requestTimeoutMs}ms`;
+    }
+    return 'Failed to connect to API';
+  }
+
   /**
    * Create or get existing draft for a user by Telegram ID
    */
@@ -168,7 +201,7 @@ export class ApiService {
     telegramUserId: number | bigint
   ): Promise<{ ok: boolean; draft?: Draft; created?: boolean; error?: string }> {
     try {
-      const response = await fetch(`${this.baseUrl}/internal/drafts/giveaway`, {
+      const response = await this.fetchWithTimeout(`${this.baseUrl}/internal/drafts/giveaway`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({ telegramUserId: telegramUserId.toString() }),
@@ -183,7 +216,7 @@ export class ApiService {
       return { ok: true, draft: data.draft ?? undefined, created: data.created };
     } catch (error) {
       log.error({ error }, 'API call failed');
-      return { ok: false, error: 'Failed to connect to API' };
+      return { ok: false, error: this.mapNetworkError(error) };
     }
   }
 
@@ -192,7 +225,7 @@ export class ApiService {
    */
   async upsertChannel(params: ChannelUpsertParams): Promise<ChannelUpsertResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/internal/channels/upsert`, {
+      const response = await this.fetchWithTimeout(`${this.baseUrl}/internal/channels/upsert`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
@@ -217,7 +250,7 @@ export class ApiService {
       return { ok: true, channel: data.channel };
     } catch (error) {
       log.error({ error }, 'API call failed');
-      return { ok: false, error: 'Failed to connect to API' };
+      return { ok: false, error: this.mapNetworkError(error) };
     }
   }
 
@@ -226,7 +259,7 @@ export class ApiService {
    */
   async createPostTemplate(params: PostTemplateCreateParams): Promise<PostTemplateCreateResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/internal/post-templates/create`, {
+      const response = await this.fetchWithTimeout(`${this.baseUrl}/internal/post-templates/create`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
@@ -252,7 +285,7 @@ export class ApiService {
       return { ok: true, template: data.template };
     } catch (error) {
       log.error({ error }, 'API call failed');
-      return { ok: false, error: 'Failed to connect to API' };
+      return { ok: false, error: this.mapNetworkError(error) };
     }
   }
 
@@ -261,7 +294,7 @@ export class ApiService {
    */
   async deletePostTemplate(templateId: string): Promise<PostTemplateDeleteResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/internal/post-templates/${templateId}/delete`, {
+      const response = await this.fetchWithTimeout(`${this.baseUrl}/internal/post-templates/${templateId}/delete`, {
         method: 'POST',
         headers: this.getHeaders(),
       });
@@ -275,7 +308,7 @@ export class ApiService {
       return { ok: true, undoUntil: data.undoUntil };
     } catch (error) {
       log.error({ error }, 'API call failed');
-      return { ok: false, error: 'Failed to connect to API' };
+      return { ok: false, error: this.mapNetworkError(error) };
     }
   }
 
@@ -284,7 +317,7 @@ export class ApiService {
    */
   async undoDeletePostTemplate(templateId: string): Promise<{ ok: boolean; error?: string }> {
     try {
-      const response = await fetch(`${this.baseUrl}/internal/post-templates/${templateId}/undo-delete`, {
+      const response = await this.fetchWithTimeout(`${this.baseUrl}/internal/post-templates/${templateId}/undo-delete`, {
         method: 'POST',
         headers: this.getHeaders(),
       });
@@ -298,7 +331,7 @@ export class ApiService {
       return { ok: true };
     } catch (error) {
       log.error({ error }, 'API call failed');
-      return { ok: false, error: 'Failed to connect to API' };
+      return { ok: false, error: this.mapNetworkError(error) };
     }
   }
 
@@ -307,7 +340,7 @@ export class ApiService {
    */
   async getGiveawayFull(giveawayId: string): Promise<GiveawayFullResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/internal/giveaways/${giveawayId}/full`, {
+      const response = await this.fetchWithTimeout(`${this.baseUrl}/internal/giveaways/${giveawayId}/full`, {
         method: 'GET',
         headers: this.getHeaders(),
       });
@@ -321,7 +354,7 @@ export class ApiService {
       return data;
     } catch (error) {
       log.error({ error }, 'API call failed');
-      return { ok: false, error: 'Failed to connect to API' };
+      return { ok: false, error: this.mapNetworkError(error) };
     }
   }
 
@@ -333,7 +366,7 @@ export class ApiService {
     publishedMessages: PublishedMessage[]
   ): Promise<GiveawayAcceptResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/internal/giveaways/${giveawayId}/accept`, {
+      const response = await this.fetchWithTimeout(`${this.baseUrl}/internal/giveaways/${giveawayId}/accept`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({ publishedMessages }),
@@ -348,7 +381,7 @@ export class ApiService {
       return data;
     } catch (error) {
       log.error({ error }, 'API call failed');
-      return { ok: false, error: 'Failed to connect to API' };
+      return { ok: false, error: this.mapNetworkError(error) };
     }
   }
 
@@ -357,7 +390,7 @@ export class ApiService {
    */
   async rejectGiveaway(giveawayId: string): Promise<GiveawayRejectResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/internal/giveaways/${giveawayId}/reject`, {
+      const response = await this.fetchWithTimeout(`${this.baseUrl}/internal/giveaways/${giveawayId}/reject`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({}),
@@ -372,7 +405,7 @@ export class ApiService {
       return { ok: true };
     } catch (error) {
       log.error({ error }, 'API call failed');
-      return { ok: false, error: 'Failed to connect to API' };
+      return { ok: false, error: this.mapNetworkError(error) };
     }
   }
 }

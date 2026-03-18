@@ -3,9 +3,34 @@ import { webhookCallback } from 'grammy';
 import { config } from './config.js';
 import { initSentry, setupErrorHandlers } from './lib/sentry.js';
 import { closeRedis } from './lib/redis.js';
-import { logger, createLogger } from './lib/logger.js';
+import { createLogger } from './lib/logger.js';
 
 const log = createLogger('server');
+const DEFAULT_TELEGRAM_STARTUP_TIMEOUT_MS = 12000;
+
+function getTelegramStartupTimeoutMs(): number {
+  const parsed = Number.parseInt(process.env.BOT_TELEGRAM_STARTUP_TIMEOUT_MS || '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_TELEGRAM_STARTUP_TIMEOUT_MS;
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operation: string): Promise<T> {
+  let timeoutId: NodeJS.Timeout | undefined;
+
+  return new Promise<T>((resolve, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`${operation} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    promise
+      .then(resolve)
+      .catch(reject)
+      .finally(() => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      });
+  });
+}
 
 // 🔒 ЗАДАЧА 1.14: Инициализация Sentry
 initSentry();
@@ -79,6 +104,8 @@ function createHealthServer() {
 
 async function main() {
   try {
+    const telegramStartupTimeoutMs = getTelegramStartupTimeoutMs();
+
     // Start health check server (always)
     const healthServer = createHealthServer();
     healthServer.listen(config.healthPort, () => {
@@ -90,8 +117,8 @@ async function main() {
       log.info('🤖 Starting bot...');
       
       // Установить Menu Button для открытия Mini App
-      try {
-        await bot.api.setChatMenuButton({
+      void withTimeout(
+        bot.api.setChatMenuButton({
           menu_button: {
             type: 'web_app',
             text: 'Открыть',
@@ -99,11 +126,16 @@ async function main() {
               url: config.webappUrl,
             },
           },
+        }),
+        telegramStartupTimeoutMs,
+        'setChatMenuButton'
+      )
+        .then(() => {
+          log.info('✅ Menu button установлена');
+        })
+        .catch((err) => {
+          log.warn({ err }, '⚠️ Не удалось установить menu button в ограниченное время');
         });
-        log.info('✅ Menu button установлена');
-      } catch (err) {
-        log.error({ err }, '⚠️ Не удалось установить menu button');
-      }
       
       // 🔒 ЗАДАЧА 1.1: Webhook mode или polling
       if (config.webhook.enabled) {
@@ -111,10 +143,14 @@ async function main() {
         
         // Настройка webhook с secret_token
         const webhookUrl = `${config.webhook.domain}${config.webhook.path}`;
-        await bot.api.setWebhook(webhookUrl, {
-          drop_pending_updates: true,
-          secret_token: config.webhook.secret, // 🔒 КРИТИЧНО для безопасности
-        });
+        await withTimeout(
+          bot.api.setWebhook(webhookUrl, {
+            drop_pending_updates: true,
+            secret_token: config.webhook.secret, // 🔒 КРИТИЧНО для безопасности
+          }),
+          telegramStartupTimeoutMs,
+          'setWebhook'
+        );
         log.info(`[Webhook] Set to ${webhookUrl}`);
         
         // Создаем HTTP сервер для webhook
@@ -148,7 +184,15 @@ async function main() {
         log.info('[Polling] Mode enabled');
         
         // Удаляем webhook если был установлен
-        await bot.api.deleteWebhook({ drop_pending_updates: true });
+        try {
+          await withTimeout(
+            bot.api.deleteWebhook({ drop_pending_updates: true }),
+            telegramStartupTimeoutMs,
+            'deleteWebhook'
+          );
+        } catch (err) {
+          log.warn({ err }, '[Polling] deleteWebhook timed out, continuing startup');
+        }
         
         // Запуск long polling
         await bot.start({

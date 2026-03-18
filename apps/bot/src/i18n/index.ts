@@ -7,6 +7,12 @@ import { config } from '../config.js';
 import { createLogger } from '../lib/logger.js';
 
 const log = createLogger('i18n');
+const DEFAULT_LOCALE_UPDATE_TIMEOUT_MS = 8000;
+
+function getLocaleUpdateTimeoutMs(): number {
+  const parsed = Number.parseInt(process.env.BOT_INTERNAL_API_TIMEOUT_MS || '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_LOCALE_UPDATE_TIMEOUT_MS;
+}
 
 // Доступные локали
 export const locales: Locale[] = ['ru', 'en', 'kk'];
@@ -62,17 +68,27 @@ export function setUserLocale(telegramUserId: number, locale: Locale): void {
  */
 export async function updateUserLocale(telegramUserId: number, locale: Locale): Promise<boolean> {
   try {
-    const response = await fetch(`${config.apiUrl}/internal/users/language`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Internal-Token': config.internalApiToken,
-      },
-      body: JSON.stringify({
-        telegramUserId: telegramUserId.toString(),
-        language: locale.toUpperCase(),
-      }),
-    });
+    const controller = new AbortController();
+    const timeoutMs = getLocaleUpdateTimeoutMs();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    let response: Response;
+
+    try {
+      response = await fetch(`${config.apiUrl}/internal/users/language`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Token': config.internalApiToken,
+        },
+        body: JSON.stringify({
+          telegramUserId: telegramUserId.toString(),
+          language: locale.toUpperCase(),
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (response.ok) {
       // Обновляем кэш
@@ -83,7 +99,11 @@ export async function updateUserLocale(telegramUserId: number, locale: Locale): 
     log.error({ status: response.status }, 'Failed to update user locale: API returned error');
     return false;
   } catch (err) {
-    log.error({ err }, 'Failed to update user locale');
+    if (err instanceof Error && err.name === 'AbortError') {
+      log.warn('updateUserLocale timed out, using local cache');
+    } else {
+      log.error({ err }, 'Failed to update user locale');
+    }
     // Всё равно обновляем локальный кэш
     setUserLocale(telegramUserId, locale);
     return true; // Возвращаем true, т.к. локально язык установлен

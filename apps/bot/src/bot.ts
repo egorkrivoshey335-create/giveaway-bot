@@ -55,6 +55,27 @@ import { registerPaymentHandlers } from './handlers/payments.js';
 import { NAV_CALLBACKS } from './lib/navigation.js';
 
 const log = createLogger('bot');
+const DEFAULT_INTERNAL_REQUEST_TIMEOUT_MS = 8000;
+
+function getInternalRequestTimeoutMs(): number {
+  const parsed = Number.parseInt(process.env.BOT_INTERNAL_API_TIMEOUT_MS || '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_INTERNAL_REQUEST_TIMEOUT_MS;
+}
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit = {},
+  timeoutMs: number = getInternalRequestTimeoutMs()
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 // This module should only be imported when BOT_TOKEN is available
 if (!config.botToken) {
@@ -185,19 +206,19 @@ bot.command('start', async (ctx) => {
     clearAllUserStates(ctx.from.id);
   }
 
-  // Устанавливаем Menu Button на языке пользователя
-  try {
-    await ctx.api.setChatMenuButton({
+  // Устанавливаем Menu Button на языке пользователя (не блокируем ответ)
+  void ctx.api
+    .setChatMenuButton({
       chat_id: userId,
       menu_button: {
         type: 'web_app',
         text: t(locale, 'buttons.menuButton'),
         web_app: { url: config.webappUrl },
       },
+    })
+    .catch(() => {
+      // Не критично
     });
-  } catch {
-    // Не критично
-  }
 
   await ctx.reply(getWelcomeMessage(firstName, locale), {
     reply_markup: keyboard,
@@ -316,7 +337,7 @@ bot.hears(MENU.SETTINGS, async (ctx) => {
   try {
     const userId = ctx.from?.id;
     if (userId) {
-      const res = await fetch(`${config.apiUrl}/internal/users/${userId}/notification-mode`, {
+      const res = await fetchWithTimeout(`${config.apiUrl}/internal/users/${userId}/notification-mode`, {
         headers: { 'X-Internal-Token': config.internalApiToken },
       });
       if (res.ok) {
@@ -440,7 +461,7 @@ bot.callbackQuery(/^notif_(MILESTONE|DAILY|OFF)$/, async (ctx) => {
 
   try {
     // Обновляем режим уведомлений через API
-    const res = await fetch(`${config.apiUrl}/internal/users/${userId}/notification-mode`, {
+    const res = await fetchWithTimeout(`${config.apiUrl}/internal/users/${userId}/notification-mode`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -539,18 +560,18 @@ bot.callbackQuery(/^lang_/, async (ctx) => {
     }
 
     // Обновляем Menu Button (синяя кнопка «Открыть» / «Open» / «Ашу»)
-    try {
-      await ctx.api.setChatMenuButton({
+    void ctx.api
+      .setChatMenuButton({
         chat_id: userId,
         menu_button: {
           type: 'web_app',
           text: t(lang, 'buttons.menuButton'),
           web_app: { url: config.webappUrl },
         },
+      })
+      .catch(() => {
+        // Игнорируем — не критично
       });
-    } catch {
-      // Игнорируем — не критично
-    }
 
     // Отправляем новое сообщение с обновлённой клавиатурой главного меню
     await ctx.reply(getMainMenuMessage(lang), {
@@ -665,7 +686,7 @@ bot.hears(/^\/repost:?(.+)$/, async (ctx) => {
 
   try {
     // Получаем данные розыгрыша по shortCode через API
-    const res = await fetch(`${config.apiUrl}/internal/giveaways/by-code/${shortCode}`, {
+    const res = await fetchWithTimeout(`${config.apiUrl}/internal/giveaways/by-code/${shortCode}`, {
       headers: { 'X-Internal-Token': config.internalApiToken },
     });
 
