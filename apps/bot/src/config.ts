@@ -53,6 +53,9 @@ export const config = {
     environment: process.env.NODE_ENV || 'development',
   },
   
+  // Telegram API proxy (Cloudflare Worker) to bypass TLS throttling
+  telegramApiRoot: process.env.TELEGRAM_API_ROOT || 'https://api.telegram.org',
+
   // 🔒 ЗАДАЧА 1.1: Webhook mode
   webhook: {
     enabled: process.env.WEBHOOK_ENABLED === 'true',

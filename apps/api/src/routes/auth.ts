@@ -53,13 +53,28 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       // Get bot token (required for auth)
       const botToken = requireTmaBotToken();
 
+      // DEBUG: log initData details for troubleshooting
+      const params = new URLSearchParams(initData);
+      fastify.log.info({
+        hasHash: params.has('hash'),
+        hasAuthDate: params.has('auth_date'),
+        hasUser: params.has('user'),
+        paramKeys: [...params.keys()],
+        initDataLength: initData.length,
+        initDataPreview: initData.substring(0, 200),
+      }, 'DEBUG auth: initData received');
+
       // Validate initData signature
       try {
         validate(initData, botToken, {
           expiresIn: config.auth.initDataExpiresIn,
         });
-      } catch (validationError) {
-        fastify.log.warn({ error: validationError }, 'Invalid initData');
+      } catch (validationError: any) {
+        fastify.log.warn({
+          error: validationError,
+          errorType: validationError?.type,
+          errorMessage: validationError?.message,
+        }, 'Invalid initData — validation failed');
         return reply.unauthorized('Invalid initData signature');
       }
 

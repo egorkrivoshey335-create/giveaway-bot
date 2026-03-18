@@ -61,8 +61,12 @@ if (!config.botToken) {
   throw new Error('bot.ts should only be imported when BOT_TOKEN is set');
 }
 
-// Create bot instance
-export const bot = new Bot(config.botToken);
+// Create bot instance with optional Telegram API proxy
+export const bot = new Bot(config.botToken, {
+  client: {
+    apiRoot: config.telegramApiRoot,
+  },
+});
 
 // Middleware: проверка whitelist (режим разработки)
 bot.use(async (ctx, next) => {
