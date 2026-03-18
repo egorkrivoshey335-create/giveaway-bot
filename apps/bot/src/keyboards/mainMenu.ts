@@ -49,8 +49,8 @@ export function createWebAppInlineKeyboard(locale: Locale = 'ru'): InlineKeyboar
  * Creates inline keyboard for creating giveaway
  */
 export function createGiveawayMethodKeyboard(locale: Locale = 'ru'): InlineKeyboard {
-  const inAppText = t(locale, 'menu.inApp');
-  const inBotText = t(locale, 'menu.inBotSoon');
+  const inAppText = t(locale, 'wizard.inApp');
+  const inBotText = t(locale, 'wizard.inBotSoon');
   
   return new InlineKeyboard()
     .webApp(inAppText, config.webappUrl).row()

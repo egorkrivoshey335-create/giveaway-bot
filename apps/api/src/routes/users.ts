@@ -110,7 +110,7 @@ export const usersRoutes: FastifyPluginAsync = async (fastify) => {
         username: fullUser.username,
         firstName: fullUser.firstName,
         lastName: fullUser.lastName,
-        telegramUserId: fullUser.telegramUserId,
+        telegramUserId: fullUser.telegramUserId.toString(),
         isPremium: fullUser.isPremium,
         language: fullUser.language,
         notificationsBlocked: fullUser.notificationsBlocked,

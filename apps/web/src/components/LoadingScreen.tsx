@@ -11,21 +11,30 @@ export function LoadingScreen() {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
-    // Скрыть через 1.5 секунды или когда WebApp готов
-    const timer = setTimeout(() => {
-      setIsVisible(false);
-    }, 1500);
+    const MIN_DISPLAY_MS = 1200;
+    const MAX_DISPLAY_MS = 3000;
+    const startedAt = Date.now();
 
-    // Проверяем готовность Telegram WebApp
+    const hide = () => {
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < MIN_DISPLAY_MS) {
+        setTimeout(() => setIsVisible(false), MIN_DISPLAY_MS - elapsed);
+      } else {
+        setIsVisible(false);
+      }
+    };
+
+    const maxTimer = setTimeout(hide, MAX_DISPLAY_MS);
+
     const checkReady = setInterval(() => {
       if (window.Telegram?.WebApp?.initData) {
-        setIsVisible(false);
+        hide();
         clearInterval(checkReady);
       }
-    }, 100);
+    }, 200);
 
     return () => {
-      clearTimeout(timer);
+      clearTimeout(maxTimer);
       clearInterval(checkReady);
     };
   }, []);
