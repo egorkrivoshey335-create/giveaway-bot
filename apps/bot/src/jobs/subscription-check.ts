@@ -21,11 +21,11 @@ const redisConnection = {
 };
 
 // Queues for the other subscription workers
-const expireQueue = new Queue<SubscriptionExpireData>('subscription:expire', {
+const expireQueue = new Queue<SubscriptionExpireData>('subscription-expire', {
   connection: redisConnection,
 });
 
-const expireWarningQueue = new Queue<SubscriptionExpireWarningData>('subscription:expire-warning', {
+const expireWarningQueue = new Queue<SubscriptionExpireWarningData>('subscription-expire-warning', {
   connection: redisConnection,
 });
 

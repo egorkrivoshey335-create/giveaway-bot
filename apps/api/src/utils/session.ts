@@ -75,7 +75,7 @@ export function getSessionCookieOptions() {
   return {
     httpOnly: true,
     secure: !config.isDev,
-    sameSite: 'lax' as const,
+    sameSite: 'none' as const,
     path: '/',
     domain: config.auth.cookieDomain,
     maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
