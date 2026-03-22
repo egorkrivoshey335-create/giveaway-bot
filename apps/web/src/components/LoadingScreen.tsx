@@ -1,27 +1,23 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 
-/**
- * Loading Screen с анимацией логотипа при запуске приложения
- * Показывается пока идёт инициализация Telegram WebApp
- */
+const MIN_DISPLAY_MS = 2500;
+const MAX_DISPLAY_MS = 5000;
+
 export function LoadingScreen() {
   const [isVisible, setIsVisible] = useState(true);
+  const [shouldRender, setShouldRender] = useState(true);
 
   useEffect(() => {
-    const MIN_DISPLAY_MS = 1200;
-    const MAX_DISPLAY_MS = 3000;
     const startedAt = Date.now();
 
     const hide = () => {
       const elapsed = Date.now() - startedAt;
-      if (elapsed < MIN_DISPLAY_MS) {
-        setTimeout(() => setIsVisible(false), MIN_DISPLAY_MS - elapsed);
-      } else {
-        setIsVisible(false);
-      }
+      const remaining = Math.max(0, MIN_DISPLAY_MS - elapsed);
+      setTimeout(() => setIsVisible(false), remaining);
     };
 
     const maxTimer = setTimeout(hide, MAX_DISPLAY_MS);
@@ -31,7 +27,7 @@ export function LoadingScreen() {
         hide();
         clearInterval(checkReady);
       }
-    }, 200);
+    }, 300);
 
     return () => {
       clearTimeout(maxTimer);
@@ -39,100 +35,114 @@ export function LoadingScreen() {
     };
   }, []);
 
-  if (!isVisible) return null;
+  useEffect(() => {
+    if (!isVisible) {
+      const timer = setTimeout(() => setShouldRender(false), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible]);
+
+  if (!shouldRender) return null;
 
   return (
-    <motion.div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-gradient-to-br from-brand-50 to-brand-100"
-      initial={{ opacity: 1 }}
-      animate={{ opacity: isVisible ? 1 : 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <div className="flex flex-col items-center gap-6">
-        {/* Animated Logo */}
+    <AnimatePresence>
+      {isVisible && (
         <motion.div
-          className="relative w-32 h-32"
-          initial={{ scale: 0.8, rotate: 0 }}
-          animate={{
-            scale: [0.8, 1.1, 1],
-            rotate: [0, 360, 360],
-          }}
-          transition={{
-            duration: 1.2,
-            times: [0, 0.6, 1],
-            ease: 'easeInOut',
-          }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-gradient-to-br from-brand-50 to-brand-100"
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
         >
-          {/* Main circle */}
-          <motion.div
-            className="absolute inset-0 rounded-full bg-brand shadow-2xl"
-            animate={{
-              boxShadow: [
-                '0 0 0 0 rgba(242, 182, 182, 0.7)',
-                '0 0 0 20px rgba(242, 182, 182, 0)',
-              ],
-            }}
-            transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              ease: 'easeOut',
-            }}
-          />
-          
-          {/* Inner content */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <motion.span
-              className="text-5xl"
-              animate={{
-                scale: [1, 1.2, 1],
-              }}
-              transition={{
-                duration: 1,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
+          <div className="flex flex-col items-center gap-6">
+            {/* Animated Logo */}
+            <motion.div
+              className="relative w-32 h-32"
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.8, ease: [0.34, 1.56, 0.64, 1] }}
             >
-              🎁
-            </motion.span>
+              {/* Pulsing ring */}
+              <motion.div
+                className="absolute inset-0 rounded-full bg-brand/30"
+                animate={{
+                  scale: [1, 1.4, 1],
+                  opacity: [0.6, 0, 0.6],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
+              />
+
+              {/* Main circle */}
+              <motion.div
+                className="absolute inset-0 rounded-full bg-brand shadow-2xl flex items-center justify-center overflow-hidden"
+                animate={{ rotate: [0, 5, -5, 0] }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
+              >
+                <motion.div
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
+                >
+                  <Image
+                    src="/icons/brand/icon-loading.webp"
+                    alt="Loading"
+                    width={80}
+                    height={80}
+                    className="w-20 h-20 object-contain"
+                    priority
+                  />
+                </motion.div>
+              </motion.div>
+            </motion.div>
+
+            {/* App Name */}
+            <motion.div
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.6, ease: 'easeOut' }}
+            >
+              <h1 className="text-2xl font-bold text-brand-900">RandomBeast</h1>
+              <p className="text-sm text-brand-700 mt-1">Честные розыгрыши</p>
+            </motion.div>
+
+            {/* Loading dots */}
+            <motion.div
+              className="flex gap-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8, duration: 0.4 }}
+            >
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  className="w-2.5 h-2.5 bg-brand-600 rounded-full"
+                  animate={{
+                    scale: [1, 1.5, 1],
+                    opacity: [0.3, 1, 0.3],
+                  }}
+                  transition={{
+                    duration: 1.2,
+                    repeat: Infinity,
+                    delay: i * 0.25,
+                    ease: 'easeInOut',
+                  }}
+                />
+              ))}
+            </motion.div>
           </div>
         </motion.div>
-
-        {/* App Name */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-        >
-          <h1 className="text-2xl font-bold text-brand-900">RandomBeast</h1>
-          <p className="text-sm text-brand-700 text-center mt-1">Честные розыгрыши</p>
-        </motion.div>
-
-        {/* Loading indicator */}
-        <motion.div
-          className="flex gap-2"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          {[0, 1, 2].map((i) => (
-            <motion.div
-              key={i}
-              className="w-2 h-2 bg-brand rounded-full"
-              animate={{
-                scale: [1, 1.5, 1],
-                opacity: [0.3, 1, 0.3],
-              }}
-              transition={{
-                duration: 1,
-                repeat: Infinity,
-                delay: i * 0.2,
-                ease: 'easeInOut',
-              }}
-            />
-          ))}
-        </motion.div>
-      </div>
-    </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

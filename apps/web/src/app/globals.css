@@ -30,26 +30,41 @@
   --tg-header-height: 16px;
   --tg-footer-height: 16px;
   
-  /* Dark theme overrides (set by Telegram) */
+  /* Dark theme overrides — розовый бренд на тёмном фоне */
   &[data-theme='dark'] {
-    --tg-theme-bg-color: #17212b;
-    --tg-theme-text-color: #ffffff;
-    --tg-theme-hint-color: #708499;
+    --tg-theme-bg-color: #1a1216;
+    --tg-theme-text-color: #f5e6e9;
+    --tg-theme-hint-color: #9e7a82;
     --tg-theme-link-color: #f2b6b6;
-    --tg-theme-button-color: #f2b6b6;
-    --tg-theme-secondary-bg-color: #232e3c;
-    --tg-theme-header-bg-color: #17212b;
+    --tg-theme-button-color: #e89999;
+    --tg-theme-button-text-color: #1a1216;
+    --tg-theme-secondary-bg-color: #241a1e;
+    --tg-theme-header-bg-color: #2a1d21;
+    --tg-theme-section-bg-color: #201619;
   }
 }
 
 body {
   min-height: 100vh;
   min-height: 100dvh;
-  /* Отступы для Safe Area в fullscreen режиме */
   padding-top: var(--tg-header-height);
   padding-bottom: var(--tg-footer-height);
   padding-left: var(--tg-safe-area-left);
   padding-right: var(--tg-safe-area-right);
+}
+
+/* Плавные переходы для интерактивных элементов */
+button, a, [role="button"] {
+  transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+button:active, [role="button"]:active {
+  transform: scale(0.97);
+}
+
+/* Плавное появление карточек и блоков */
+.rounded-xl, .rounded-2xl, .rounded-lg {
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 /* Floating Icons Animation */

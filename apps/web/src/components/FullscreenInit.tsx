@@ -70,21 +70,11 @@ export function FullscreenInit() {
         root.classList.remove('dark');
       }
       
-      // Обновить Telegram theme params как CSS переменные
-      // button_color и link_color оставляем брендовыми (#f2b6b6), не берём из Telegram
-      if (tg.themeParams) {
-        const params = tg.themeParams;
-        if (params.bg_color) root.style.setProperty('--tg-theme-bg-color', params.bg_color);
-        if (params.text_color) root.style.setProperty('--tg-theme-text-color', params.text_color);
-        if (params.hint_color) root.style.setProperty('--tg-theme-hint-color', params.hint_color);
-        if (params.button_text_color) root.style.setProperty('--tg-theme-button-text-color', params.button_text_color);
-        if (params.secondary_bg_color) root.style.setProperty('--tg-theme-secondary-bg-color', params.secondary_bg_color);
-        if (params.section_bg_color) root.style.setProperty('--tg-theme-section-bg-color', params.section_bg_color);
-      }
+      // Все цвета берём из CSS (globals.css), Telegram theme params игнорируем
+      // чтобы сохранить фирменный розовый стиль в обоих темах
       
-      // Установить headerColor и backgroundColor в зависимости от темы
-      const headerColor = isDark ? '#e89999' : '#f2b6b6'; // Ярче для dark mode
-      const bgColor = isDark ? '#17212b' : '#ffffff';
+      const headerColor = isDark ? '#2a1d21' : '#f2b6b6';
+      const bgColor = isDark ? '#1a1216' : '#ffffff';
       
       try {
         if (tg.setHeaderColor) {

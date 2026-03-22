@@ -3,11 +3,13 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { AnimatePresence, motion } from 'framer-motion';
 import { DebugPanel } from '@/components/DebugPanel';
 import { ParticipantSection } from '@/components/ParticipantSection';
 import { CreatorSection } from '@/components/CreatorSection';
 import { useTelegramLocale, syncLocaleFromDb } from '@/hooks/useLocale';
 import { AppIcon } from '@/components/AppIcon';
+import { FadeIn } from '@/components/FadeIn';
 import {
   authenticateWithTelegram,
   getCurrentUser,
@@ -230,13 +232,18 @@ export default function HomePage() {
     <main className="min-h-screen bg-tg-bg">
       {/* Табы — показываем только для авторизованных */}
       {authStatus === 'authenticated' && (
-        <div className="sticky top-0 z-10 bg-tg-bg border-b border-tg-secondary">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          className="sticky top-0 z-10 bg-tg-bg border-b border-tg-secondary"
+        >
           <div className="max-w-xl mx-auto flex p-2 gap-2">
             <button
               onClick={() => setActiveTab('participant')}
-              className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
+              className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 ${
                 activeTab === 'participant'
-                  ? 'bg-tg-button text-tg-button-text'
+                  ? 'bg-tg-button text-tg-button-text shadow-md'
                   : 'bg-tg-secondary text-tg-text hover:bg-tg-secondary/80'
               }`}
             >
@@ -245,9 +252,9 @@ export default function HomePage() {
             </button>
             <button
               onClick={() => setActiveTab('creator')}
-              className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
+              className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 ${
                 activeTab === 'creator'
-                  ? 'bg-tg-button text-tg-button-text'
+                  ? 'bg-tg-button text-tg-button-text shadow-md'
                   : 'bg-tg-secondary text-tg-text hover:bg-tg-secondary/80'
               }`}
             >
@@ -257,98 +264,116 @@ export default function HomePage() {
             <button
               onClick={() => router.push('/faq')}
               title="FAQ"
-              className="py-3 px-3 rounded-xl font-medium text-sm transition-colors bg-tg-secondary text-tg-hint hover:bg-tg-secondary/80"
+              className="py-3 px-3 rounded-xl font-medium text-sm transition-all duration-300 bg-tg-secondary text-tg-hint hover:bg-tg-secondary/80"
               aria-label="FAQ"
             >
               <AppIcon name="icon-faq" variant="brand" size={20} />
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
 
       <div className="max-w-xl mx-auto p-4">
-        {/* Статус загрузки */}
-        {authStatus === 'loading' && (
-          <div className="text-center py-12">
-            <div className="animate-spin w-10 h-10 border-3 border-tg-button border-t-transparent rounded-full mx-auto mb-4" />
-            <p className="text-tg-hint">{tCommon('loading')}</p>
-          </div>
-        )}
-
-        {/* Не авторизован без Telegram */}
-        {authStatus === 'unauthenticated' && !hasTelegram && (
-          <div className="bg-tg-secondary rounded-xl p-6">
-            <h2 className="text-lg font-semibold mb-2">⚠️ {t('auth.openInTelegram')}</h2>
-            <p className="text-tg-hint text-sm mb-4">
-              {t('auth.telegramOnly')}
-            </p>
-            {/* Dev Login — только для разработки */}
-            {process.env.NODE_ENV === 'development' && (
-              <button
-                onClick={handleDevLogin}
-                className="w-full bg-tg-button/50 text-tg-button-text rounded-lg py-2 px-4 text-sm"
-              >
-                🔧 {t('auth.devLogin')}
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Не авторизован с Telegram */}
-        {authStatus === 'unauthenticated' && hasTelegram && (
-          <div className="bg-tg-secondary rounded-xl p-6">
-            <h2 className="text-lg font-semibold mb-2">{t('errors.unauthorized')}</h2>
-            <p className="text-tg-hint text-sm mb-4">
-              {t('auth.clickToLogin')}
-            </p>
-            <button 
-              onClick={authenticate} 
-              className="w-full bg-tg-button text-tg-button-text rounded-lg py-2 px-4"
+        <AnimatePresence mode="wait">
+          {/* Статус загрузки */}
+          {authStatus === 'loading' && (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="text-center py-12"
             >
-              {t('auth.loginButton')}
-            </button>
-          </div>
-        )}
+              <div className="animate-spin w-10 h-10 border-3 border-tg-button border-t-transparent rounded-full mx-auto mb-4" />
+              <p className="text-tg-hint">{tCommon('loading')}</p>
+            </motion.div>
+          )}
 
-        {/* Ошибка авторизации */}
-        {authStatus === 'error' && (
-          <div className="bg-tg-secondary rounded-xl p-6">
-            <h2 className="text-lg font-semibold mb-2 text-red-500">❌ {tCommon('error')}</h2>
-            <p className="text-tg-hint text-sm mb-4">{error || t('errors.connectionError')}</p>
-            {/* В production показываем кнопку только если есть Telegram */}
-            {(hasTelegram || process.env.NODE_ENV === 'development') && (
-              <button 
-                onClick={hasTelegram ? authenticate : handleDevLogin} 
-                className="w-full bg-tg-button text-tg-button-text rounded-lg py-2 px-4"
-              >
-                {tCommon('tryAgain')}
-              </button>
-            )}
-          </div>
-        )}
+          {/* Не авторизован без Telegram */}
+          {authStatus === 'unauthenticated' && !hasTelegram && (
+            <FadeIn key="no-tg" delay={0.1}>
+              <div className="bg-tg-secondary rounded-xl p-6">
+                <h2 className="text-lg font-semibold mb-2">⚠️ {t('auth.openInTelegram')}</h2>
+                <p className="text-tg-hint text-sm mb-4">
+                  {t('auth.telegramOnly')}
+                </p>
+                {process.env.NODE_ENV === 'development' && (
+                  <button
+                    onClick={handleDevLogin}
+                    className="w-full bg-tg-button/50 text-tg-button-text rounded-lg py-2 px-4 text-sm"
+                  >
+                    🔧 {t('auth.devLogin')}
+                  </button>
+                )}
+              </div>
+            </FadeIn>
+          )}
 
-        {/* Авторизован — показываем контент по табам */}
-        {authStatus === 'authenticated' && (
-          <>
-            {activeTab === 'participant' ? (
-              <ParticipantSection />
-            ) : (
-              <CreatorSection />
-            )}
-
-            {/* Кнопка выхода — только для разработки */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="mt-8 pt-4 border-t border-tg-secondary">
-                <button
-                  onClick={handleLogout}
-                  className="w-full bg-red-500/10 text-red-500 rounded-lg py-2 px-4 text-sm"
+          {/* Не авторизован с Telegram */}
+          {authStatus === 'unauthenticated' && hasTelegram && (
+            <FadeIn key="unauth" delay={0.1}>
+              <div className="bg-tg-secondary rounded-xl p-6">
+                <h2 className="text-lg font-semibold mb-2">{t('errors.unauthorized')}</h2>
+                <p className="text-tg-hint text-sm mb-4">
+                  {t('auth.clickToLogin')}
+                </p>
+                <button 
+                  onClick={authenticate} 
+                  className="w-full bg-tg-button text-tg-button-text rounded-lg py-2 px-4"
                 >
-                  {t('auth.logout')}
+                  {t('auth.loginButton')}
                 </button>
               </div>
-            )}
-          </>
-        )}
+            </FadeIn>
+          )}
+
+          {/* Ошибка авторизации */}
+          {authStatus === 'error' && (
+            <FadeIn key="error" delay={0.1}>
+              <div className="bg-tg-secondary rounded-xl p-6">
+                <h2 className="text-lg font-semibold mb-2 text-red-500">❌ {tCommon('error')}</h2>
+                <p className="text-tg-hint text-sm mb-4">{error || t('errors.connectionError')}</p>
+                {(hasTelegram || process.env.NODE_ENV === 'development') && (
+                  <button 
+                    onClick={hasTelegram ? authenticate : handleDevLogin} 
+                    className="w-full bg-tg-button text-tg-button-text rounded-lg py-2 px-4"
+                  >
+                    {tCommon('tryAgain')}
+                  </button>
+                )}
+              </div>
+            </FadeIn>
+          )}
+
+          {/* Авторизован — показываем контент по табам */}
+          {authStatus === 'authenticated' && (
+            <motion.div
+              key={`tab-${activeTab}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
+              {activeTab === 'participant' ? (
+                <ParticipantSection />
+              ) : (
+                <CreatorSection />
+              )}
+
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-8 pt-4 border-t border-tg-secondary">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full bg-red-500/10 text-red-500 rounded-lg py-2 px-4 text-sm"
+                  >
+                    {t('auth.logout')}
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Debug Panel (development only) */}
         <DebugPanel />
