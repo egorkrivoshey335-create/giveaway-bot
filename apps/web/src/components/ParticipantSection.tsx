@@ -232,11 +232,12 @@ export function ParticipantSection() {
       {/* Контент */}
       <AnimatePresence mode="wait">
         <motion.div
+          layout
           key={`${filter}-${loading ? 'loading' : 'ready'}`}
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+          transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
         >
           {loading ? (
             <div className="text-center py-12">

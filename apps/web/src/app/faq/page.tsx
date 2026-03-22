@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
@@ -173,23 +173,17 @@ export default function FaqPage() {
                         </svg>
                       </button>
 
-                      <AnimatePresence>
-                        {isOpen && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-                            style={{ overflow: 'hidden' }}
-                          >
-                            <div className="px-4 pb-4">
-                              <p className="text-sm text-tg-hint leading-relaxed whitespace-pre-line">
-                                {item.a}
-                              </p>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                      <div
+                        className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
+                      >
+                        <div className="overflow-hidden">
+                          <div className="px-4 pb-4">
+                            <p className="text-sm text-tg-hint leading-relaxed whitespace-pre-line">
+                              {item.a}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   );
                 })}

@@ -141,6 +141,7 @@ export function CreatorSection() {
     animate: { opacity: 1, y: 0 },
     exit: { opacity: 0, y: -8 },
     transition: { duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] as const },
+    layout: true as const,
   };
 
   return (
@@ -162,7 +163,7 @@ export function CreatorSection() {
         </StaggerItem>
 
         <StaggerItem>
-          <div className="bg-tg-secondary rounded-xl p-4 mb-6">
+          <motion.div layout className="bg-tg-secondary rounded-xl p-4 mb-6" transition={{ layout: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } }}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">{t('channels')}</h3>
               <button
@@ -220,11 +221,11 @@ export function CreatorSection() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
+          </motion.div>
         </StaggerItem>
 
         <StaggerItem>
-          <div className="bg-tg-secondary rounded-xl p-4 mb-6">
+          <motion.div layout className="bg-tg-secondary rounded-xl p-4 mb-6" transition={{ layout: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } }}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">{t('posts')}</h3>
               <button
@@ -295,7 +296,7 @@ export function CreatorSection() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
+          </motion.div>
         </StaggerItem>
 
         <StaggerItem>

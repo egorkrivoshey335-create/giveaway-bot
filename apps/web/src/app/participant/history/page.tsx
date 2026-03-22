@@ -144,7 +144,8 @@ export default function ParticipationHistoryPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+              layout
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
             >
               {[1, 2, 3, 4, 5].map((i) => (
                 <div key={i} className="bg-tg-secondary rounded-xl p-4 animate-pulse">
@@ -160,7 +161,8 @@ export default function ParticipationHistoryPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+              layout
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
             >
               <span className="text-5xl block mb-3">🎫</span>
               <p className="font-semibold mb-1">Здесь пусто</p>
@@ -178,7 +180,8 @@ export default function ParticipationHistoryPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+              layout
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
             >
               <div className="space-y-3">
                 {participations.map((p) => {
