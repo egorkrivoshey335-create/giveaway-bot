@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   getGiveawaysList,
   duplicateGiveaway,
@@ -469,6 +470,15 @@ export default function CreatorDashboardPage() {
   return (
     <main className="min-h-screen p-4">
       <div className="max-w-4xl mx-auto">
+        <motion.button
+          onClick={() => router.back()}
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex items-center gap-1 text-tg-link text-sm mb-4"
+        >
+          ← Назад
+        </motion.button>
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">{t('title')}</h1>
@@ -526,7 +536,7 @@ export default function CreatorDashboardPage() {
             <button
               key={f.key}
               onClick={() => setStatusFilter(f.key)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 ${
                 statusFilter === f.key
                   ? 'bg-tg-button text-tg-button-text'
                   : 'bg-tg-secondary text-tg-text hover:bg-tg-secondary/80'
@@ -584,57 +594,67 @@ export default function CreatorDashboardPage() {
         </div>
 
         {/* Список розыгрышей */}
-        {giveaways.length > 0 ? (
-          <>
-            <div className="grid gap-4 md:grid-cols-2">
-              {giveaways.map((g) => (
-                <GiveawayCard
-                  key={g.id}
-                  giveaway={g}
-                  onDuplicate={handleDuplicate}
-                  onDelete={handleDelete}
-                  onOpenDetails={handleOpenDetails}
-                  onCopyLink={handleCopyLink}
-                  onEdit={handleEdit}
-                />
-              ))}
-            </div>
-            {hasMore && (
-              <button
-                onClick={() => loadGiveaways(false)}
-                disabled={loadingMore}
-                className="w-full mt-4 py-3 bg-tg-secondary rounded-xl text-sm text-tg-hint hover:text-tg-text transition-colors disabled:opacity-50"
-              >
-                {loadingMore ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="animate-spin w-4 h-4 border-2 border-tg-button border-t-transparent rounded-full" />
-                    {tCommon('loading')}
-                  </span>
-                ) : (
-                  tCommon('loadMore')
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={statusFilter}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            {giveaways.length > 0 ? (
+              <>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {giveaways.map((g) => (
+                    <GiveawayCard
+                      key={g.id}
+                      giveaway={g}
+                      onDuplicate={handleDuplicate}
+                      onDelete={handleDelete}
+                      onOpenDetails={handleOpenDetails}
+                      onCopyLink={handleCopyLink}
+                      onEdit={handleEdit}
+                    />
+                  ))}
+                </div>
+                {hasMore && (
+                  <button
+                    onClick={() => loadGiveaways(false)}
+                    disabled={loadingMore}
+                    className="w-full mt-4 py-3 bg-tg-secondary rounded-xl text-sm text-tg-hint hover:text-tg-text transition-colors disabled:opacity-50"
+                  >
+                    {loadingMore ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="animate-spin w-4 h-4 border-2 border-tg-button border-t-transparent rounded-full" />
+                        {tCommon('loading')}
+                      </span>
+                    ) : (
+                      tCommon('loadMore')
+                    )}
+                  </button>
                 )}
-              </button>
+              </>
+            ) : (
+              <div className="text-center py-12 bg-tg-secondary rounded-xl">
+                <div className="flex justify-center mb-4">
+                  <AppIcon name="icon-giveaway" variant="brand" size={64} />
+                </div>
+                <h2 className="text-xl font-semibold mb-2">
+                  {statusFilter === 'all' ? t('empty.title') : t('empty.titleFiltered')}
+                </h2>
+                <p className="text-tg-hint mb-6">
+                  {t('empty.subtitle')}
+                </p>
+                <button
+                  onClick={() => router.push('/creator/giveaway/new')}
+                  className="bg-tg-button text-tg-button-text rounded-lg px-6 py-3 font-medium"
+                >
+                  {t('createGiveaway')}
+                </button>
+              </div>
             )}
-          </>
-        ) : (
-          <div className="text-center py-12 bg-tg-secondary rounded-xl">
-            <div className="flex justify-center mb-4">
-              <AppIcon name="icon-giveaway" variant="brand" size={64} />
-            </div>
-            <h2 className="text-xl font-semibold mb-2">
-              {statusFilter === 'all' ? t('empty.title') : t('empty.titleFiltered')}
-            </h2>
-            <p className="text-tg-hint mb-6">
-              {t('empty.subtitle')}
-            </p>
-            <button
-              onClick={() => router.push('/creator/giveaway/new')}
-              className="bg-tg-button text-tg-button-text rounded-lg px-6 py-3 font-medium"
-            >
-              {t('createGiveaway')}
-            </button>
-          </div>
-        )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </main>
   );

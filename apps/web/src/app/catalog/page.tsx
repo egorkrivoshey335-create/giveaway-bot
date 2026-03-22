@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { getCatalog, CatalogGiveaway } from '@/lib/api';
 import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
 import { AppIcon } from '@/components/AppIcon';
+import { AnimatePresence, motion } from 'framer-motion';
 
 // Тип для функции перевода (упрощённый для передачи как пропс)
 type TranslateFunc = (key: string, values?: Record<string, string | number | Date>) => string;
@@ -219,7 +220,7 @@ function CatalogFilters({
         <button
           key={o.key}
           onClick={() => onSortChange(o.key)}
-          className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+          className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
             sortBy === o.key
               ? 'bg-tg-button text-tg-button-text'
               : 'bg-tg-secondary text-tg-hint'
@@ -327,113 +328,146 @@ export default function CatalogPage() {
         </div>
       </header>
 
-      {/* Загрузка */}
-      {loading ? (
-        <div className="max-w-xl mx-auto p-4">
-          <div className="text-center py-12">
-            <div className="animate-spin w-8 h-8 border-2 border-tg-button border-t-transparent rounded-full mx-auto mb-3" />
-            <p className="text-tg-hint">{tCommon('loading')}</p>
-          </div>
-        </div>
-      ) : error ? (
-        <div className="max-w-xl mx-auto p-4">
-          <div className="text-center py-12 bg-tg-secondary rounded-xl">
-            <div className="text-4xl mb-4">❌</div>
-            <p className="text-tg-hint mb-4">{error}</p>
-            <button
-              onClick={() => loadCatalog()}
-              className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2"
-            >
-              {tCommon('tryAgain')}
-            </button>
-          </div>
-        </div>
-      ) : giveaways.length === 0 ? (
-        <div className="max-w-xl mx-auto p-4">
-          <div className="text-center py-12 bg-tg-secondary rounded-xl">
-            <div className="text-6xl mb-4">🎁</div>
-            <h2 className="text-xl font-semibold mb-2">{t('empty')}</h2>
-            <p className="text-tg-hint mb-6">{t('emptySubtitle')}</p>
-            
-            {/* Кнопка подписки для тестирования оплаты */}
-            {!hasAccess && (
-              <div className="border-t border-tg-bg pt-6 mt-6">
-                <p className="text-sm text-tg-hint mb-4">
-                  {t('getAccessEarly')}
-                </p>
-                <button
-                  onClick={() => setShowModal(true)}
-                  className="bg-tg-button text-tg-button-text rounded-xl py-3 px-6 font-medium"
-                >
-                  {t('paywall.unlock')} {price} ₽
-                </button>
-              </div>
-            )}
-            
-            {hasAccess && (
-              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 mt-4">
-                <p className="text-sm text-green-600">{t('hasAccess')}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      ) : hasAccess ? (
-        /* С подпиской — полный доступ */
-        <div className="max-w-xl mx-auto p-4">
-          <p className="text-tg-hint text-sm mb-4">
-            {t('subtitle')}
-          </p>
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div
+            key={`${sortBy}-loading`}
+            className="max-w-xl mx-auto p-4"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            <div className="text-center py-12">
+              <div className="animate-spin w-8 h-8 border-2 border-tg-button border-t-transparent rounded-full mx-auto mb-3" />
+              <p className="text-tg-hint">{tCommon('loading')}</p>
+            </div>
+          </motion.div>
+        ) : error ? (
+          <motion.div
+            key="error"
+            className="max-w-xl mx-auto p-4"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            <div className="text-center py-12 bg-tg-secondary rounded-xl">
+              <div className="text-4xl mb-4">❌</div>
+              <p className="text-tg-hint mb-4">{error}</p>
+              <button
+                onClick={() => loadCatalog()}
+                className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2"
+              >
+                {tCommon('tryAgain')}
+              </button>
+            </div>
+          </motion.div>
+        ) : giveaways.length === 0 ? (
+          <motion.div
+            key={`${sortBy}-empty`}
+            className="max-w-xl mx-auto p-4"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            <div className="text-center py-12 bg-tg-secondary rounded-xl">
+              <div className="text-6xl mb-4">🎁</div>
+              <h2 className="text-xl font-semibold mb-2">{t('empty')}</h2>
+              <p className="text-tg-hint mb-6">{t('emptySubtitle')}</p>
 
-          {/* Список розыгрышей — кликабельные */}
-          <div className="grid gap-4">
-            {giveaways.map((g) => (
-              <CatalogCardWithAccess
-                key={g.id}
-                giveaway={g}
-                onClick={() => router.push(`/join/${g.id}`)}
-                t={t}
-              />
-            ))}
-          </div>
+              {/* Кнопка подписки для тестирования оплаты */}
+              {!hasAccess && (
+                <div className="border-t border-tg-bg pt-6 mt-6">
+                  <p className="text-sm text-tg-hint mb-4">
+                    {t('getAccessEarly')}
+                  </p>
+                  <button
+                    onClick={() => setShowModal(true)}
+                    className="bg-tg-button text-tg-button-text rounded-xl py-3 px-6 font-medium"
+                  >
+                    {t('paywall.unlock')} {price} ₽
+                  </button>
+                </div>
+              )}
 
-          {/* Загрузить ещё */}
-          {hasMore && (
-            <button
-              onClick={handleLoadMore}
-              disabled={loadingMore}
-              className="w-full mt-4 bg-tg-secondary text-tg-text rounded-xl py-3 px-4 font-medium hover:bg-tg-secondary/80 transition-colors"
-            >
-              {loadingMore ? tCommon('loading') : t('loadMore')}
-            </button>
-          )}
-        </div>
-      ) : (
-
-        /* Без подписки — всё заблокировано overlay'ем */
-        <div className="relative flex-1">
-          {/* Контент за overlay — виден, но не кликабелен */}
-          <div className="max-w-xl mx-auto p-4 pointer-events-none">
+              {hasAccess && (
+                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 mt-4">
+                  <p className="text-sm text-green-600">{t('hasAccess')}</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        ) : hasAccess ? (
+          <motion.div
+            key={`${sortBy}-list`}
+            className="max-w-xl mx-auto p-4"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
             <p className="text-tg-hint text-sm mb-4">
               {t('subtitle')}
             </p>
 
-            {/* Показываем только превью карточек */}
+            {/* Список розыгрышей — кликабельные */}
             <div className="grid gap-4">
-              {giveaways.slice(0, previewCount).map((g) => (
-                <CatalogCard key={g.id} giveaway={g} t={t} />
+              {giveaways.map((g) => (
+                <CatalogCardWithAccess
+                  key={g.id}
+                  giveaway={g}
+                  onClick={() => router.push(`/join/${g.id}`)}
+                  t={t}
+                />
               ))}
             </div>
-          </div>
 
-          {/* Полноэкранный paywall overlay */}
-          <PaywallFullOverlay
-            total={total}
-            price={price}
-            onShowModal={() => setShowModal(true)}
-            t={t}
-          />
-        </div>
-      )}
+            {/* Загрузить ещё */}
+            {hasMore && (
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="w-full mt-4 bg-tg-secondary text-tg-text rounded-xl py-3 px-4 font-medium hover:bg-tg-secondary/80 transition-colors"
+              >
+                {loadingMore ? tCommon('loading') : t('loadMore')}
+              </button>
+            )}
+          </motion.div>
+        ) : (
+          <motion.div
+            key={`${sortBy}-paywall`}
+            className="relative flex-1"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            {/* Контент за overlay — виден, но не кликабелен */}
+            <div className="max-w-xl mx-auto p-4 pointer-events-none">
+              <p className="text-tg-hint text-sm mb-4">
+                {t('subtitle')}
+              </p>
+
+              {/* Показываем только превью карточек */}
+              <div className="grid gap-4">
+                {giveaways.slice(0, previewCount).map((g) => (
+                  <CatalogCard key={g.id} giveaway={g} t={t} />
+                ))}
+              </div>
+            </div>
+
+            {/* Полноэкранный paywall overlay */}
+            <PaywallFullOverlay
+              total={total}
+              price={price}
+              onShowModal={() => setShowModal(true)}
+              t={t}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* SubscriptionBottomSheet */}
       <SubscriptionBottomSheet

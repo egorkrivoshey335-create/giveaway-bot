@@ -70,9 +70,29 @@ export function FullscreenInit() {
         root.classList.remove('dark');
       }
       
-      // Все цвета берём из CSS (globals.css), Telegram theme params игнорируем
-      // чтобы сохранить фирменный розовый стиль в обоих темах
-      
+      // Принудительно задаём брендовые цвета, перебивая любой кэш Telegram
+      if (isDark) {
+        root.style.setProperty('--tg-theme-bg-color', '#1a1216');
+        root.style.setProperty('--tg-theme-text-color', '#f5e6e9');
+        root.style.setProperty('--tg-theme-hint-color', '#9e7a82');
+        root.style.setProperty('--tg-theme-link-color', '#f2b6b6');
+        root.style.setProperty('--tg-theme-button-color', '#e89999');
+        root.style.setProperty('--tg-theme-button-text-color', '#1a1216');
+        root.style.setProperty('--tg-theme-secondary-bg-color', '#241a1e');
+        root.style.setProperty('--tg-theme-header-bg-color', '#2a1d21');
+        root.style.setProperty('--tg-theme-section-bg-color', '#201619');
+      } else {
+        root.style.setProperty('--tg-theme-bg-color', '#ffffff');
+        root.style.setProperty('--tg-theme-text-color', '#000000');
+        root.style.setProperty('--tg-theme-hint-color', '#999999');
+        root.style.setProperty('--tg-theme-link-color', '#f2b6b6');
+        root.style.setProperty('--tg-theme-button-color', '#f2b6b6');
+        root.style.setProperty('--tg-theme-button-text-color', '#ffffff');
+        root.style.setProperty('--tg-theme-secondary-bg-color', '#f7f7f7');
+        root.style.setProperty('--tg-theme-header-bg-color', '#f2b6b6');
+        root.style.setProperty('--tg-theme-section-bg-color', '#ffffff');
+      }
+
       const headerColor = isDark ? '#2a1d21' : '#f2b6b6';
       const bgColor = isDark ? '#1a1216' : '#ffffff';
       

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -14,6 +15,7 @@ import {
   Channel,
   PostTemplate,
 } from '@/lib/api';
+import { Stagger, StaggerItem } from '@/components/FadeIn';
 
 // Undo state для постов
 interface UndoState {
@@ -134,6 +136,13 @@ export function CreatorSection() {
     }
   };
 
+  const contentMotion = {
+    initial: { opacity: 0, y: 8 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -8 },
+    transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] as const },
+  };
+
   return (
     <div>
       {/* Заголовок */}
@@ -142,170 +151,188 @@ export function CreatorSection() {
         <p className="text-tg-hint text-sm">{t('subtitle')}</p>
       </div>
 
-      {/* Кнопка создания */}
-      <button
-        onClick={() => router.push('/creator/giveaway/new')}
-        className="w-full bg-tg-button text-tg-button-text rounded-xl py-3 px-4 font-medium mb-6 hover:opacity-90 transition-opacity"
-      >
-        {t('createButton')}
-      </button>
-
-      {/* Блок "Мои каналы" */}
-      <div className="bg-tg-secondary rounded-xl p-4 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">{t('channels')}</h3>
-          <button 
-            onClick={loadChannels} 
-            className="text-tg-button text-sm" 
-            disabled={channelsLoading}
+      <Stagger>
+        <StaggerItem>
+          <button
+            onClick={() => router.push('/creator/giveaway/new')}
+            className="w-full bg-tg-button text-tg-button-text rounded-xl py-3 px-4 font-medium mb-6 hover:opacity-90 transition-opacity"
           >
-            {channelsLoading ? '...' : '🔄'}
+            {t('createButton')}
           </button>
-        </div>
+        </StaggerItem>
 
-        {channelsLoading ? (
-          <div className="flex items-center justify-center py-4">
-            <div className="animate-spin w-5 h-5 border-2 border-tg-button border-t-transparent rounded-full mr-2" />
-            <span className="text-tg-hint text-sm">{tCommon('loading')}</span>
-          </div>
-        ) : channels.length === 0 ? (
-          <div className="text-center py-4">
-            <p className="text-tg-hint text-sm mb-3">{t('noChannels')}</p>
-            <p className="text-tg-hint text-xs">{tChannels('addDescription')}</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {channels.map((channel) => (
-              <div key={channel.id} className="bg-tg-bg rounded-lg p-3 flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{channel.type === 'CHANNEL' ? '📢' : '👥'}</span>
-                    <span className="font-medium truncate">{channel.title}</span>
-                  </div>
-                  {channel.username && <p className="text-sm text-tg-hint mt-0.5">@{channel.username}</p>}
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    <span className={`text-xs px-2 py-0.5 rounded ${channel.botIsAdmin ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                      {channel.botIsAdmin ? `✓ ${tChannels('botAdmin')}` : `✗ ${tChannels('botAdmin')}`}
-                    </span>
-                    <span className={`text-xs px-2 py-0.5 rounded ${channel.creatorIsAdmin ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                      {channel.creatorIsAdmin ? `✓ ${tChannels('youAdmin')}` : `✗ ${tChannels('youAdmin')}`}
-                    </span>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => handleDeleteChannel(channel.id)} 
-                  className="text-red-500 text-sm ml-2 p-1" 
-                  title={tCommon('delete')}
+        <StaggerItem>
+          <div className="bg-tg-secondary rounded-xl p-4 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">{t('channels')}</h3>
+              <button
+                onClick={loadChannels}
+                className="text-tg-button text-sm"
+                disabled={channelsLoading}
+              >
+                {channelsLoading ? '...' : '🔄'}
+              </button>
+            </div>
+
+            <AnimatePresence mode="wait">
+              {channelsLoading ? (
+                <motion.div
+                  key="channels-loading"
+                  {...contentMotion}
+                  className="flex items-center justify-center py-4"
                 >
-                  🗑️
+                  <div className="animate-spin w-5 h-5 border-2 border-tg-button border-t-transparent rounded-full mr-2" />
+                  <span className="text-tg-hint text-sm">{tCommon('loading')}</span>
+                </motion.div>
+              ) : channels.length === 0 ? (
+                <motion.div key="channels-empty" {...contentMotion} className="text-center py-4">
+                  <p className="text-tg-hint text-sm mb-3">{t('noChannels')}</p>
+                  <p className="text-tg-hint text-xs">{tChannels('addDescription')}</p>
+                </motion.div>
+              ) : (
+                <motion.div key="channels-list" {...contentMotion} className="space-y-3">
+                  {channels.map((channel) => (
+                    <div key={channel.id} className="bg-tg-bg rounded-lg p-3 flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{channel.type === 'CHANNEL' ? '📢' : '👥'}</span>
+                          <span className="font-medium truncate">{channel.title}</span>
+                        </div>
+                        {channel.username && <p className="text-sm text-tg-hint mt-0.5">@{channel.username}</p>}
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <span className={`text-xs px-2 py-0.5 rounded ${channel.botIsAdmin ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                            {channel.botIsAdmin ? `✓ ${tChannels('botAdmin')}` : `✗ ${tChannels('botAdmin')}`}
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded ${channel.creatorIsAdmin ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                            {channel.creatorIsAdmin ? `✓ ${tChannels('youAdmin')}` : `✗ ${tChannels('youAdmin')}`}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteChannel(channel.id)}
+                        className="text-red-500 text-sm ml-2 p-1"
+                        title={tCommon('delete')}
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </StaggerItem>
+
+        <StaggerItem>
+          <div className="bg-tg-secondary rounded-xl p-4 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">{t('posts')}</h3>
+              <button
+                onClick={loadPostTemplates}
+                className="text-tg-button text-sm"
+                disabled={postsLoading}
+              >
+                {postsLoading ? '...' : '🔄'}
+              </button>
+            </div>
+
+            {undoState && Date.now() < undoState.undoUntil && (
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-4 flex items-center justify-between">
+                <span className="text-sm text-yellow-600">{t('postDeleted')}</span>
+                <button onClick={handleUndoDelete} className="text-sm text-tg-button font-medium">
+                  {t('undo')}
                 </button>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            )}
 
-      {/* Блок "Посты" */}
-      <div className="bg-tg-secondary rounded-xl p-4 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">{t('posts')}</h3>
-          <button 
-            onClick={loadPostTemplates} 
-            className="text-tg-button text-sm" 
-            disabled={postsLoading}
-          >
-            {postsLoading ? '...' : '🔄'}
-          </button>
-        </div>
-
-        {/* Undo Banner */}
-        {undoState && Date.now() < undoState.undoUntil && (
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-4 flex items-center justify-between">
-            <span className="text-sm text-yellow-600">{t('postDeleted')}</span>
-            <button onClick={handleUndoDelete} className="text-sm text-tg-button font-medium">
-              {t('undo')}
-            </button>
-          </div>
-        )}
-
-        {postsLoading ? (
-          <div className="flex items-center justify-center py-4">
-            <div className="animate-spin w-5 h-5 border-2 border-tg-button border-t-transparent rounded-full mr-2" />
-            <span className="text-tg-hint text-sm">{tCommon('loading')}</span>
-          </div>
-        ) : postTemplates.length === 0 ? (
-          <div className="text-center py-4">
-            <p className="text-tg-hint text-sm mb-3">{t('noPosts')}</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {postTemplates.map((post) => (
-              <div key={post.id} className="bg-tg-bg rounded-lg p-3 flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">
-                      {post.mediaType === 'NONE' ? '📄' : post.mediaType === 'PHOTO' ? '🖼️' : '🎬'}
-                    </span>
-                    <span className={`text-xs px-2 py-0.5 rounded ${
-                      post.mediaType === 'NONE' 
-                        ? 'bg-gray-500/10 text-gray-500' 
-                        : post.mediaType === 'PHOTO' 
-                          ? 'bg-blue-500/10 text-blue-500' 
-                          : 'bg-purple-500/10 text-purple-500'
-                    }`}>
-                      {post.mediaType === 'NONE' ? t('mediaType.text') : post.mediaType === 'PHOTO' ? t('mediaType.photo') : t('mediaType.video')}
-                    </span>
-                  </div>
-                  <p className="text-sm text-tg-text line-clamp-2">{post.text}</p>
-                  <p className="text-xs text-tg-hint mt-1">
-                    {new Date(post.createdAt).toLocaleString()}
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleDeletePost(post.id)}
-                  className="text-red-500 text-sm ml-2 p-1"
-                  title={tCommon('delete')}
+            <AnimatePresence mode="wait">
+              {postsLoading ? (
+                <motion.div
+                  key="posts-loading"
+                  {...contentMotion}
+                  className="flex items-center justify-center py-4"
                 >
-                  🗑️
-                </button>
-              </div>
-            ))}
+                  <div className="animate-spin w-5 h-5 border-2 border-tg-button border-t-transparent rounded-full mr-2" />
+                  <span className="text-tg-hint text-sm">{tCommon('loading')}</span>
+                </motion.div>
+              ) : postTemplates.length === 0 ? (
+                <motion.div key="posts-empty" {...contentMotion} className="text-center py-4">
+                  <p className="text-tg-hint text-sm mb-3">{t('noPosts')}</p>
+                </motion.div>
+              ) : (
+                <motion.div key="posts-list" {...contentMotion} className="space-y-3">
+                  {postTemplates.map((post) => (
+                    <div key={post.id} className="bg-tg-bg rounded-lg p-3 flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-lg">
+                            {post.mediaType === 'NONE' ? '📄' : post.mediaType === 'PHOTO' ? '🖼️' : '🎬'}
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded ${
+                            post.mediaType === 'NONE'
+                              ? 'bg-gray-500/10 text-gray-500'
+                              : post.mediaType === 'PHOTO'
+                                ? 'bg-blue-500/10 text-blue-500'
+                                : 'bg-purple-500/10 text-purple-500'
+                          }`}>
+                            {post.mediaType === 'NONE' ? t('mediaType.text') : post.mediaType === 'PHOTO' ? t('mediaType.photo') : t('mediaType.video')}
+                          </span>
+                        </div>
+                        <p className="text-sm text-tg-text line-clamp-2">{post.text}</p>
+                        <p className="text-xs text-tg-hint mt-1">
+                          {new Date(post.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleDeletePost(post.id)}
+                        className="text-red-500 text-sm ml-2 p-1"
+                        title={tCommon('delete')}
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-        )}
-      </div>
+        </StaggerItem>
 
-      {/* Статистика */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="bg-tg-secondary rounded-xl p-4 text-center">
-          {countsLoading ? (
-            <div className="animate-spin w-5 h-5 border-2 border-tg-button border-t-transparent rounded-full mx-auto" />
-          ) : (
-            <>
-              <div className="text-2xl font-bold text-tg-text">{counts.all}</div>
-              <div className="text-sm text-tg-hint">{t('totalGiveaways')}</div>
-            </>
-          )}
-        </div>
-        <div className="bg-tg-secondary rounded-xl p-4 text-center">
-          {countsLoading ? (
-            <div className="animate-spin w-5 h-5 border-2 border-tg-button border-t-transparent rounded-full mx-auto" />
-          ) : (
-            <>
-              <div className="text-2xl font-bold text-green-500">{counts.active}</div>
-              <div className="text-sm text-tg-hint">{t('activeGiveaways')}</div>
-            </>
-          )}
-        </div>
-      </div>
+        <StaggerItem>
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="bg-tg-secondary rounded-xl p-4 text-center">
+              {countsLoading ? (
+                <div className="animate-spin w-5 h-5 border-2 border-tg-button border-t-transparent rounded-full mx-auto" />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-tg-text">{counts.all}</div>
+                  <div className="text-sm text-tg-hint">{t('totalGiveaways')}</div>
+                </>
+              )}
+            </div>
+            <div className="bg-tg-secondary rounded-xl p-4 text-center">
+              {countsLoading ? (
+                <div className="animate-spin w-5 h-5 border-2 border-tg-button border-t-transparent rounded-full mx-auto" />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-green-500">{counts.active}</div>
+                  <div className="text-sm text-tg-hint">{t('activeGiveaways')}</div>
+                </>
+              )}
+            </div>
+          </div>
+        </StaggerItem>
 
-      {/* Ссылка на Dashboard */}
-      <button
-        onClick={() => router.push('/creator')}
-        className="w-full bg-tg-secondary text-tg-text rounded-xl py-3 px-4 font-medium hover:bg-tg-secondary/80 transition-colors flex items-center justify-center gap-2"
-      >
-        <span>{t('openDashboard')}</span>
-        <span className="text-tg-hint">→</span>
-      </button>
+        <StaggerItem>
+          <button
+            onClick={() => router.push('/creator')}
+            className="w-full bg-tg-secondary text-tg-text rounded-xl py-3 px-4 font-medium hover:bg-tg-secondary/80 transition-colors flex items-center justify-center gap-2"
+          >
+            <span>{t('openDashboard')}</span>
+            <span className="text-tg-hint">→</span>
+          </button>
+        </StaggerItem>
+      </Stagger>
     </div>
   );
 }

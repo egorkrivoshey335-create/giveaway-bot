@@ -30,6 +30,7 @@ import { ShareBottomSheet } from '@/components/ShareBottomSheet';
 import { StatsBottomSheet } from '@/components/StatsBottomSheet';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
 import { AppIcon } from '@/components/AppIcon';
+import { AnimatePresence, motion } from 'framer-motion';
 
 // Берём username бота из env
 const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
@@ -571,7 +572,7 @@ export default function GiveawayDetailsPage() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-300 flex items-center gap-1.5 ${
                 activeTab === tab.key
                   ? 'bg-tg-button text-tg-button-text'
                   : 'bg-tg-secondary text-tg-text'
@@ -584,9 +585,17 @@ export default function GiveawayDetailsPage() {
           ))}
         </div>
 
+        <AnimatePresence mode="wait">
         {/* Tab: Обзор */}
         {activeTab === 'overview' && (
-          <div className="space-y-6">
+          <motion.div
+            key="overview"
+            className="space-y-6"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
             {/* Статистика */}
             {stats && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -929,12 +938,19 @@ export default function GiveawayDetailsPage() {
                 </button>
               )}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Tab: Участники */}
         {activeTab === 'participants' && (
-          <div className="space-y-4">
+          <motion.div
+            key="participants"
+            className="space-y-4"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
             {/* Поиск */}
             <input
               type="text"
@@ -1021,12 +1037,19 @@ export default function GiveawayDetailsPage() {
                 </p>
               </div>
             )}
-          </div>
+          </motion.div>
         )}
 
         {/* Tab: Победители */}
         {activeTab === 'winners' && (
-          <div className="space-y-4">
+          <motion.div
+            key="winners"
+            className="space-y-4"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
             {giveaway.winners.length > 0 ? (
               <div className="space-y-2">
                 {giveaway.winners.map((w) => (
@@ -1056,12 +1079,19 @@ export default function GiveawayDetailsPage() {
                 <p className="text-tg-hint">{t('winnersTab.notDetermined')}</p>
               </div>
             )}
-          </div>
+          </motion.div>
         )}
 
         {/* Tab: Сторис */}
         {activeTab === 'stories' && (
-          <div className="text-center py-12 bg-tg-secondary rounded-xl">
+          <motion.div
+            key="stories"
+            className="text-center py-12 bg-tg-secondary rounded-xl"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
             <div className="text-4xl mb-4">📺</div>
             <p className="text-tg-hint mb-4">{t('storiesTab.description')}</p>
             <button
@@ -1070,13 +1100,19 @@ export default function GiveawayDetailsPage() {
             >
               {t('storiesTab.openModeration')}
             </button>
-          </div>
+          </motion.div>
         )}
-      </div>
 
-      {/* Tab: Liveness Check (10.19) */}
-      {activeTab === 'liveness' && (
-        <div className="space-y-4">
+        {/* Tab: Liveness Check (10.19) */}
+        {activeTab === 'liveness' && (
+          <motion.div
+            key="liveness"
+            className="space-y-4"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
           {/* Статистика */}
           {livenessStats && (
             <div className="grid grid-cols-4 gap-3">
@@ -1089,7 +1125,7 @@ export default function GiveawayDetailsPage() {
                 <button
                   key={stat.filter}
                   onClick={() => stat.filter && setLivenessFilter(stat.filter)}
-                  className={`bg-tg-secondary rounded-xl p-3 text-center transition-all ${
+                  className={`bg-tg-secondary rounded-xl p-3 text-center transition-all duration-300 ${
                     livenessFilter === stat.filter ? 'ring-2 ring-tg-button' : ''
                   }`}
                 >
@@ -1101,17 +1137,25 @@ export default function GiveawayDetailsPage() {
           )}
 
           {/* Список проверок */}
-          {livenessLoading ? (
-            <div className="text-center py-8 text-tg-hint">⏳ Загружаем...</div>
-          ) : livenessChecks.length === 0 ? (
-            <div className="text-center py-12 bg-tg-secondary rounded-xl">
-              <div className="text-4xl mb-3">🔍</div>
-              <p className="text-tg-hint text-sm">
-                {livenessFilter === 'PENDING' ? 'Нет ожидающих проверок' : 'Нет записей'}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={livenessFilter === '' ? 'NOT_SUBMITTED' : livenessFilter}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
+              {livenessLoading ? (
+                <div className="text-center py-8 text-tg-hint">⏳ Загружаем...</div>
+              ) : livenessChecks.length === 0 ? (
+                <div className="text-center py-12 bg-tg-secondary rounded-xl">
+                  <div className="text-4xl mb-3">🔍</div>
+                  <p className="text-tg-hint text-sm">
+                    {livenessFilter === 'PENDING' ? 'Нет ожидающих проверок' : 'Нет записей'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
               {livenessChecks.map((check) => (
                 <div key={check.participationId} className="bg-tg-secondary rounded-xl p-4">
                   <div className="flex items-start gap-4">
@@ -1202,10 +1246,14 @@ export default function GiveawayDetailsPage() {
                   </div>
                 </div>
               ))}
-            </div>
-          )}
-        </div>
-      )}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+          </motion.div>
+        )}
+        </AnimatePresence>
+      </div>
 
       {/* Модалка: Запустить сейчас */}
       {showStartModal && (

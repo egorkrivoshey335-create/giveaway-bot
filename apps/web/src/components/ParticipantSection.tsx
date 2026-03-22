@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   getMyParticipations,
   MyParticipation,
@@ -213,7 +214,7 @@ export function ParticipantSection() {
           <button
             key={key}
             onClick={() => setFilter(key)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
               filter === key
                 ? 'bg-tg-button text-tg-button-text'
                 : 'bg-tg-secondary text-tg-text hover:bg-tg-secondary/80'
@@ -229,49 +230,59 @@ export function ParticipantSection() {
       </div>
 
       {/* Контент */}
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin w-8 h-8 border-2 border-tg-button border-t-transparent rounded-full mx-auto mb-3" />
-          <p className="text-tg-hint">{tCommon('loading')}</p>
-        </div>
-      ) : error ? (
-        <div className="text-center py-12 bg-tg-secondary rounded-xl">
-          <div className="text-4xl mb-4">❌</div>
-          <p className="text-tg-hint mb-4">{error}</p>
-          <button
-            onClick={() => loadParticipations(true)}
-            className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2"
-          >
-            {tCommon('tryAgain')}
-          </button>
-        </div>
-      ) : participations.length === 0 ? (
-        <EmptyState filter={filter} />
-      ) : (
-        <>
-          <div className="grid gap-4">
-            {participations.map((p) => (
-              <ParticipationCard key={p.id} participation={p} />
-            ))}
-          </div>
-          {hasMore && (
-            <button
-              onClick={() => loadParticipations(false)}
-              disabled={loadingMore}
-              className="w-full mt-4 py-3 bg-tg-secondary rounded-xl text-sm text-tg-hint hover:text-tg-text transition-colors disabled:opacity-50"
-            >
-              {loadingMore ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="animate-spin w-4 h-4 border-2 border-tg-button border-t-transparent rounded-full" />
-                  {tCommon('loading')}
-                </span>
-              ) : (
-                tCommon('loadMore')
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={filter}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+        >
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin w-8 h-8 border-2 border-tg-button border-t-transparent rounded-full mx-auto mb-3" />
+              <p className="text-tg-hint">{tCommon('loading')}</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12 bg-tg-secondary rounded-xl">
+              <div className="text-4xl mb-4">❌</div>
+              <p className="text-tg-hint mb-4">{error}</p>
+              <button
+                onClick={() => loadParticipations(true)}
+                className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2"
+              >
+                {tCommon('tryAgain')}
+              </button>
+            </div>
+          ) : participations.length === 0 ? (
+            <EmptyState filter={filter} />
+          ) : (
+            <>
+              <div className="grid gap-4">
+                {participations.map((p) => (
+                  <ParticipationCard key={p.id} participation={p} />
+                ))}
+              </div>
+              {hasMore && (
+                <button
+                  onClick={() => loadParticipations(false)}
+                  disabled={loadingMore}
+                  className="w-full mt-4 py-3 bg-tg-secondary rounded-xl text-sm text-tg-hint hover:text-tg-text transition-colors disabled:opacity-50"
+                >
+                  {loadingMore ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="animate-spin w-4 h-4 border-2 border-tg-button border-t-transparent rounded-full" />
+                      {tCommon('loading')}
+                    </span>
+                  ) : (
+                    tCommon('loadMore')
+                  )}
+                </button>
               )}
-            </button>
+            </>
           )}
-        </>
-      )}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

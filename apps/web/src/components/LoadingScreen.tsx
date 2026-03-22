@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 
-const MIN_DISPLAY_MS = 2500;
-const MAX_DISPLAY_MS = 5000;
+const MIN_DISPLAY_MS = 5000;
+const MAX_DISPLAY_MS = 7000;
 
 export function LoadingScreen() {
   const [isVisible, setIsVisible] = useState(true);

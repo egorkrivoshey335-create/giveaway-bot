@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   getDraft,
   createDraft,
@@ -536,9 +537,17 @@ export default function GiveawayWizardPage() {
 
         {/* Step Content */}
         <div className="bg-tg-secondary rounded-xl p-4 mb-6">
+          <AnimatePresence mode="wait">
           {/* Step 1: Type */}
           {currentStep === 'TYPE' && (
-            <div className="space-y-4">
+            <motion.div
+              key="TYPE"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="space-y-4"
+            >
               {/* Mascot */}
               <div className="flex justify-center mb-4">
                 <Mascot type="wizard-type" size={160} loop={true} autoplay={true} />
@@ -560,12 +569,19 @@ export default function GiveawayWizardPage() {
                 </button>
               ))}
               </div>
-            </div>
+            </motion.div>
           )}
 
           {/* Step 2: Basics */}
           {currentStep === 'BASICS' && (
-            <div className="space-y-4">
+            <motion.div
+              key="BASICS"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="space-y-4"
+            >
               {/* Mascot */}
               <div className="flex justify-center mb-4">
                 <Mascot type="wizard-settings" size={160} loop={true} autoplay={true} />
@@ -697,12 +713,18 @@ export default function GiveawayWizardPage() {
                   />
                 )}
               </div>
-            </div>
+            </motion.div>
           )}
 
           {/* Step 3: Subscriptions */}
           {currentStep === 'SUBSCRIPTIONS' && (
-            <div>
+            <motion.div
+              key="SUBSCRIPTIONS"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
               {/* Mascot */}
               <div className="flex justify-center mb-4">
                 <Mascot type="wizard-channels" size={160} loop={true} autoplay={true} />
@@ -777,12 +799,18 @@ export default function GiveawayWizardPage() {
                   })}
                 </div>
               )}
-            </div>
+            </motion.div>
           )}
 
           {/* Step 4: Publish Channels */}
           {currentStep === 'PUBLISH' && (
-            <div>
+            <motion.div
+              key="PUBLISH"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
               {/* Mascot */}
               <div className="flex justify-center mb-4">
                 <Mascot type="wizard-publish" size={160} loop={true} autoplay={true} />
@@ -841,12 +869,18 @@ export default function GiveawayWizardPage() {
                   )}
                 </div>
               )}
-            </div>
+            </motion.div>
           )}
 
           {/* Step 5: Results */}
           {currentStep === 'RESULTS' && (
-            <div>
+            <motion.div
+              key="RESULTS"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
               {/* Mascot */}
               <div className="flex justify-center mb-4">
                 <Mascot type="wizard-results" size={160} loop={true} autoplay={true} />
@@ -953,12 +987,19 @@ export default function GiveawayWizardPage() {
                   </button>
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {/* Шаг 6: Даты */}
           {currentStep === 'DATES' && (
-            <div className="space-y-4">
+            <motion.div
+              key="DATES"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="space-y-4"
+            >
               {/* Mascot */}
               <div className="flex justify-center mb-4">
                 <Mascot type="wizard-calendar" size={160} loop={true} autoplay={true} />
@@ -1029,12 +1070,19 @@ export default function GiveawayWizardPage() {
               <p className="text-xs text-tg-hint text-center">
                 ⏰ {t('dates.timezoneHint')}
               </p>
-            </div>
+            </motion.div>
           )}
 
           {/* Шаг 7: Победители */}
           {currentStep === 'WINNERS' && (
-            <div className="space-y-4">
+            <motion.div
+              key="WINNERS"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="space-y-4"
+            >
               {/* Mascot */}
               <div className="flex justify-center mb-4">
                 <Mascot type="wizard-winners" size={160} loop={true} autoplay={true} />
@@ -1146,12 +1194,19 @@ export default function GiveawayWizardPage() {
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
           )}
 
           {/* Шаг 8: Защита */}
           {currentStep === 'PROTECTION' && (
-            <div className="space-y-6">
+            <motion.div
+              key="PROTECTION"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="space-y-6"
+            >
               {/* Mascot */}
               <div className="flex justify-center mb-4">
                 <Mascot type="wizard-protection" size={160} loop={true} autoplay={true} />
@@ -1236,12 +1291,19 @@ export default function GiveawayWizardPage() {
                   💎 {t('protection.availableInPro')}
                 </p>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {/* Шаг 9: Дополнительные билеты */}
           {currentStep === 'EXTRAS' && (
-            <div className="space-y-6">
+            <motion.div
+              key="EXTRAS"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="space-y-6"
+            >
               {/* Mascot */}
               <div className="flex justify-center mb-4">
                 <Mascot type="wizard-invite" size={160} loop={true} autoplay={true} />
@@ -1436,12 +1498,19 @@ export default function GiveawayWizardPage() {
                   </p>
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {/* Шаг 10: Маскот розыгрыша */}
           {currentStep === 'MASCOT' && (
-            <div className="space-y-4">
+            <motion.div
+              key="MASCOT"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="space-y-4"
+            >
               {/* Mascot */}
               <div className="flex justify-center mb-4">
                 <Mascot type="wizard-mascot" size={160} loop={true} autoplay={true} />
@@ -1527,12 +1596,19 @@ export default function GiveawayWizardPage() {
                   </p>
                 </div>
               )}
-            </div>
+            </motion.div>
           )}
 
           {/* Шаг 11: Свои задания (только для CUSTOM) */}
           {currentStep === 'CUSTOM_TASKS' && payload.type === 'CUSTOM' && (
-            <div className="space-y-4">
+            <motion.div
+              key="CUSTOM_TASKS"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="space-y-4"
+            >
               {/* Mascot */}
               <div className="flex justify-center mb-4">
                 <Mascot type="wizard-tasks" size={160} loop={true} autoplay={true} />
@@ -1642,12 +1718,19 @@ export default function GiveawayWizardPage() {
                   💡 {t('customTasks.hint')}
                 </p>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {/* Шаг 12: Проверка */}
           {currentStep === 'REVIEW' && (
-            <div className="space-y-4">
+            <motion.div
+              key="REVIEW"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="space-y-4"
+            >
               {/* Mascot */}
               <div className="flex justify-center mb-4">
                 <Mascot type="wizard-review" size={160} loop={true} autoplay={true} />
@@ -1842,8 +1925,9 @@ export default function GiveawayWizardPage() {
                   </ul>
                 </div>
               )}
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
 
         {/* Navigation */}
