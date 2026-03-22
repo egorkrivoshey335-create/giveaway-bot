@@ -10,6 +10,7 @@ import {
   getMyResult,
   WinnerInfo,
 } from '@/lib/api';
+import { AppIcon } from '@/components/AppIcon';
 
 export default function GiveawayResultsPage() {
   const params = useParams();
@@ -127,7 +128,7 @@ export default function GiveawayResultsPage() {
     return (
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
-          <div className="text-6xl mb-4">❌</div>
+          <div className="text-6xl mb-4"><AppIcon name="icon-error" size={14} /></div>
           <h1 className="text-xl font-bold mb-2">{tCommon('error')}</h1>
           <p className="text-tg-hint mb-6">{error}</p>
           <button
@@ -170,7 +171,7 @@ export default function GiveawayResultsPage() {
       <div className="max-w-md mx-auto">
         {/* Заголовок */}
         <div className="text-center mb-6">
-          <div className="text-5xl mb-3">🏆</div>
+          <div className="text-5xl mb-3"><AppIcon name="icon-winner" size={14} /></div>
           <h1 className="text-xl font-bold">{title}</h1>
           <p className="text-tg-hint mt-1">{t('subtitle')}</p>
         </div>
@@ -205,7 +206,7 @@ export default function GiveawayResultsPage() {
                 {prizeDeliveryMethod && (
                   <div className="mt-4 p-3 bg-tg-bg rounded-lg border border-yellow-500/20 text-left">
                     <div className="flex items-start gap-2 mb-2">
-                      <span className="text-xl">🎁</span>
+                      <span className="text-xl"><AppIcon name="icon-giveaway" size={16} /></span>
                       <h3 className="font-semibold text-sm">{t('myResult.prizeInfo')}</h3>
                     </div>
                     
@@ -300,7 +301,7 @@ export default function GiveawayResultsPage() {
                   onClick={() => router.push('/catalog')}
                   className="mt-4 w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg py-2.5 text-sm font-medium"
                 >
-                  🎁 {t('myResult.moreCatalog')}
+                  <AppIcon name="icon-giveaway" size={16} /> {t('myResult.moreCatalog')}
                 </button>
               </div>
             )}
@@ -322,7 +323,7 @@ export default function GiveawayResultsPage() {
         {/* Список победителей */}
         <div className="bg-tg-secondary rounded-xl p-4 mb-6">
           <h2 className="font-semibold mb-4 flex items-center gap-2">
-            <span>🏆</span>
+            <span><AppIcon name="icon-winner" size={14} /></span>
             <span>{t('winners')}</span>
           </h2>
           
@@ -370,7 +371,7 @@ export default function GiveawayResultsPage() {
                   {/* Билеты */}
                   <div className="text-right">
                     <div className="text-sm text-tg-hint">
-                      🎫 {winner.ticketsUsed}
+                      <AppIcon name="icon-ticket" size={16} /> {winner.ticketsUsed}
                     </div>
                   </div>
                 </div>

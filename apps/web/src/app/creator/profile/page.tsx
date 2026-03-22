@@ -1,22 +1,22 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { getMyProfile, updateNotifications, UserProfile } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AppIcon } from '@/components/AppIcon';
 
-// Emoji для каждого бейджа
-const BADGE_EMOJI: Record<string, string> = {
+const BADGE_EMOJI: Record<string, React.ReactNode> = {
   newcomer: '🌱',
   activist: '🔥',
   veteran: '⚔️',
-  winner: '🏆',
+  winner: <AppIcon name="icon-winner" size={14} />,
   multi_winner: '🥇',
   champion: '👑',
   friend: '🤝',
-  patron: '💎',
+  patron: <AppIcon name="icon-diamond" size={14} />,
 };
 
 const BADGE_LABEL: Record<string, string> = {
@@ -181,9 +181,7 @@ export default function CreatorProfilePage() {
             onClick={() => router.back()}
             className="p-2 -ml-2 rounded-full hover:bg-tg-bg transition-colors"
           >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
+            <AppIcon name="icon-back" size={20} />
           </button>
           <h1 className="text-xl font-semibold">{t('title')}</h1>
           <div className="w-10" />
@@ -201,7 +199,7 @@ export default function CreatorProfilePage() {
             <div className="flex-1 min-w-0">
               <h2 className="text-xl font-semibold mb-1">
                 {p.firstName} {p.lastName}
-                {p.isPremium && <span className="ml-1 text-yellow-400">⭐</span>}
+                {p.isPremium && <span className="ml-1 text-yellow-400"><AppIcon name="icon-star" size={14} /></span>}
               </h2>
               {p.username && (
                 <p className="text-sm text-tg-hint mb-2">@{p.username}</p>
@@ -209,9 +207,9 @@ export default function CreatorProfilePage() {
               <div className="flex flex-wrap items-center gap-2 text-xs text-tg-hint">
                 <span>📅 {t('member', { days: memberDays })}</span>
                 <span className={`px-2 py-0.5 rounded-full font-medium ${subscriptionColor}`}>
-                  {p.subscriptionTier === 'FREE' && '🆓 FREE'}
-                  {p.subscriptionTier === 'PLUS' && '⭐ PLUS+'}
-                  {p.subscriptionTier === 'PRO' && '💎 PRO+'}
+                  {p.subscriptionTier === 'FREE' && 'FREE'}
+                  {p.subscriptionTier === 'PLUS' && <><AppIcon name="icon-star" size={14} /> PLUS+</>}
+                  {p.subscriptionTier === 'PRO' && <><AppIcon name="icon-diamond" size={14} /> PRO+</>}
                 </span>
               </div>
               {p.entitlementExpiresAt && (
@@ -227,7 +225,7 @@ export default function CreatorProfilePage() {
               href="/creator/subscription"
               className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg py-2 px-4 text-sm font-medium text-center"
             >
-              ⭐ {t('upgradePremium')}
+              <AppIcon name="icon-star" size={14} /> {t('upgradePremium')}
             </Link>
             <button
               onClick={handleToggleNotifications}
@@ -330,48 +328,40 @@ export default function CreatorProfilePage() {
               className="flex items-center justify-between p-3 bg-tg-bg rounded-lg hover:bg-tg-bg/80 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <span className="text-2xl">🎁</span>
+                <span className="text-2xl"><AppIcon name="icon-giveaway" size={16} /></span>
                 <span className="font-medium">{t('quickActions.newGiveaway')}</span>
               </div>
-              <svg className="w-5 h-5 text-tg-hint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              <AppIcon name="icon-back" size={16} className="rotate-180" />
             </Link>
             <Link
               href="/creator/channels"
               className="flex items-center justify-between p-3 bg-tg-bg rounded-lg hover:bg-tg-bg/80 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <span className="text-2xl">📣</span>
+                <span className="text-2xl"><AppIcon name="icon-channel" size={14} /></span>
                 <span className="font-medium">{t('quickActions.manageChannels')}</span>
               </div>
-              <svg className="w-5 h-5 text-tg-hint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              <AppIcon name="icon-back" size={16} className="rotate-180" />
             </Link>
             <Link
               href="/participant/history"
               className="flex items-center justify-between p-3 bg-tg-bg rounded-lg hover:bg-tg-bg/80 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <span className="text-2xl">📊</span>
+                <span className="text-2xl"><AppIcon name="icon-chart" size={14} /></span>
                 <span className="font-medium">{t('quickActions.history')}</span>
               </div>
-              <svg className="w-5 h-5 text-tg-hint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              <AppIcon name="icon-back" size={16} className="rotate-180" />
             </Link>
             <Link
               href="/creator/ban-list"
               className="flex items-center justify-between p-3 bg-tg-bg rounded-lg hover:bg-tg-bg/80 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <span className="text-2xl">🚫</span>
+                <span className="text-2xl"><AppIcon name="icon-cancel" size={14} /></span>
                 <span className="font-medium">Бан-лист</span>
               </div>
-              <svg className="w-5 h-5 text-tg-hint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              <AppIcon name="icon-back" size={16} className="rotate-180" />
             </Link>
           </div>
         </div>

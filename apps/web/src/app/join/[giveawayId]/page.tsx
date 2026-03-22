@@ -34,6 +34,7 @@ import {
   StoryRequestStatus,
   CustomTask,
 } from '@/lib/api';
+import { AppIcon } from '@/components/AppIcon';
 
 // Состояния экрана
 type ScreenState = 
@@ -616,7 +617,7 @@ export default function JoinGiveawayPage() {
     return (
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
-          <div className="text-6xl mb-4">🔐</div>
+          <div className="text-6xl mb-4"><AppIcon name="icon-lock" size={14} /></div>
           <h1 className="text-xl font-bold mb-2">{t('auth.title')}</h1>
           <p className="text-tg-hint mb-6">
             {t('auth.description')}
@@ -637,7 +638,7 @@ export default function JoinGiveawayPage() {
     return (
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
-          <div className="text-6xl mb-4">❌</div>
+          <div className="text-6xl mb-4"><AppIcon name="icon-error" size={14} /></div>
           <h1 className="text-xl font-bold mb-2">{t('error.title')}</h1>
           <p className="text-tg-hint mb-6">{error}</p>
           <button
@@ -754,7 +755,7 @@ export default function JoinGiveawayPage() {
             </div>
           )}
           
-          <div className="text-6xl mb-4">❌</div>
+          <div className="text-6xl mb-4"><AppIcon name="icon-error" size={14} /></div>
           <h1 className="text-xl font-bold mb-2">{t('cancelled.title')}</h1>
           <p className="text-tg-hint mb-6">
             {giveaway.title}
@@ -766,7 +767,7 @@ export default function JoinGiveawayPage() {
             onClick={() => router.push('/catalog')}
             className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg py-3 mb-3 font-medium"
           >
-            🎁 {t('cancelled.moreCatalog')}
+            <AppIcon name="icon-giveaway" size={16} /> {t('cancelled.moreCatalog')}
           </button>
           <button
             onClick={() => router.push('/')}
@@ -786,7 +787,7 @@ export default function JoinGiveawayPage() {
         <div className="max-w-md mx-auto">
           {/* Заголовок */}
           <div className="text-center mb-6">
-            <div className="text-5xl mb-3">🎁</div>
+            <div className="text-5xl mb-3"><AppIcon name="icon-giveaway" size={16} /></div>
             <h1 className="text-xl font-bold">{giveaway.title}</h1>
           </div>
 
@@ -816,7 +817,7 @@ export default function JoinGiveawayPage() {
           {/* Условия */}
           {giveaway.conditions.requiredSubscriptions.length > 0 && (
             <div className="bg-tg-secondary rounded-lg p-4 mb-4">
-              <h2 className="font-medium mb-3">📢 {t('info.conditions')}:</h2>
+              <h2 className="font-medium mb-3"><AppIcon name="icon-channel" size={14} /> {t('info.conditions')}:</h2>
               <div className="space-y-2">
                 {giveaway.conditions.requiredSubscriptions.map((channel) => (
                   <a
@@ -826,7 +827,7 @@ export default function JoinGiveawayPage() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 p-2 bg-tg-bg rounded-lg"
                   >
-                    <span className="text-lg">📣</span>
+                    <span className="text-lg"><AppIcon name="icon-channel" size={14} /></span>
                     <span className="flex-1">{channel.title}</span>
                     <span className="text-xs text-tg-hint">{channel.username}</span>
                   </a>
@@ -838,7 +839,7 @@ export default function JoinGiveawayPage() {
           {/* Описание */}
           {giveaway.postTemplate && (
             <div className="bg-tg-secondary rounded-lg p-4 mb-6">
-              <h2 className="font-medium mb-2">📝 {t('info.aboutGiveaway')}:</h2>
+              <h2 className="font-medium mb-2"><AppIcon name="icon-edit" size={14} /> {t('info.aboutGiveaway')}:</h2>
               <p className="text-sm text-tg-hint whitespace-pre-wrap line-clamp-5">
                 {giveaway.postTemplate.text}
               </p>
@@ -864,7 +865,7 @@ export default function JoinGiveawayPage() {
       <main className="min-h-screen p-4">
         <div className="max-w-md mx-auto">
           <div className="text-center mb-6">
-            <div className="text-5xl mb-3">📢</div>
+            <div className="text-5xl mb-3"><AppIcon name="icon-channel" size={14} /></div>
             <h1 className="text-xl font-bold">{t('checkSubscription.title')}</h1>
             <p className="text-tg-hint mt-2">{t('checkSubscription.description')}</p>
           </div>
@@ -878,7 +879,7 @@ export default function JoinGiveawayPage() {
                   channel.subscribed ? 'bg-green-500/10 border border-green-500/30' : 'bg-tg-secondary'
                 }`}
               >
-                <span className="text-2xl">{channel.subscribed ? '✅' : '📣'}</span>
+                <span className="text-2xl">{channel.subscribed ? <AppIcon name="icon-success" size={14} /> : <AppIcon name="icon-channel" size={14} />}</span>
                 <div className="flex-1">
                   <div className="font-medium">{channel.title}</div>
                   {channel.username && (
@@ -905,7 +906,7 @@ export default function JoinGiveawayPage() {
             disabled={checkingSubscription}
             className="w-full bg-tg-button text-tg-button-text rounded-lg py-4 font-medium disabled:opacity-50"
           >
-            {checkingSubscription ? `⏳ ${tCommon('loading')}` : `🔄 ${t('checkSubscription.checkButton')}`}
+            {checkingSubscription ? <>⏳ {tCommon('loading')}</> : <><AppIcon name="icon-refresh" size={14} /> {t('checkSubscription.checkButton')}</>}
           </button>
         </div>
       </main>
@@ -944,7 +945,7 @@ export default function JoinGiveawayPage() {
             disabled={!captchaAnswer || joining}
             className="w-full bg-tg-button text-tg-button-text rounded-lg py-4 font-medium disabled:opacity-50"
           >
-            {joining ? `⏳ ${tCommon('loading')}` : `✅ ${t('captcha.checkButton')}`}
+            {joining ? <>⏳ {tCommon('loading')}</> : <><AppIcon name="icon-success" size={14} /> {t('captcha.checkButton')}</>}
           </button>
         </div>
       </main>
@@ -1176,7 +1177,7 @@ export default function JoinGiveawayPage() {
                       </>
                     ) : (
                       <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
-                        <span className="text-green-600 text-sm">✅ {t('extras.inviteLimitReached')}</span>
+                        <span className="text-green-600 text-sm"><AppIcon name="icon-success" size={14} /> {t('extras.inviteLimitReached')}</span>
                       </div>
                     )}
                     
@@ -1190,7 +1191,7 @@ export default function JoinGiveawayPage() {
                           {invites.map((inv) => (
                             <div key={inv.userId} className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2 min-w-0">
-                                <span className="text-green-500 flex-shrink-0">✅</span>
+                                <span className="text-green-500 flex-shrink-0"><AppIcon name="icon-success" size={14} /></span>
                                 <div className="min-w-0">
                                   <span className="text-sm font-medium truncate block">
                                     {inv.firstName}{inv.lastName ? ` ${inv.lastName}` : ''}
@@ -1242,7 +1243,7 @@ export default function JoinGiveawayPage() {
                               disabled={verifyingBoost === channel.id}
                               className="bg-green-500 text-white text-xs rounded-lg px-3 py-1.5 disabled:opacity-50"
                             >
-                              {verifyingBoost === channel.id ? '⏳' : '🔍'} {t('extras.verifyButton')}
+                              {verifyingBoost === channel.id ? '⏳' : <AppIcon name="icon-search" size={14} />} {t('extras.verifyButton')}
                             </button>
                           </div>
                         )}
@@ -1270,7 +1271,7 @@ export default function JoinGiveawayPage() {
                     
                     {storyRequestStatus === 'APPROVED' ? (
                       <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
-                        <span className="text-green-600">✅ {t('extras.ticketReceived')}</span>
+                        <span className="text-green-600"><AppIcon name="icon-success" size={14} /> {t('extras.ticketReceived')}</span>
                       </div>
                     ) : storyRequestStatus === 'PENDING' ? (
                       <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 text-center">
@@ -1279,7 +1280,7 @@ export default function JoinGiveawayPage() {
                     ) : storyRequestStatus === 'REJECTED' ? (
                       <div className="space-y-2">
                         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-center">
-                          <span className="text-red-600">❌ {t('extras.requestRejected')}</span>
+                          <span className="text-red-600"><AppIcon name="icon-error" size={14} /> {t('extras.requestRejected')}</span>
                           {storyRejectReason && (
                             <p className="text-xs mt-1">{storyRejectReason}</p>
                           )}
@@ -1343,7 +1344,7 @@ export default function JoinGiveawayPage() {
                               <span>⏳ {tCommon('loading')}</span>
                             ) : (
                               <>
-                                <span>✅</span>
+                                <span><AppIcon name="icon-success" size={14} /></span>
                                 <span>{t('extras.submitStoryButton')}</span>
                               </>
                             )}
@@ -1377,12 +1378,12 @@ export default function JoinGiveawayPage() {
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <span className={isCompleted ? 'text-green-500' : 'text-tg-hint'}>
-                                  {isCompleted ? '✅' : task.isRequired ? '🔴' : '🔵'}
+                                  {isCompleted ? <AppIcon name="icon-success" size={14} /> : task.isRequired ? '🔴' : '🔵'}
                                 </span>
                                 <span className="font-medium text-sm">{task.title}</span>
                                 {task.bonusTickets > 0 && (
                                   <span className="text-xs bg-green-500/10 text-green-600 px-1.5 py-0.5 rounded">
-                                    +{task.bonusTickets} 🎫
+                                    +{task.bonusTickets} <AppIcon name="icon-ticket" size={16} />
                                   </span>
                                 )}
                               </div>
@@ -1404,9 +1405,9 @@ export default function JoinGiveawayPage() {
                             {isCompleting ? (
                               <>⏳ {tCommon('loading')}</>
                             ) : isCompleted ? (
-                              <>✅ {t('extras.taskCompleted')}</>
+                              <><AppIcon name="icon-success" size={14} /> {t('extras.taskCompleted')}</>
                             ) : (
-                              <>🔗 {t('extras.goToTask')}</>
+                              <><AppIcon name="icon-share" size={14} /> {t('extras.goToTask')}</>
                             )}
                           </button>
                         </div>
@@ -1430,7 +1431,7 @@ export default function JoinGiveawayPage() {
             onClick={() => router.push('/catalog')}
             className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg py-3.5 font-medium mb-3 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
           >
-            <span>🎁</span>
+            <span><AppIcon name="icon-giveaway" size={16} /></span>
             <span>{t('success.moreCatalog')}</span>
           </button>
 
@@ -1564,7 +1565,7 @@ export default function JoinGiveawayPage() {
       <main className="min-h-screen p-4 bg-tg-bg">
         <div className="max-w-md mx-auto">
           <div className="text-center mb-8">
-            <div className="text-5xl mb-4">🔍</div>
+            <div className="text-5xl mb-4"><AppIcon name="icon-search" size={14} /></div>
             <h1 className="text-2xl font-bold mb-2">Проверка живости</h1>
             <p className="text-tg-hint text-sm">
               Создатель этого розыгрыша требует проверить, что вы реальный человек.
@@ -1587,7 +1588,7 @@ export default function JoinGiveawayPage() {
           {/* Поле выбора фото */}
           <label className="block w-full mb-4">
             <div className="w-full border-2 border-dashed border-tg-button/50 rounded-xl p-6 text-center cursor-pointer hover:border-tg-button transition-colors">
-              <span className="text-3xl block mb-2">📷</span>
+              <span className="text-3xl block mb-2"><AppIcon name="icon-camera" size={14} /></span>
               <span className="text-sm text-tg-hint">
                 {livenessPhoto ? livenessPhoto.name : 'Нажмите, чтобы выбрать фото'}
               </span>
@@ -1620,7 +1621,7 @@ export default function JoinGiveawayPage() {
             disabled={!livenessPhoto || livenessUploading}
             className="w-full bg-tg-button text-tg-button-text rounded-xl py-4 font-semibold mb-3 disabled:opacity-50 transition-opacity"
           >
-            {livenessUploading ? '⏳ Загружаем...' : '✅ Отправить фото'}
+            {livenessUploading ? '⏳ Загружаем...' : <><AppIcon name="icon-success" size={14} /> Отправить фото</>}
           </button>
 
           <button
@@ -1634,7 +1635,7 @@ export default function JoinGiveawayPage() {
           </button>
 
           <p className="text-xs text-tg-hint text-center mt-4">
-            🔒 Фото видит только создатель розыгрыша. После проверки участие будет подтверждено.
+            <AppIcon name="icon-lock" size={14} /> Фото видит только создатель розыгрыша. После проверки участие будет подтверждено.
           </p>
         </div>
       </main>

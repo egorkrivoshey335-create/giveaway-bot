@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from './Button';
+import { AppIcon } from '@/components/AppIcon';
 
 export interface EmptyStateProps {
   icon?: string;
@@ -19,7 +20,7 @@ export interface EmptyStateProps {
  * @example
  * ```tsx
  * <EmptyState
- *   icon="🎁"
+ *   icon="icon-giveaway"
  *   title="Нет розыгрышей"
  *   description="Вы ещё не создали ни одного розыгрыша"
  *   action={{
@@ -30,7 +31,7 @@ export interface EmptyStateProps {
  * ```
  */
 export function EmptyState({
-  icon = '📭',
+  icon = 'icon-info',
   title,
   description,
   action,
@@ -38,8 +39,8 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div className={`flex flex-col items-center justify-center text-center py-12 px-4 ${className}`}>
-      <div className="text-6xl mb-4 opacity-50">
-        {icon}
+      <div className="mb-4 opacity-50">
+        <AppIcon name={icon} size={56} />
       </div>
       
       <h3 className="text-lg font-semibold text-tg-text mb-2">

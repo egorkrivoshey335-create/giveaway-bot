@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { checkPaymentStatus } from '@/lib/api';
+import { AppIcon } from '@/components/AppIcon';
 
 type PaymentStatus = 'loading' | 'success' | 'pending' | 'error';
 
@@ -81,7 +82,7 @@ function PaymentReturnContent() {
         {/* Успех */}
         {status === 'success' && (
           <div className="text-center bg-tg-secondary rounded-2xl p-6">
-            <div className="text-6xl mb-4">✅</div>
+            <div className="text-6xl mb-4"><AppIcon name="icon-success" size={14} /></div>
             <h2 className="text-xl font-bold mb-2">{t('success')}</h2>
             <p className="text-tg-hint mb-2">
               {productTitle || t('catalogAccess')} {t('activated')}
@@ -121,7 +122,7 @@ function PaymentReturnContent() {
         {/* Ошибка */}
         {status === 'error' && (
           <div className="text-center bg-tg-secondary rounded-2xl p-6">
-            <div className="text-6xl mb-4">❌</div>
+            <div className="text-6xl mb-4"><AppIcon name="icon-error" size={14} /></div>
             <h2 className="text-xl font-bold mb-2">{t('error')}</h2>
             <p className="text-tg-hint mb-6">
               {t('errorHint')}

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { submitReport, ReportReason } from '@/lib/api';
+import { AppIcon } from '@/components/AppIcon';
 
 // ============================================================================
 // Типы
@@ -94,7 +95,7 @@ function ReportBottomSheet({ giveawayId, onClose }: ReportBottomSheetProps) {
           {submitted ? (
             /* Успех */
             <div className="text-center py-8">
-              <div className="text-5xl mb-4">✅</div>
+              <div className="text-5xl mb-4"><AppIcon name="icon-success" size={14} /></div>
               <h3 className="text-lg font-semibold mb-2">{t('successTitle')}</h3>
               <p className="text-tg-hint text-sm">{t('successMessage')}</p>
             </div>
@@ -276,9 +277,7 @@ export default function GiveawayViewPage() {
           className="p-2 rounded-full hover:bg-tg-secondary/20 transition-colors"
           aria-label="Назад"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M19 12H5M12 5l-7 7 7 7" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+          <AppIcon name="icon-back" size={20} />
         </button>
         <h1 className="text-base font-semibold flex-1 truncate">{giveaway.title}</h1>
         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badge.color}`}>
@@ -313,9 +312,7 @@ export default function GiveawayViewPage() {
 
           {giveaway.endAt && (
             <div className="flex items-center gap-2 text-sm text-tg-hint pt-1">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2" strokeLinecap="round"/>
-              </svg>
+              <AppIcon name="icon-calendar" size={14} />
               {giveaway.status === 'FINISHED' ? 'Завершён: ' : 'Завершится: '}
               {formatDate(giveaway.endAt)}
             </div>
@@ -328,7 +325,7 @@ export default function GiveawayViewPage() {
             onClick={() => router.push(`/giveaway/${giveawayId}/results`)}
             className="w-full bg-tg-button text-tg-button-text rounded-xl py-4 font-semibold text-base"
           >
-            🏆 Смотреть результаты
+            <AppIcon name="icon-winner" size={14} /> Смотреть результаты
           </button>
         )}
       </div>

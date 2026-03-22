@@ -24,19 +24,19 @@
     "statusWarning": "Warning",
     "statusInfo": "Info",
     "finishing": "Finishing...",
-    "participate": "🎁 Participate"
+    "participate": "Participate"
   },
   "nav": {
-    "participant": "🎫 Participant",
-    "creator": "🎁 Creator",
+    "participant": "Participant",
+    "creator": "Creator",
     "catalog": "Catalog",
     "channels": "Channels",
     "settings": "Settings"
   },
   "participant": {
-    "title": "🎫 My Participations",
+    "title": "My Participations",
     "subtitle": "Giveaways you're participating in",
-    "catalogButton": "🎁 Giveaway Catalog",
+    "catalogButton": "Giveaway Catalog",
     "filters": {
       "all": "All",
       "active": "Active",
@@ -67,23 +67,23 @@
     },
     "tickets": "{count, plural, one {# ticket} other {# tickets}}",
     "participants": "{count} participants",
-    "timeLeft": "⏰ {time}",
-    "youWon": "🏆 You won!",
+    "timeLeft": "{time}",
+    "youWon": "You won!",
     "place": "Place {place}"
   },
   "creator": {
-    "title": "🎁 My Giveaways",
+    "title": "My Giveaways",
     "subtitle": "Giveaways you've created",
-    "createButton": "➕ Create Giveaway",
-    "channels": "📣 My Channels",
-    "posts": "📝 Posts",
+    "createButton": "Create Giveaway",
+    "channels": "My Channels",
+    "posts": "Posts",
     "totalGiveaways": "Total giveaways",
     "activeGiveaways": "Active",
-    "openDashboard": "📊 Open Dashboard",
+    "openDashboard": "Open Dashboard",
     "noChannels": "No channels",
     "noPosts": "No posts",
     "postDeleted": "Post deleted",
-    "undo": "↩️ Undo",
+    "undo": "Undo",
     "mediaType": {
       "text": "Text",
       "photo": "Photo",
@@ -141,19 +141,19 @@
     },
     "types": {
       "STANDARD": {
-        "label": "🎁 Standard",
+        "label": "Standard",
         "desc": "Basic giveaway with subscription check"
       },
       "BOOST_REQUIRED": {
-        "label": "🚀 With Boosts",
+        "label": "With Boosts",
         "desc": "Requires channel boost to participate"
       },
       "INVITE_REQUIRED": {
-        "label": "👥 With Invites",
+        "label": "With Invites",
         "desc": "Bonuses for inviting friends"
       },
       "CUSTOM": {
-        "label": "⚙️ Custom",
+        "label": "Custom",
         "desc": "Flexible conditions and tasks"
       }
     },
@@ -163,14 +163,14 @@
       "language": "Language",
       "postTemplate": "Post Template",
       "selectTemplate": "Select template...",
-      "noTemplates": "No templates. Create a post in bot → 📝 Posts",
+      "noTemplates": "No templates. Create a post in bot → Posts",
       "buttonText": "Button Text",
-      "buttonPlaceholder": "🎁 Participate",
-      "buttonPresets": ["🎁 Participate", "Join Now", "I'm In!", "Enter Giveaway", "🎯 Let's Go"],
-      "prizeDescription": "🎁 Prize Description (optional)",
+      "buttonPlaceholder": "Participate",
+      "buttonPresets": ["Participate", "Join Now", "I'm In!", "Enter Giveaway", "Let's Go"],
+      "prizeDescription": "Prize Description (optional)",
       "prizeDescriptionPlaceholder": "iPhone 16 Pro Max 256GB Titanium",
       "characters": "characters",
-      "prizeDeliveryMethod": "📦 Prize Delivery Method",
+      "prizeDeliveryMethod": "Prize Delivery Method",
       "deliveryContact": "Contact organizer",
       "deliveryInstruction": "Instruction via bot",
       "deliveryForm": "Fill form",
@@ -178,14 +178,14 @@
     },
     "subscriptions": {
       "description": "Select channels participants must subscribe to:",
-      "noChannels": "No channels. Add a channel in bot → 📣 My Channels",
+      "noChannels": "No channels. Add a channel in bot → My Channels",
       "channelLimit": "Channel limit",
       "limitReached": "Limit reached. Upgrade your subscription to add more channels.",
       "subscribers": "subscribers"
     },
     "publish": {
       "description": "Select channels for publishing the giveaway (minimum 1):",
-      "noChannels": "No channels. Add a channel in bot → 📣 My Channels",
+      "noChannels": "No channels. Add a channel in bot → My Channels",
       "noBotAdmin": "No channels where bot is an administrator"
     },
     "resultsStep": {
@@ -211,7 +211,7 @@
       "count": "Winners",
       "randomHint": "Winners will be selected randomly",
       "maxFree": "Maximum for free account: {max}",
-      "minParticipants": "👥 Minimum Participants",
+      "minParticipants": "Minimum Participants",
       "minParticipantsHint": "Giveaway won't finish until minimum number of participants is reached. Leave 0 for no minimum.",
       "cancelIfNotEnough": "Cancel if not enough",
       "cancelIfNotEnoughHint": "Giveaway will be cancelled if minimum participants not reached by end date",
@@ -239,7 +239,7 @@
       },
       "livenessTitle": "Liveness Check",
       "livenessHint": "Camera verification of participant — protection close to 100%",
-      "livenessProAlert": "🔒 This feature is available in PRO subscription\n\nLiveness Check verifies that a real person is behind the screen, not a bot.",
+      "livenessProAlert": "This feature is available in PRO subscription\n\nLiveness Check verifies that a real person is behind the screen, not a bot.",
       "availableInPro": "Available in PRO subscription"
     },
     "extras": {
@@ -393,7 +393,7 @@
       "inviteFriends": "Invite friends",
       "inviteProgress": "Invite progress",
       "inviteDescription": "+1 ticket per friend (invited: {current}/{max})",
-      "linkCopied": "✅ Link copied!",
+      "linkCopied": "Link copied!",
       "shareInTelegram": "Share in Telegram",
       "inviteLimitReached": "Invite limit reached!",
       "invitedFriends": "Invited friends",
@@ -404,7 +404,7 @@
       "notBoosted": "No",
       "boostButton": "Boost",
       "verifyButton": "Verify",
-      "boostSuccess": "✅ Boost counted! +{tickets} ticket(s)",
+      "boostSuccess": "Boost counted! +{tickets} ticket(s)",
       "boostNotFound": "Boost not found. Try again.",
       "totalTicketsFromBoosts": "Total tickets from boosts: +{count}",
       "publishStory": "Publish in stories",
@@ -421,23 +421,23 @@
       "publishAndSubmitInstruction": "Publish and tap button below",
       "storyLinkCopied": "Link copied!",
       "submitStoryButton": "I published — get ticket",
-      "storySubmitted": "✅ Request submitted for review",
+      "storySubmitted": "Request submitted for review",
       "storyAlreadyPending": "Your request is already under review",
       "storyAlreadyApproved": "You already got a ticket for story",
       "cancel": "Cancel"
     },
-    "shareLink": "🔗 Your referral link",
+    "shareLink": "Your referral link",
     "copyLink": "Copy link",
-    "linkCopied": "✅ Link copied!",
+    "linkCopied": "Link copied!",
     "invitedFriends": "Friends invited: {count}"
   },
   "catalog": {
-    "title": "🎁 Giveaway Catalog",
+    "title": "Giveaway Catalog",
     "subtitle": "Participate in giveaways from various channels",
     "empty": "Catalog is empty",
     "emptySubtitle": "Giveaways will appear here soon",
     "getAccessEarly": "Get early access and be the first!",
-    "hasAccess": "✅ You have catalog access",
+    "hasAccess": "You have catalog access",
     "time": {
       "ending": "Ending...",
       "daysHours": "{days}d {hours}h",
@@ -451,23 +451,23 @@
       "description": "Get access to the giveaway catalog",
       "price": "{price} ₽/month",
       "perMonth": "/ month",
-      "unlock": "🔓 Get access",
+      "unlock": "Get access",
       "modalTitle": "Giveaway Catalog",
       "features": {
         "access": "Access to all giveaways",
         "noCaptcha": "No captcha required",
         "notifications": "New giveaway notifications"
       },
-      "pay": "💳 Pay",
-      "loading": "⏳ Loading...",
+      "pay": "Pay",
+      "loading": "Loading...",
       "secure": "Secure payment via YooKassa",
       "paymentError": "Payment creation error"
     },
     "loadMore": "Load more"
   },
   "channels": {
-    "title": "📣 My Channels",
-    "add": "➕ Add channel",
+    "title": "My Channels",
+    "add": "Add channel",
     "addTitle": "Add channel",
     "addDescription": "To add a channel, go to the bot and follow the instructions. Bot must be a channel admin with posting rights.",
     "botAdmin": "Bot admin",
@@ -477,18 +477,18 @@
     "delete": "Delete",
     "deleteShort": "Delete",
     "deleteConfirm": "Are you sure?",
-    "deleted": "✅ Channel deleted",
+    "deleted": "Channel deleted",
     "empty": {
       "title": "No channels added",
       "subtitle": "Add channels to publish giveaways and verify subscriber participation.",
-      "addFirst": "➕ Add first channel"
+      "addFirst": "Add first channel"
     },
     "channel": "Channel",
     "group": "Group",
     "private": "Private",
     "members": "subscribers",
     "lastChecked": "Checked",
-    "statusUpdated": "✅ Status updated",
+    "statusUpdated": "Status updated",
     "count": "Channels added: {count}"
   },
   "dashboard": {
@@ -516,11 +516,11 @@
       "finished": "Finished"
     },
     "menu": {
-      "edit": "✏️ Edit",
-      "publish": "📤 Publish",
-      "share": "🔗 Share",
-      "results": "🏆 Results",
-      "delete": "🗑️ Delete",
+      "edit": "Edit",
+      "publish": "Publish",
+      "share": "Share",
+      "results": "Results",
+      "delete": "Delete",
       "stats": "Stats",
       "copy": "Copy"
     },
@@ -542,9 +542,9 @@
     },
     "deleteConfirm": "Delete giveaway \"{title}\"?",
     "deleteConfirmSimple": "Delete giveaway? This action cannot be undone.",
-    "deleted": "✅ Giveaway deleted",
-    "duplicated": "✅ Giveaway duplicated",
-    "linkCopied": "✅ Link copied"
+    "deleted": "Giveaway deleted",
+    "duplicated": "Giveaway duplicated",
+    "linkCopied": "Link copied"
   },
   "payment": {
     "processing": "Checking payment...",
@@ -557,36 +557,36 @@
     "accessDuration": "Access valid for 30 days",
     "error": "Something went wrong",
     "errorHint": "Payment not found or an error occurred. If money was charged, please contact support.",
-    "goToCatalog": "🎁 Go to catalog",
+    "goToCatalog": "Go to catalog",
     "goHome": "Go home",
     "backToCatalog": "Back to catalog",
     "checkCount": "Check {current}/{max}"
   },
   "subscription": {
-    "title": "⭐ RandomBeast Premium",
+    "title": "RandomBeast Premium",
     "subtitle": "Expand your giveaway capabilities",
     "tabs": { "creators": "For creators", "participants": "For participants" },
     "tiers": {
-      "plus": { "name": "PLUS", "price": "190 ₽/mo", "starsPrice": "200 ⭐/mo", "badge": "Popular" },
-      "pro": { "name": "PRO", "price": "490 ₽/mo", "starsPrice": "500 ⭐/mo", "badge": "Professional" },
-      "business": { "name": "BUSINESS", "price": "1490 ₽/mo", "starsPrice": "1500 ⭐/mo", "badge": "Maximum" }
+      "plus": { "name": "PLUS", "price": "190 ₽/mo", "starsPrice": "200/mo", "badge": "Popular" },
+      "pro": { "name": "PRO", "price": "490 ₽/mo", "starsPrice": "500/mo", "badge": "Professional" },
+      "business": { "name": "BUSINESS", "price": "1490 ₽/mo", "starsPrice": "1500/mo", "badge": "Maximum" }
     },
     "creators": {
-      "analytics": { "title": "📊 Advanced Analytics", "description": "Traffic sources, invite tree, conversion, anti-fraud statistics" },
-      "mascot": { "title": "🐱 Mascot Selection", "description": "Various characters to accompany participants" },
-      "export": { "title": "📥 Export Participants CSV", "description": "Full participant list in CSV format" },
-      "liveness": { "title": "📸 Liveness Check", "description": "Advanced bot protection with camera verification" },
-      "winners": { "title": "🏆 More Winners", "description": "Up to 50 (PLUS), 100 (PRO) or 200 (BUSINESS) winners" },
-      "tasks": { "title": "🎨 Custom Tasks", "description": "Up to 5 (PRO) or 10 (BUSINESS) custom participant tasks" }
+      "analytics": { "title": "Advanced Analytics", "description": "Traffic sources, invite tree, conversion, anti-fraud statistics" },
+      "mascot": { "title": "Mascot Selection", "description": "Various characters to accompany participants" },
+      "export": { "title": "Export Participants CSV", "description": "Full participant list in CSV format" },
+      "liveness": { "title": "Liveness Check", "description": "Advanced bot protection with camera verification" },
+      "winners": { "title": "More Winners", "description": "Up to 50 (PLUS), 100 (PRO) or 200 (BUSINESS) winners" },
+      "tasks": { "title": "Custom Tasks", "description": "Up to 5 (PRO) or 10 (BUSINESS) custom participant tasks" }
     },
     "participants": {
-      "bonus": { "title": "🎟️ +100% chance", "description": "Extra ticket in all giveaways automatically" },
-      "catalog": { "title": "🗂️ Catalog access", "description": "Giveaways from all channels in one place" },
-      "noCaptcha": { "title": "🤖 No captcha", "description": "Participate without captcha verification" },
-      "notifications": { "title": "🔔 Notifications", "description": "Be first to know about new giveaways" }
+      "bonus": { "title": "+100% chance", "description": "Extra ticket in all giveaways automatically" },
+      "catalog": { "title": "Catalog access", "description": "Giveaways from all channels in one place" },
+      "noCaptcha": { "title": "No captcha", "description": "Participate without captcha verification" },
+      "notifications": { "title": "Notifications", "description": "Be first to know about new giveaways" }
     },
-    "payBtn": "💳 Pay {price}",
-    "payStarsBtn": "⭐ Pay with Stars {stars}",
+    "payBtn": "Pay {price}",
+    "payStarsBtn": "Pay with Stars {stars}",
     "current": "Current plan",
     "perMonth": "/ mo",
     "secure": "Secure payment via YooKassa",
@@ -595,7 +595,7 @@
     "error": "Payment creation error"
   },
   "creatorSubscription": {
-    "title": "⭐ Subscription Management",
+    "title": "Subscription Management",
     "currentPlan": "Current plan",
     "free": "Free",
     "activeTill": "Active until {date}",
@@ -622,10 +622,10 @@
     }
   },
   "settings": {
-    "title": "⚙️ Settings",
-    "language": "🌐 Language",
-    "notifications": "🔔 Notifications",
-    "about": "ℹ️ About"
+    "title": "Settings",
+    "language": "Language",
+    "notifications": "Notifications",
+    "about": "About"
   },
   "results": {
     "loading": "Loading results...",
@@ -660,8 +660,8 @@
     "profile": "Profile",
     "approve": "Approve",
     "reject": "Reject",
-    "approved": "✅ Request approved",
-    "rejected": "❌ Request rejected",
+    "approved": "Request approved",
+    "rejected": "Request rejected",
     "approveError": "Approval error",
     "rejectError": "Rejection error",
     "rejectReasonPrompt": "Rejection reason (optional):",
@@ -717,7 +717,7 @@
       "change": "Change",
       "save": "Save Changes",
       "cancel": "Cancel",
-      "saved": "✅ Changes saved",
+      "saved": "Changes saved",
       "error": "Save error",
       "activeHint": "Limited editing",
       "captchaOff": "Disabled",
@@ -746,9 +746,9 @@
       "duplicate": "Duplicate",
       "storiesModeration": "Stories moderation"
     },
-    "duplicated": "✅ Giveaway duplicated",
+    "duplicated": "Giveaway duplicated",
     "duplicateError": "Duplication error",
-    "linkCopied": "✅ Link copied",
+    "linkCopied": "Link copied",
     "participantsTab": {
       "searchPlaceholder": "Search by name or username...",
       "user": "User",
@@ -901,11 +901,11 @@
     "delete": "Delete",
     "select": "Select",
     "selected": "Selected",
-    "deleted": "✅ Post deleted",
+    "deleted": "Post deleted",
     "deleteUndo": "Post will be deleted in 20 seconds",
     "undo": "Undo",
     "deletingIn20": "Deleting in 20 sec...",
-    "deleteCancelled": "✅ Deletion cancelled",
+    "deleteCancelled": "Deletion cancelled",
     "noText": "No text",
     "characters": "characters",
     "empty": {
@@ -914,7 +914,7 @@
     }
   },
   "report": {
-    "buttonLabel": "⚠️ Report",
+    "buttonLabel": "Report",
     "title": "Report Giveaway",
     "subtitle": "Choose the reason for reporting",
     "descriptionPlaceholder": "Describe the issue in more detail (optional)",

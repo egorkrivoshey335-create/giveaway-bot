@@ -11,6 +11,7 @@ import {
 } from '@/lib/api';
 import { InlineToast } from '@/components/Toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AppIcon } from '@/components/AppIcon';
 // Типы Telegram WebApp загружаются из @/types/telegram.d.ts
 
 // Берём username бота из env
@@ -40,7 +41,7 @@ function formatDate(dateStr: string): string {
 function EmptyState({ onAddChannel, t }: { onAddChannel: () => void; t: ReturnType<typeof useTranslations<'channels'>> }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-      <div className="text-6xl mb-4">📣</div>
+      <div className="flex justify-center mb-4"><AppIcon name="icon-channel" size={56} /></div>
       <h3 className="text-xl font-semibold text-tg-text mb-2">
         {t('empty.title')}
       </h3>
@@ -105,7 +106,7 @@ function ChannelCard({
           className="w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0"
           style={{ backgroundColor: 'var(--brand-color, #f2b6b6)' }}
         >
-          {channel.type === 'CHANNEL' ? '📢' : '👥'}
+          {channel.type === 'CHANNEL' ? <AppIcon name="icon-channel" size={14} /> : <AppIcon name="icon-group" size={14} />}
         </div>
         
         {/* Детали */}
@@ -133,10 +134,10 @@ function ChannelCard({
       {/* Статусы */}
       <div className="flex flex-wrap gap-3 mb-3">
         <div className={`flex items-center gap-1 text-sm ${channel.botIsAdmin ? 'text-green-500' : 'text-red-500'}`}>
-          {channel.botIsAdmin ? '✅' : '❌'} {t('botAdmin')}
+          {channel.botIsAdmin ? <AppIcon name="icon-success" size={14} /> : <AppIcon name="icon-error" size={14} />} {t('botAdmin')}
         </div>
         <div className={`flex items-center gap-1 text-sm ${channel.creatorIsAdmin ? 'text-green-500' : 'text-red-500'}`}>
-          {channel.creatorIsAdmin ? '✅' : '❌'} {t('youAdmin')}
+          {channel.creatorIsAdmin ? <AppIcon name="icon-success" size={14} /> : <AppIcon name="icon-error" size={14} />} {t('youAdmin')}
         </div>
       </div>
 
@@ -159,7 +160,7 @@ function ChannelCard({
           }`}
           title={t('recheck')}
         >
-          {isRechecking ? '⏳' : '🔄'} {t('recheckShort')}
+          {isRechecking ? '⏳' : <AppIcon name="icon-refresh" size={14} />} {t('recheckShort')}
         </button>
         <button
           onClick={handleDelete}
@@ -170,7 +171,7 @@ function ChannelCard({
           }`}
           title={t('delete')}
         >
-          🗑️ {showDeleteConfirm ? t('deleteConfirm') : t('deleteShort')}
+          <AppIcon name="icon-delete" size={14} /> {showDeleteConfirm ? t('deleteConfirm') : t('deleteShort')}
         </button>
       </div>
     </div>
@@ -232,11 +233,11 @@ export default function ChannelsPage() {
         setMessage(t('statusUpdated'));
         setTimeout(() => setMessage(null), 2000);
       } else {
-        setMessage('❌ ' + (res.error || tErrors('error')));
+        setMessage(res.error || tErrors('error'));
         setTimeout(() => setMessage(null), 3000);
       }
     } catch (err) {
-      setMessage('❌ ' + tErrors('connectionError'));
+      setMessage(tErrors('connectionError'));
       setTimeout(() => setMessage(null), 3000);
     } finally {
       setRecheckingId(null);
@@ -252,11 +253,11 @@ export default function ChannelsPage() {
         setMessage(t('deleted'));
         setTimeout(() => setMessage(null), 2000);
       } else {
-        setMessage('❌ ' + (res.error || tErrors('error')));
+        setMessage(res.error || tErrors('error'));
         setTimeout(() => setMessage(null), 3000);
       }
     } catch (err) {
-      setMessage('❌ ' + tErrors('connectionError'));
+      setMessage(tErrors('connectionError'));
       setTimeout(() => setMessage(null), 3000);
     }
   };
@@ -297,7 +298,7 @@ export default function ChannelsPage() {
             onClick={goBack}
             className="text-tg-link text-sm hover:opacity-70"
           >
-            ← {tCommon('back')}
+            <AppIcon name="icon-back" size={20} /> {tCommon('back')}
           </button>
           <h1 className="text-lg font-semibold text-tg-text flex-1">
             {t('title')}

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getPrizeFormConfig, submitPrizeForm } from '@/lib/api';
+import { AppIcon } from '@/components/AppIcon';
 
 interface FormValues {
   name: string;
@@ -212,14 +213,14 @@ export default function PrizeFormPage() {
     return (
       <main className="min-h-screen bg-tg-bg pb-safe">
         <div className="max-w-lg mx-auto p-4 pt-8 text-center">
-          <div className="text-5xl mb-4">✅</div>
+          <div className="text-5xl mb-4"><AppIcon name="icon-success" size={14} /></div>
           <h1 className="text-xl font-bold mb-2">Форма уже заполнена</h1>
           <p className="text-tg-hint mb-1">
             Вы уже передали данные для получения приза.
           </p>
           {config.processedAt && (
             <p className="text-sm text-green-500 mt-2">
-              ✅ Обработано: {new Date(config.processedAt).toLocaleDateString('ru-RU')}
+              <AppIcon name="icon-success" size={14} /> Обработано: {new Date(config.processedAt).toLocaleDateString('ru-RU')}
             </p>
           )}
           {!config.processedAt && (
@@ -239,9 +240,9 @@ export default function PrizeFormPage() {
             onClick={() => router.back()}
             className="text-tg-hint text-sm mb-2 flex items-center gap-1"
           >
-            ← Назад
+            <AppIcon name="icon-back" size={20} /> Назад
           </button>
-          <h1 className="text-xl font-bold">🎁 Получение приза</h1>
+          <h1 className="text-xl font-bold"><AppIcon name="icon-giveaway" size={16} /> Получение приза</h1>
           <p className="text-sm text-tg-hint mt-1 line-clamp-1">{config.giveawayTitle}</p>
         </div>
       </div>
@@ -250,7 +251,7 @@ export default function PrizeFormPage() {
         {/* Инфо о шифровании */}
         {config.encryptionEnabled && (
           <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-3 mb-4 flex items-start gap-2">
-            <span className="text-lg">🔒</span>
+            <span className="text-lg"><AppIcon name="icon-lock" size={14} /></span>
             <div>
               <p className="text-sm font-medium text-green-500">Данные зашифрованы</p>
               <p className="text-xs text-tg-hint mt-0.5">

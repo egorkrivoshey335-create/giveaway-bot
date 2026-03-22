@@ -265,7 +265,7 @@ function LucideIconRenderer({
 
 export function AppIcon({
   name,
-  variant = 'lucide',
+  variant = 'brand',
   size = 24,
   color,
   strokeWidth = 2,

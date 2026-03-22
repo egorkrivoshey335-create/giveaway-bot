@@ -16,6 +16,7 @@ import {
   PostTemplate,
 } from '@/lib/api';
 import { Stagger, StaggerItem } from '@/components/FadeIn';
+import { AppIcon } from '@/components/AppIcon';
 
 // Undo state для постов
 interface UndoState {
@@ -171,7 +172,7 @@ export function CreatorSection() {
                 className="text-tg-button text-sm"
                 disabled={channelsLoading}
               >
-                {channelsLoading ? '...' : '🔄'}
+                {channelsLoading ? '...' : <AppIcon name="icon-refresh" size={16} />}
               </button>
             </div>
 
@@ -196,25 +197,39 @@ export function CreatorSection() {
                     <div key={channel.id} className="bg-tg-bg rounded-lg p-3 flex items-start justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-lg">{channel.type === 'CHANNEL' ? '📢' : '👥'}</span>
+                          {channel.type === 'CHANNEL' ? (
+                            <AppIcon name="icon-channel" size={16} />
+                          ) : (
+                            <AppIcon name="icon-group" size={16} />
+                          )}
                           <span className="font-medium truncate">{channel.title}</span>
                         </div>
                         {channel.username && <p className="text-sm text-tg-hint mt-0.5">@{channel.username}</p>}
                         <div className="flex flex-wrap gap-2 mt-2">
-                          <span className={`text-xs px-2 py-0.5 rounded ${channel.botIsAdmin ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                            {channel.botIsAdmin ? `✓ ${tChannels('botAdmin')}` : `✗ ${tChannels('botAdmin')}`}
+                          <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded ${channel.botIsAdmin ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                            {channel.botIsAdmin ? (
+                              <AppIcon name="icon-success" size={12} />
+                            ) : (
+                              <AppIcon name="icon-error" size={12} />
+                            )}
+                            {tChannels('botAdmin')}
                           </span>
-                          <span className={`text-xs px-2 py-0.5 rounded ${channel.creatorIsAdmin ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                            {channel.creatorIsAdmin ? `✓ ${tChannels('youAdmin')}` : `✗ ${tChannels('youAdmin')}`}
+                          <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded ${channel.creatorIsAdmin ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                            {channel.creatorIsAdmin ? (
+                              <AppIcon name="icon-success" size={12} />
+                            ) : (
+                              <AppIcon name="icon-error" size={12} />
+                            )}
+                            {tChannels('youAdmin')}
                           </span>
                         </div>
                       </div>
                       <button
                         onClick={() => handleDeleteChannel(channel.id)}
-                        className="text-red-500 text-sm ml-2 p-1"
+                        className="text-red-500 text-sm ml-2 p-1 inline-flex items-center justify-center"
                         title={tCommon('delete')}
                       >
-                        🗑️
+                        <AppIcon name="icon-delete" size={14} />
                       </button>
                     </div>
                   ))}
@@ -233,7 +248,7 @@ export function CreatorSection() {
                 className="text-tg-button text-sm"
                 disabled={postsLoading}
               >
-                {postsLoading ? '...' : '🔄'}
+                {postsLoading ? '...' : <AppIcon name="icon-refresh" size={16} />}
               </button>
             </div>
 
@@ -266,9 +281,13 @@ export function CreatorSection() {
                     <div key={post.id} className="bg-tg-bg rounded-lg p-3 flex items-start justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-lg">
-                            {post.mediaType === 'NONE' ? '📄' : post.mediaType === 'PHOTO' ? '🖼️' : '🎬'}
-                          </span>
+                          {post.mediaType === 'NONE' ? (
+                            <AppIcon name="icon-edit" size={14} />
+                          ) : post.mediaType === 'PHOTO' ? (
+                            <AppIcon name="icon-image" size={14} />
+                          ) : (
+                            <AppIcon name="icon-camera" size={14} />
+                          )}
                           <span className={`text-xs px-2 py-0.5 rounded ${
                             post.mediaType === 'NONE'
                               ? 'bg-gray-500/10 text-gray-500'
@@ -286,10 +305,10 @@ export function CreatorSection() {
                       </div>
                       <button
                         onClick={() => handleDeletePost(post.id)}
-                        className="text-red-500 text-sm ml-2 p-1"
+                        className="text-red-500 text-sm ml-2 p-1 inline-flex items-center justify-center"
                         title={tCommon('delete')}
                       >
-                        🗑️
+                        <AppIcon name="icon-delete" size={14} />
                       </button>
                     </div>
                   ))}
@@ -330,7 +349,7 @@ export function CreatorSection() {
             className="w-full bg-tg-secondary text-tg-text rounded-xl py-3 px-4 font-medium hover:bg-tg-secondary/80 transition-colors flex items-center justify-center gap-2"
           >
             <span>{t('openDashboard')}</span>
-            <span className="text-tg-hint">→</span>
+            <AppIcon name="icon-back" size={16} className="rotate-180" />
           </button>
         </StaggerItem>
       </Stagger>

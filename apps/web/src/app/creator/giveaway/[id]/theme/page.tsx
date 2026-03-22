@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ThemeCustomizer, ThemeSettings } from '@/components/ThemeCustomizer';
 import { getGiveawayTheme, saveGiveawayTheme, deleteGiveawayTheme, GiveawayThemeSettings } from '@/lib/api';
+import { AppIcon } from '@/components/AppIcon';
 
 /**
  * Страница кастомизации темы розыгрыша (задача 9.6)
@@ -100,9 +101,7 @@ export default function GiveawayThemePage() {
           className="p-2 rounded-full hover:bg-tg-secondary/20 transition-colors"
           aria-label="Назад"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M19 12H5M12 5l-7 7 7 7" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+          <AppIcon name="icon-back" size={20} />
         </button>
         <h1 className="text-base font-semibold flex-1">🎨 Кастомизация темы</h1>
         {isPremium && currentTheme && (
@@ -118,12 +117,12 @@ export default function GiveawayThemePage() {
       {/* Уведомления */}
       {successMsg && (
         <div className="mx-4 mt-3 bg-green-500/15 border border-green-500/30 rounded-xl px-4 py-3 text-green-500 text-sm">
-          ✅ {successMsg}
+          <AppIcon name="icon-success" size={14} /> {successMsg}
         </div>
       )}
       {error && (
         <div className="mx-4 mt-3 bg-red-500/15 border border-red-500/30 rounded-xl px-4 py-3 text-red-500 text-sm">
-          ❌ {error}
+          <AppIcon name="icon-error" size={14} /> {error}
         </div>
       )}
 

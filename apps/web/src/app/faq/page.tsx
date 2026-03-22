@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { AppIcon } from '@/components/AppIcon';
 
 interface FaqItem {
   q: string;
@@ -94,9 +95,7 @@ export default function FaqPage() {
               className="p-2 -ml-2 rounded-full hover:bg-tg-secondary transition-colors"
               aria-label="Назад"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+              <AppIcon name="icon-back" size={20} />
             </button>
             <div>
               <h1 className="text-xl font-bold">{t('title')}</h1>
@@ -106,14 +105,9 @@ export default function FaqPage() {
 
           {/* Search */}
           <div className="relative">
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-tg-hint"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-tg-hint">
+              <AppIcon name="icon-search" size={16} />
+            </span>
             <input
               type="text"
               value={search}
@@ -126,7 +120,7 @@ export default function FaqPage() {
                 onClick={() => setSearch('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-tg-hint hover:text-tg-text"
               >
-                ×
+                <AppIcon name="icon-close" size={16} />
               </button>
             )}
           </div>
@@ -137,7 +131,7 @@ export default function FaqPage() {
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
         {!hasResults ? (
           <div className="text-center py-16">
-            <span className="text-5xl block mb-3">🔍</span>
+            <span className="block mb-3"><AppIcon name="icon-search" size={48} /></span>
             <p className="text-tg-hint">{t('noResults')}</p>
           </div>
         ) : (
@@ -163,14 +157,9 @@ export default function FaqPage() {
                         <span className="text-sm font-medium text-tg-text leading-snug flex-1">
                           {item.q}
                         </span>
-                        <svg
-                          className={`w-4 h-4 text-tg-hint flex-shrink-0 mt-0.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
+                        <span className="flex-shrink-0 mt-0.5">
+                          <AppIcon name="icon-back" size={16} className={`text-tg-hint transition-transform duration-200 ${isOpen ? '-rotate-90' : 'rotate-90'}`} />
+                        </span>
                       </button>
 
                       <div

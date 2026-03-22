@@ -10,6 +10,7 @@ import {
   StoryRequest,
 } from '@/lib/api';
 import { InlineToast } from '@/components/Toast';
+import { AppIcon } from '@/components/AppIcon';
 
 export default function StoryRequestsPage() {
   const params = useParams();
@@ -170,7 +171,7 @@ export default function StoryRequestsPage() {
       <main className="min-h-screen p-4">
         <div className="max-w-2xl mx-auto">
           <div className="text-center">
-            <div className="text-4xl mb-4">❌</div>
+            <div className="text-4xl mb-4"><AppIcon name="icon-error" size={14} /></div>
             <h1 className="text-xl font-bold mb-2">{tCommon('error')}</h1>
             <p className="text-tg-hint mb-4">{error}</p>
             <button
@@ -197,7 +198,7 @@ export default function StoryRequestsPage() {
             onClick={() => router.back()}
             className="text-tg-link text-sm mb-2 flex items-center gap-1"
           >
-            ← {tCommon('back')}
+            <AppIcon name="icon-back" size={20} /> {tCommon('back')}
           </button>
           <h1 className="text-2xl font-bold">📺 {t('title')}</h1>
           <p className="text-tg-hint text-sm mt-1">
@@ -267,14 +268,14 @@ export default function StoryRequestsPage() {
                       disabled={processingId === req.id}
                       className="flex-1 bg-green-500 text-white text-sm rounded-lg py-2 font-medium disabled:opacity-50"
                     >
-                      {processingId === req.id ? '⏳' : `✅ ${t('approve')}`}
+                      {processingId === req.id ? '⏳' : <><AppIcon name="icon-success" size={14} /> {t('approve')}</>}
                     </button>
                     <button
                       onClick={() => handleReject(req.id)}
                       disabled={processingId === req.id}
                       className="flex-1 bg-red-500 text-white text-sm rounded-lg py-2 font-medium disabled:opacity-50"
                     >
-                      {processingId === req.id ? '⏳' : `❌ ${t('reject')}`}
+                      {processingId === req.id ? '⏳' : <><AppIcon name="icon-error" size={14} /> {t('reject')}</>}
                     </button>
                   </div>
                 </div>
@@ -298,7 +299,7 @@ export default function StoryRequestsPage() {
                   <div>
                     <div className="text-sm">{getUserName(req.user)}</div>
                     <div className="text-xs text-tg-hint">
-                      {req.status === 'APPROVED' ? `✅ ${t('statusApproved')}` : `❌ ${t('statusRejected')}`}
+                      {req.status === 'APPROVED' ? <><AppIcon name="icon-success" size={14} /> {t('statusApproved')}</> : <><AppIcon name="icon-error" size={14} /> {t('statusRejected')}</>}
                       {req.reviewedAt && ` • ${formatDate(req.reviewedAt)}`}
                     </div>
                     {req.rejectReason && (
@@ -308,7 +309,7 @@ export default function StoryRequestsPage() {
                     )}
                   </div>
                   <span className={`text-lg ${req.status === 'APPROVED' ? 'text-green-500' : 'text-red-500'}`}>
-                    {req.status === 'APPROVED' ? '✅' : '❌'}
+                    {req.status === 'APPROVED' ? <AppIcon name="icon-success" size={14} /> : <AppIcon name="icon-error" size={14} />}
                   </span>
                 </div>
               ))}

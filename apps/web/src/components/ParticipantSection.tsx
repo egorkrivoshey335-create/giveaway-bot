@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -9,6 +9,7 @@ import {
   MyParticipation,
   ParticipationFilterStatus,
 } from '@/lib/api';
+import { AppIcon } from '@/components/AppIcon';
 
 // Форматирование оставшегося времени
 function formatTimeLeft(endAt: string): string {
@@ -58,11 +59,11 @@ function ParticipationCard({ participation }: { participation: MyParticipation }
         {/* Статистика */}
         <div className="flex items-center gap-4 text-sm text-tg-hint mb-3">
           <span className="flex items-center gap-1">
-            <span>🎫</span>
+            <AppIcon name="icon-ticket" size={16} className="shrink-0 text-tg-hint" />
             <span>{t('tickets', { count: totalTickets })}</span>
           </span>
           <span className="flex items-center gap-1">
-            <span>👥</span>
+            <AppIcon name="icon-group" size={14} className="shrink-0 text-tg-hint" />
             <span>{t('participants', { count: giveaway.participantsCount })}</span>
           </span>
         </div>
@@ -75,17 +76,28 @@ function ParticipationCard({ participation }: { participation: MyParticipation }
             </span>
           )}
           {giveaway.status === 'SCHEDULED' && (
-            <span className="text-blue-500">
-              📅 {tGiveaway('status.scheduled')}
+            <span className="text-blue-500 inline-flex items-center gap-1">
+              <AppIcon name="icon-calendar" size={14} className="shrink-0" />
+              {tGiveaway('status.scheduled')}
             </span>
           )}
           {giveaway.status === 'FINISHED' && (
-            <span className={isWinner ? 'text-yellow-600 font-medium' : 'text-tg-hint'}>
-              {isWinner ? t('youWon') : `✅ ${tGiveaway('status.finished')}`}
+            <span className={isWinner ? 'text-yellow-600 font-medium' : 'text-tg-hint inline-flex items-center gap-1'}>
+              {isWinner ? (
+                t('youWon')
+              ) : (
+                <>
+                  <AppIcon name="icon-success" size={14} className="shrink-0" />
+                  {tGiveaway('status.finished')}
+                </>
+              )}
             </span>
           )}
           {giveaway.status === 'CANCELLED' && (
-            <span className="text-red-500">❌ {tGiveaway('status.cancelled')}</span>
+            <span className="text-red-500 inline-flex items-center gap-1">
+              <AppIcon name="icon-error" size={14} className="shrink-0" />
+              {tGiveaway('status.cancelled')}
+            </span>
           )}
         </div>
       </div>
@@ -97,7 +109,7 @@ function ParticipationCard({ participation }: { participation: MyParticipation }
             ? tGiveaway('viewResults') 
             : tGiveaway('openGiveaway')}
         </span>
-        <span className="text-tg-link">→</span>
+        <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-link shrink-0" />
       </div>
     </div>
   );
@@ -106,18 +118,18 @@ function ParticipationCard({ participation }: { participation: MyParticipation }
 // Пустое состояние
 function EmptyState({ filter }: { filter: ParticipationFilterStatus }) {
   const t = useTranslations('participant.empty');
-  
-  const emojis: Record<ParticipationFilterStatus, string> = {
-    all: '🎫',
-    active: '🟢',
-    finished: '✅',
-    won: '🏆',
-    cancelled: '❌',
+
+  const filterIcons: Record<ParticipationFilterStatus, ReactNode> = {
+    all: <AppIcon name="icon-ticket" size={18} className="mx-auto text-tg-hint" />,
+    active: <AppIcon name="icon-active" size={18} className="mx-auto text-tg-hint" />,
+    finished: <AppIcon name="icon-completed" size={18} className="mx-auto text-tg-hint" />,
+    won: <AppIcon name="icon-winner" size={18} className="mx-auto text-tg-hint" />,
+    cancelled: <AppIcon name="icon-cancelled" size={18} className="mx-auto text-tg-hint" />,
   };
 
   return (
     <div className="text-center py-12 bg-tg-secondary rounded-xl">
-      <div className="text-6xl mb-4">{emojis[filter]}</div>
+      <div className="mb-4 flex justify-center">{filterIcons[filter]}</div>
       <h2 className="text-xl font-semibold mb-2">{t(`${filter}.title`)}</h2>
       <p className="text-tg-hint">{t(`${filter}.subtitle`)}</p>
     </div>
@@ -182,13 +194,11 @@ export function ParticipantSection() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
-  // Эмодзи для фильтров
-  const filterEmojis: Record<ParticipationFilterStatus, string | undefined> = {
-    all: undefined,
-    active: '🟢',
-    finished: '✅',
-    won: '🏆',
-    cancelled: '❌',
+  const filterButtonIcons: Partial<Record<ParticipationFilterStatus, ReactNode>> = {
+    active: <AppIcon name="icon-active" size={18} className="shrink-0" />,
+    finished: <AppIcon name="icon-completed" size={18} className="shrink-0" />,
+    won: <AppIcon name="icon-winner" size={18} className="shrink-0" />,
+    cancelled: <AppIcon name="icon-cancelled" size={18} className="shrink-0" />,
   };
 
   return (
@@ -205,7 +215,7 @@ export function ParticipantSection() {
         className="w-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 text-tg-text rounded-xl py-3 px-4 mb-6 font-medium hover:from-purple-500/30 hover:to-pink-500/30 transition-all flex items-center justify-center gap-2"
       >
         <span>{t('catalogButton')}</span>
-        <span className="text-tg-hint">→</span>
+        <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint shrink-0" />
       </button>
 
       {/* Фильтры — сетка 2x2 */}
@@ -220,7 +230,9 @@ export function ParticipantSection() {
                 : 'bg-tg-secondary text-tg-text hover:bg-tg-secondary/80'
             }`}
           >
-            {filterEmojis[key] && <span className="mr-1">{filterEmojis[key]}</span>}
+            {filterButtonIcons[key] != null && (
+              <span className="mr-1 inline-flex items-center align-middle">{filterButtonIcons[key]}</span>
+            )}
             {t(`filters.${key}`)}
             {counts[key] !== undefined && counts[key] > 0 && (
               <span className="ml-1 opacity-70">({counts[key]})</span>
@@ -246,7 +258,9 @@ export function ParticipantSection() {
             </div>
           ) : error ? (
             <div className="text-center py-12 bg-tg-secondary rounded-xl">
-              <div className="text-4xl mb-4">❌</div>
+              <div className="mb-4 flex justify-center">
+                <AppIcon name="icon-error" size={14} className="text-tg-hint" />
+              </div>
               <p className="text-tg-hint mb-4">{error}</p>
               <button
                 onClick={() => loadParticipations(true)}

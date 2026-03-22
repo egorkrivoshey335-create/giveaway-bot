@@ -38,15 +38,31 @@ const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
 type TabType = 'overview' | 'participants' | 'winners' | 'stories' | 'liveness';
 
 // Получить метку статуса
+const STATUS_ICON_MAP: Record<string, string> = {
+  'DRAFT': 'icon-edit',
+  'PENDING_CONFIRM': 'icon-pending',
+  'SCHEDULED': 'icon-calendar',
+  'ACTIVE': 'icon-active',
+  'FINISHED': 'icon-success',
+  'CANCELLED': 'icon-cancelled',
+  'ERROR': 'icon-warning',
+};
+
+function StatusIcon({ status }: { status: string }) {
+  const iconName = STATUS_ICON_MAP[status];
+  if (!iconName) return null;
+  return <AppIcon name={iconName} size={14} className="inline-block mr-1" />;
+}
+
 function getStatusLabel(status: string, t: ReturnType<typeof useTranslations<'giveawayDetails'>>): string {
   switch (status) {
-    case 'DRAFT': return `📝 ${t('status.draft')}`;
-    case 'PENDING_CONFIRM': return `⏳ ${t('status.pendingConfirm')}`;
-    case 'SCHEDULED': return `⏰ ${t('status.scheduled')}`;
-    case 'ACTIVE': return `🟢 ${t('status.active')}`;
-    case 'FINISHED': return `✅ ${t('status.finished')}`;
-    case 'CANCELLED': return `❌ ${t('status.cancelled')}`;
-    case 'ERROR': return `⚠️ ${t('status.error')}`;
+    case 'DRAFT': return t('status.draft');
+    case 'PENDING_CONFIRM': return t('status.pendingConfirm');
+    case 'SCHEDULED': return t('status.scheduled');
+    case 'ACTIVE': return t('status.active');
+    case 'FINISHED': return t('status.finished');
+    case 'CANCELLED': return t('status.cancelled');
+    case 'ERROR': return t('status.error');
     default: return status;
   }
 }
@@ -405,7 +421,7 @@ export default function GiveawayDetailsPage() {
     return (
       <main className="min-h-screen p-4">
         <div className="max-w-4xl mx-auto text-center py-12">
-          <div className="text-4xl mb-4">⏳</div>
+          <div className="flex justify-center mb-4"><AppIcon name="icon-pending" size={40} /></div>
           <p className="text-tg-hint">{tCommon('loading')}</p>
         </div>
       </main>
@@ -437,7 +453,7 @@ export default function GiveawayDetailsPage() {
     { key: 'participants', icon: 'icon-participant', label: t('tabs.participants'), count: giveaway.participantsCount, show: true },
     { key: 'winners',      icon: 'icon-winner',     label: t('tabs.winners'),      count: giveaway.winners.length, show: giveaway.status === 'FINISHED' && giveaway.winners.length > 0 },
     { key: 'stories',      icon: 'icon-story',      label: t('tabs.stories'),                                    show: giveaway.condition?.storiesEnabled || false },
-    { key: 'liveness',     icon: 'icon-participant', label: '🔍 Liveness',   count: livenessStats?.pending,       show: giveaway.condition?.livenessEnabled || false },
+    { key: 'liveness',     icon: 'icon-verify',      label: 'Liveness',      count: livenessStats?.pending,       show: giveaway.condition?.livenessEnabled || false },
   ];
 
   return (
@@ -449,7 +465,7 @@ export default function GiveawayDetailsPage() {
             onClick={() => router.push('/creator')}
             className="text-tg-link text-sm mb-2 flex items-center gap-1"
           >
-            ← {t('backToList')}
+            <AppIcon name="icon-back" size={16} /> {t('backToList')}
           </button>
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -457,7 +473,7 @@ export default function GiveawayDetailsPage() {
               <p className="text-tg-hint text-sm mt-1">
                 {t('giveawayId')}: #{giveaway.id.slice(0, 8)}
               </p>
-              <p className="text-tg-hint mt-1">{getStatusLabel(giveaway.status, t)}</p>
+              <p className="text-tg-hint mt-1 flex items-center"><StatusIcon status={giveaway.status} />{getStatusLabel(giveaway.status, t)}</p>
             </div>
           </div>
         </div>
@@ -655,19 +671,19 @@ export default function GiveawayDetailsPage() {
             {/* Условия */}
             {giveaway.condition && (
               <div className="bg-tg-secondary rounded-xl p-4">
-                <h3 className="font-medium mb-3">⚙️ {t('conditions.title')}</h3>
+                <h3 className="font-medium mb-3 flex items-center gap-2"><AppIcon name="icon-settings" size={18} /> {t('conditions.title')}</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-tg-hint">{t('conditions.invites')}:</span>
-                    <span>{giveaway.condition.inviteEnabled ? `✅ ${t('conditions.upTo')} ${giveaway.condition.inviteMax}` : '❌'}</span>
+                    <span className="flex items-center gap-1">{giveaway.condition.inviteEnabled ? <><AppIcon name="icon-success" size={14} /> {t('conditions.upTo')} {giveaway.condition.inviteMax}</> : <AppIcon name="icon-error" size={14} />}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-tg-hint">{t('conditions.boosts')}:</span>
-                    <span>{giveaway.condition.boostEnabled ? '✅' : '❌'}</span>
+                    <span>{giveaway.condition.boostEnabled ? <AppIcon name="icon-success" size={14} /> : <AppIcon name="icon-error" size={14} />}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-tg-hint">{t('conditions.stories')}:</span>
-                    <span>{giveaway.condition.storiesEnabled ? '✅' : '❌'}</span>
+                    <span>{giveaway.condition.storiesEnabled ? <AppIcon name="icon-success" size={14} /> : <AppIcon name="icon-error" size={14} />}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-tg-hint">{t('conditions.captcha')}:</span>
@@ -680,28 +696,28 @@ export default function GiveawayDetailsPage() {
             {/* PLUS+ расширенная статистика — источники билетов */}
             {stats && (stats.ticketsFromInvites > 0 || stats.ticketsFromBoosts > 0 || stats.ticketsFromStories > 0 || stats.storiesPending > 0) && (
               <div className="bg-tg-secondary rounded-xl p-4 relative">
-                <h3 className="font-medium mb-3">🎫 {t('stats.ticketSources')}</h3>
+                <h3 className="font-medium mb-3 flex items-center gap-2"><AppIcon name="icon-ticket" size={18} /> {t('stats.ticketSources')}</h3>
                 <div className={`space-y-2 text-sm ${userTier === 'FREE' ? 'blur-sm select-none pointer-events-none' : ''}`}>
                   <div className="flex justify-between">
-                    <span className="text-tg-hint">🔗 {t('stats.fromInvites')}:</span>
+                    <span className="text-tg-hint flex items-center gap-1"><AppIcon name="icon-share" size={14} /> {t('stats.fromInvites')}:</span>
                     <span className="font-medium">{stats.ticketsFromInvites}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-tg-hint">⚡ {t('stats.fromBoosts')}:</span>
+                    <span className="text-tg-hint flex items-center gap-1"><AppIcon name="icon-boost" size={14} /> {t('stats.fromBoosts')}:</span>
                     <span className="font-medium">{stats.ticketsFromBoosts}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-tg-hint">📱 {t('stats.fromStories')}:</span>
+                    <span className="text-tg-hint flex items-center gap-1"><AppIcon name="icon-story" size={14} /> {t('stats.fromStories')}:</span>
                     <span className="font-medium">{stats.ticketsFromStories}
                       {stats.storiesPending > 0 && (
-                        <span className="ml-1 text-xs text-yellow-500">(⏳ {stats.storiesPending} {t('stats.pending')})</span>
+                        <span className="ml-1 text-xs text-yellow-500 inline-flex items-center gap-0.5">(<AppIcon name="icon-pending" size={12} /> {stats.storiesPending} {t('stats.pending')})</span>
                       )}
                     </span>
                   </div>
                 </div>
                 {userTier === 'FREE' && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-tg-secondary/60 rounded-xl">
-                    <div className="text-2xl mb-1">🔒</div>
+                    <div className="mb-1"><AppIcon name="icon-lock" size={28} /></div>
                     <p className="text-xs font-medium text-tg-text">PLUS+</p>
                     <button
                       onClick={() => router.push('/creator/subscription')}
@@ -717,7 +733,7 @@ export default function GiveawayDetailsPage() {
             {/* Рост участников — PLUS+ только */}
             {stats && stats.participantsGrowth.length > 0 && (
               <div className="bg-tg-secondary rounded-xl p-4 relative">
-                <h3 className="font-medium mb-3">📈 {t('growth.title')}</h3>
+                <h3 className="font-medium mb-3 flex items-center gap-2"><AppIcon name="icon-analytics" size={18} /> {t('growth.title')}</h3>
                 <div className={`flex items-end gap-1 h-24 ${userTier === 'FREE' ? 'blur-sm select-none' : ''}`}>
                   {stats.participantsGrowth.map((day, i) => {
                     const maxCount = Math.max(...stats.participantsGrowth.map(d => d.count), 1);
@@ -737,7 +753,7 @@ export default function GiveawayDetailsPage() {
                 </div>
                 {userTier === 'FREE' && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-tg-secondary/60 rounded-xl">
-                    <div className="text-2xl mb-1">🔒</div>
+                    <div className="mb-1"><AppIcon name="icon-lock" size={28} /></div>
                     <p className="text-xs font-medium text-tg-text">PLUS+</p>
                     <button
                       onClick={() => router.push('/creator/subscription')}
@@ -757,7 +773,7 @@ export default function GiveawayDetailsPage() {
                 <div className="bg-tg-secondary rounded-xl p-4 space-y-4 border-2 border-tg-button/30">
                   <h3 className="font-medium flex items-center gap-2">
                     <AppIcon name="icon-settings" variant="brand" size={18} />
-                    ✏️ {t('edit.title')}
+                    {t('edit.title')}
                     {ACTIVE_ONLY_FIELDS && (
                       <span className="ml-auto text-xs bg-yellow-500/20 text-yellow-500 px-2 py-0.5 rounded">
                         {t('edit.activeHint')}
@@ -852,9 +868,9 @@ export default function GiveawayDetailsPage() {
                       className="flex-1 bg-tg-button text-tg-button-text rounded-lg py-2.5 text-sm font-medium transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {saving ? (
-                        <span className="animate-spin">⏳</span>
+                        <span className="animate-spin"><AppIcon name="icon-refresh" size={16} /></span>
                       ) : (
-                        <>💾 {t('edit.save')}</>
+                        <><AppIcon name="icon-save" size={16} /> {t('edit.save')}</>
                       )}
                     </button>
                   </div>
@@ -866,7 +882,7 @@ export default function GiveawayDetailsPage() {
                   className="w-full bg-tg-secondary rounded-xl p-3 flex items-center justify-center gap-2 text-sm text-tg-button font-medium transition-all active:scale-95 hover:bg-tg-secondary/80"
                 >
                   <AppIcon name="icon-settings" variant="brand" size={16} />
-                  ✏️ {t('edit.openButton')}
+                  {t('edit.openButton')}
                 </button>
               )
             )}
@@ -1001,7 +1017,7 @@ export default function GiveawayDetailsPage() {
                                 if (!confirm(`Забанить ${p.user.firstName || 'пользователя'}?`)) return;
                                 const res = await banParticipant(giveawayId, p.user.id);
                                 if (res.ok) {
-                                  setMessage('✅ Пользователь забанен');
+                                  setMessage('Пользователь забанен');
                                   loadParticipants();
                                 } else {
                                   setMessage(res.error || 'Ошибка');
@@ -1011,9 +1027,7 @@ export default function GiveawayDetailsPage() {
                               title="Забанить"
                               className="p-1.5 rounded-lg text-red-400 hover:bg-red-50/10 transition-colors"
                             >
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                              </svg>
+                              <AppIcon name="icon-ban" size={16} />
                             </button>
                           </td>
                         </tr>
@@ -1092,7 +1106,7 @@ export default function GiveawayDetailsPage() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
-            <div className="text-4xl mb-4">📺</div>
+            <div className="flex justify-center mb-4"><AppIcon name="icon-story" size={40} /></div>
             <p className="text-tg-hint mb-4">{t('storiesTab.description')}</p>
             <button
               onClick={() => router.push(`/creator/giveaway/${giveawayId}/stories`)}
@@ -1146,10 +1160,10 @@ export default function GiveawayDetailsPage() {
               transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
               {livenessLoading ? (
-                <div className="text-center py-8 text-tg-hint">⏳ Загружаем...</div>
+                <div className="text-center py-8 text-tg-hint flex items-center justify-center gap-2"><AppIcon name="icon-pending" size={16} /> Загружаем...</div>
               ) : livenessChecks.length === 0 ? (
                 <div className="text-center py-12 bg-tg-secondary rounded-xl">
-                  <div className="text-4xl mb-3">🔍</div>
+                  <div className="flex justify-center mb-3"><AppIcon name="icon-search" size={40} /></div>
                   <p className="text-tg-hint text-sm">
                     {livenessFilter === 'PENDING' ? 'Нет ожидающих проверок' : 'Нет записей'}
                   </p>
@@ -1177,7 +1191,7 @@ export default function GiveawayDetailsPage() {
                     )}
                     {!check.hasPhoto && (
                       <div className="w-16 h-16 rounded-lg bg-tg-bg flex items-center justify-center flex-shrink-0">
-                        <span className="text-2xl">📷</span>
+                        <AppIcon name="icon-camera" size={24} />
                       </div>
                     )}
 
@@ -1194,13 +1208,13 @@ export default function GiveawayDetailsPage() {
                       </div>
                       <div className="mt-1">
                         {check.livenessStatus === 'PENDING' && (
-                          <span className="text-xs bg-yellow-500/10 text-yellow-600 px-2 py-0.5 rounded-full">⏳ Ожидает</span>
+                          <span className="text-xs bg-yellow-500/10 text-yellow-600 px-2 py-0.5 rounded-full inline-flex items-center gap-1"><AppIcon name="icon-pending" size={12} /> Ожидает</span>
                         )}
                         {check.livenessStatus === 'APPROVED' && (
-                          <span className="text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded-full">✅ Одобрен</span>
+                          <span className="text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded-full inline-flex items-center gap-1"><AppIcon name="icon-success" size={12} /> Одобрен</span>
                         )}
                         {check.livenessStatus === 'REJECTED' && (
-                          <span className="text-xs bg-red-500/10 text-red-600 px-2 py-0.5 rounded-full">❌ Отклонён</span>
+                          <span className="text-xs bg-red-500/10 text-red-600 px-2 py-0.5 rounded-full inline-flex items-center gap-1"><AppIcon name="icon-error" size={12} /> Отклонён</span>
                         )}
                         {check.livenessStatus === 'NOT_SUBMITTED' && (
                           <span className="text-xs bg-gray-500/10 text-gray-500 px-2 py-0.5 rounded-full">— Без фото</span>
@@ -1215,7 +1229,7 @@ export default function GiveawayDetailsPage() {
                           onClick={async () => {
                             const res = await approveLiveness(giveawayId, check.userId);
                             if (res.ok) {
-                              setMessage('✅ Участник одобрен');
+                              setMessage('Участник одобрен');
                               loadLivenessChecks(livenessFilter);
                             } else {
                               setMessage(res.error || 'Ошибка');
@@ -1224,13 +1238,13 @@ export default function GiveawayDetailsPage() {
                           }}
                           className="bg-green-500 text-white text-xs rounded-lg px-3 py-1.5 hover:bg-green-600 transition-colors"
                         >
-                          ✓ Одобрить
+                          <span className="inline-flex items-center gap-1"><AppIcon name="icon-success" size={12} /> Одобрить</span>
                         </button>
                         <button
                           onClick={async () => {
                             const res = await rejectLiveness(giveawayId, check.userId);
                             if (res.ok) {
-                              setMessage('❌ Участник отклонён');
+                              setMessage('Участник отклонён');
                               loadLivenessChecks(livenessFilter);
                             } else {
                               setMessage(res.error || 'Ошибка');
@@ -1239,7 +1253,7 @@ export default function GiveawayDetailsPage() {
                           }}
                           className="bg-red-500 text-white text-xs rounded-lg px-3 py-1.5 hover:bg-red-600 transition-colors"
                         >
-                          ✗ Отклонить
+                          <span className="inline-flex items-center gap-1"><AppIcon name="icon-error" size={12} /> Отклонить</span>
                         </button>
                       </div>
                     )}
@@ -1266,7 +1280,7 @@ export default function GiveawayDetailsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center mb-4">
-              <div className="text-4xl mb-3 animate-bounce">🚀</div>
+              <div className="flex justify-center mb-3 animate-bounce"><AppIcon name="icon-active" size={40} /></div>
               <h3 className="font-bold text-lg mb-2">{t('startModal.title')}</h3>
               <p className="text-tg-hint text-sm">
                 {t('startModal.description')}
@@ -1301,7 +1315,7 @@ export default function GiveawayDetailsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center mb-4">
-              <div className="text-4xl mb-3 animate-shake">🗑️</div>
+              <div className="flex justify-center mb-3 animate-shake"><AppIcon name="icon-delete" size={40} /></div>
               <h3 className="font-bold text-lg mb-2">{t('deleteModal.title')}</h3>
               <p className="text-tg-hint text-sm">
                 {t('deleteModal.description')}

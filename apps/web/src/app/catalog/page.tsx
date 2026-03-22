@@ -148,7 +148,7 @@ function CatalogCardWithAccess({
       <div className="border-t border-tg-bg px-4 py-3">
         <div className="flex items-center justify-between">
           <span className="text-sm text-tg-link">{t('participate')}</span>
-          <span className="text-tg-hint">→</span>
+          <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint" />
         </div>
       </div>
     </div>
@@ -175,7 +175,7 @@ function PaywallFullOverlay({
       {/* Блок с информацией о подписке */}
       <div className="bg-tg-bg p-4">
         <div className="bg-tg-secondary rounded-xl p-6 text-center">
-          <div className="text-4xl mb-3">🔒</div>
+          <div className="flex justify-center mb-3"><AppIcon name="icon-lock" size={40} /></div>
           <h3 className="text-xl font-bold mb-2">{t('giveawaysCount', { count: total })}</h3>
           <p className="text-tg-hint text-sm mb-4">
             {t('paywall.description')}
@@ -208,10 +208,10 @@ function CatalogFilters({
   sortBy: SortKey;
   onSortChange: (s: SortKey) => void;
 }) {
-  const options: { key: SortKey; label: string }[] = [
-    { key: 'totalParticipants', label: '👥 Участники' },
-    { key: 'endAt', label: '⏰ Срок' },
-    { key: 'createdAt', label: '🆕 Новые' },
+  const options: { key: SortKey; label: string; icon: string }[] = [
+    { key: 'totalParticipants', label: 'Участники', icon: 'icon-group' },
+    { key: 'endAt', label: 'Срок', icon: 'icon-calendar' },
+    { key: 'createdAt', label: 'Новые', icon: 'icon-create' },
   ];
 
   return (
@@ -220,12 +220,13 @@ function CatalogFilters({
         <button
           key={o.key}
           onClick={() => onSortChange(o.key)}
-          className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
+          className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-1 ${
             sortBy === o.key
               ? 'bg-tg-button text-tg-button-text'
               : 'bg-tg-secondary text-tg-hint'
           }`}
         >
+          <AppIcon name={o.icon} size={14} />
           {o.label}
         </button>
       ))}
@@ -306,8 +307,9 @@ export default function CatalogPage() {
       <header className="sticky top-0 z-10 bg-tg-bg border-b border-tg-secondary">
         <div className="max-w-xl mx-auto px-4 py-3">
           <div className="flex items-center gap-3 mb-2">
-            <button onClick={goBack} className="text-tg-link text-sm hover:opacity-70">
-              ← {tCommon('back')}
+            <button onClick={goBack} className="text-tg-link text-sm hover:opacity-70 flex items-center gap-1">
+              <AppIcon name="icon-back" size={16} />
+              {tCommon('back')}
             </button>
             <h1 className="text-lg font-semibold text-tg-text flex-1">
               {t('title')}
@@ -317,7 +319,7 @@ export default function CatalogPage() {
                 onClick={() => setShowModal(true)}
                 className="text-xs text-tg-button font-medium"
               >
-                {t('paywall.unlock')} ⭐
+                <span className="flex items-center gap-1">{t('paywall.unlock')} <AppIcon name="icon-star" size={14} /></span>
               </button>
             )}
           </div>
@@ -355,7 +357,7 @@ export default function CatalogPage() {
             transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
           >
             <div className="text-center py-12 bg-tg-secondary rounded-xl">
-              <div className="text-4xl mb-4">❌</div>
+              <div className="flex justify-center mb-4"><AppIcon name="icon-error" size={40} /></div>
               <p className="text-tg-hint mb-4">{error}</p>
               <button
                 onClick={() => loadCatalog()}
@@ -376,7 +378,7 @@ export default function CatalogPage() {
             transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
           >
             <div className="text-center py-12 bg-tg-secondary rounded-xl">
-              <div className="text-6xl mb-4">🎁</div>
+              <div className="flex justify-center mb-4"><AppIcon name="icon-giveaway" size={56} /></div>
               <h2 className="text-xl font-semibold mb-2">{t('empty')}</h2>
               <p className="text-tg-hint mb-6">{t('emptySubtitle')}</p>
 

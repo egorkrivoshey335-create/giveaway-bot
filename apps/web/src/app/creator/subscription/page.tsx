@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -12,6 +12,7 @@ import {
 import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
 import { haptic } from '@/lib/haptic';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AppIcon } from '@/components/AppIcon';
 
 // ============================================================================
 // Types
@@ -32,11 +33,11 @@ const ENTITLEMENT_TO_TIER: Record<string, TierKey> = {
   'tier.plus': 'plus',
 };
 
-const TIER_ICONS: Record<TierKey, string> = {
-  plus: '⭐',
-  pro: '🚀',
-  business: '💼',
-  free: '🆓',
+const TIER_ICONS: Record<TierKey, React.ReactNode> = {
+  plus: <AppIcon name="icon-star" size={14} />,
+  pro: <AppIcon name="icon-boost" size={14} />,
+  business: <AppIcon name="icon-crown" size={14} />,
+  free: null,
 };
 
 const TIER_COLORS: Record<TierKey, string> = {
@@ -200,7 +201,7 @@ export default function CreatorSubscriptionPage() {
             layout
             transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
           >
-            <div className="animate-pulse text-4xl">⭐</div>
+            <div className="animate-pulse text-4xl"><AppIcon name="icon-star" size={14} /></div>
           </motion.div>
         ) : (
           <motion.div
@@ -217,7 +218,7 @@ export default function CreatorSubscriptionPage() {
           onClick={() => router.back()}
           className="p-2 rounded-lg hover:bg-tg-secondary transition-colors"
         >
-          ←
+          <AppIcon name="icon-back" size={20} />
         </button>
         <h1 className="text-lg font-bold text-tg-text">{t('title')}</h1>
       </div>
@@ -259,14 +260,14 @@ export default function CreatorSubscriptionPage() {
           <h3 className="text-sm font-semibold text-tg-text mb-3">{t('tierLimits.title')}</h3>
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-tg-hint">🏆 {t('tierLimits.maxWinners', { count: limits.maxWinners })}</span>
+              <span className="text-tg-hint"><AppIcon name="icon-winner" size={14} /> {t('tierLimits.maxWinners', { count: limits.maxWinners })}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-tg-hint">📣 {t('tierLimits.maxInvites', { count: limits.maxInvites })}</span>
+              <span className="text-tg-hint"><AppIcon name="icon-channel" size={14} /> {t('tierLimits.maxInvites', { count: limits.maxInvites })}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-tg-hint">
-                🎁 {t('tierLimits.maxGiveaways', {
+                <AppIcon name="icon-giveaway" size={16} /> {t('tierLimits.maxGiveaways', {
                   count: limits.maxGiveaways === -1 ? '∞' : limits.maxGiveaways,
                 })}
               </span>
@@ -280,7 +281,7 @@ export default function CreatorSubscriptionPage() {
             onClick={() => setShowSubscriptionSheet(true)}
             className="w-full bg-tg-button text-tg-button-text rounded-xl py-3.5 px-4 font-semibold text-sm active:scale-95 transition-transform"
           >
-            {currentTier === 'free' ? t('upgradePlan') : t('changePlan')} ⭐
+            {currentTier === 'free' ? t('upgradePlan') : t('changePlan')} <AppIcon name="icon-star" size={14} />
           </button>
 
           {currentTier !== 'free' && !showConfirmCancel && (

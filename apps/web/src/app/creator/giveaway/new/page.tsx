@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -22,6 +22,7 @@ import { PostsManager } from '@/components/PostsManager';
 import { Mascot } from '@/components/Mascot';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ValidationMessage, useURLValidation } from '@/components/ui/ValidationMessage';
+import { AppIcon } from '@/components/AppIcon';
 import { hapticNavigation, hapticSuccess, hapticError, hapticToggle, hapticSelect } from '@/lib/haptic';
 
 // Bot deep link for confirmation
@@ -370,40 +371,31 @@ export default function GiveawayWizardPage() {
     setCurrentStep(step);
   }, [payload, saveDraft]);
 
+  const visibleSteps = useMemo(() => {
+    return WIZARD_STEPS.filter((step) => {
+      if (step === 'CUSTOM_TASKS' && payload.type !== 'CUSTOM') return false;
+      return true;
+    });
+  }, [payload.type]);
+
   // Navigate next/prev
-  const currentStepIndex = WIZARD_STEPS.indexOf(currentStep);
+  const currentStepIndex = visibleSteps.indexOf(currentStep);
   
   const goNext = useCallback(async () => {
-    if (currentStepIndex < WIZARD_STEPS.length - 1) {
-      let nextIndex = currentStepIndex + 1;
-      let nextStep = WIZARD_STEPS[nextIndex];
-      
-      // Пропустить CUSTOM_TASKS если тип не CUSTOM
-      if (nextStep === 'CUSTOM_TASKS' && payload.type !== 'CUSTOM') {
-        nextIndex++;
-        nextStep = WIZARD_STEPS[nextIndex];
-      }
-      
-      hapticNavigation(); // Haptic feedback при переходе
+    if (currentStepIndex < visibleSteps.length - 1) {
+      const nextStep = visibleSteps[currentStepIndex + 1];
+      hapticNavigation();
       await goToStep(nextStep);
     }
-  }, [currentStepIndex, goToStep, payload.type]);
+  }, [currentStepIndex, goToStep, visibleSteps]);
 
   const goPrev = useCallback(async () => {
     if (currentStepIndex > 0) {
-      let prevIndex = currentStepIndex - 1;
-      let prevStep = WIZARD_STEPS[prevIndex];
-      
-      // Пропустить CUSTOM_TASKS если тип не CUSTOM
-      if (prevStep === 'CUSTOM_TASKS' && payload.type !== 'CUSTOM') {
-        prevIndex--;
-        prevStep = WIZARD_STEPS[prevIndex];
-      }
-      
-      hapticNavigation(); // Haptic feedback при переходе назад
+      const prevStep = visibleSteps[currentStepIndex - 1];
+      hapticNavigation();
       await goToStep(prevStep);
     }
-  }, [currentStepIndex, goToStep, payload.type]);
+  }, [currentStepIndex, goToStep, visibleSteps]);
 
   // Confirm giveaway
   const handleConfirm = useCallback(async () => {
@@ -452,7 +444,7 @@ export default function GiveawayWizardPage() {
     return (
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
-          <div className="text-6xl mb-4">🎉</div>
+          <div className="text-6xl mb-4"><AppIcon name="icon-giveaway" size={16} /></div>
           <h1 className="text-2xl font-bold mb-2">{t('success.title')}</h1>
           <p className="text-tg-hint mb-6">
             {t('success.description')}
@@ -464,7 +456,7 @@ export default function GiveawayWizardPage() {
             rel="noopener noreferrer"
             className="block w-full bg-tg-button text-tg-button-text rounded-lg py-4 font-medium text-lg mb-4"
           >
-            🤖 {t('success.openBot')}
+            <AppIcon name="icon-shield" size={16} /> {t('success.openBot')}
           </a>
           
           <button
@@ -498,17 +490,29 @@ export default function GiveawayWizardPage() {
             onClick={() => router.push('/')}
             className="text-tg-hint text-sm"
           >
-            ← {t('header.backToMenu')}
+            <AppIcon name="icon-back" size={16} /> {t('header.backToMenu')}
           </button>
-          <h1 className="text-lg font-semibold">🎁 {t('header.title')}</h1>
+          <h1 className="text-lg font-semibold"><AppIcon name="icon-giveaway" size={16} /> {t('header.title')}</h1>
           <span className="text-xs text-tg-hint">
-            {saving ? '💾...' : '✓'}
+            <span className="inline-flex items-center justify-center w-5 h-5">
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={saving ? 'saving' : 'saved'}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {saving ? <AppIcon name="icon-save" size={14} /> : <AppIcon name="icon-success" size={14} />}
+                </motion.span>
+              </AnimatePresence>
+            </span>
           </span>
         </div>
 
         {/* Progress */}
         <div className="flex gap-1 mb-6">
-          {WIZARD_STEPS.map((step, i) => (
+          {visibleSteps.map((step, i) => (
             <button
               key={step}
               onClick={() => goToStep(step)}
@@ -523,7 +527,7 @@ export default function GiveawayWizardPage() {
         {/* Step Label */}
         <div className="text-center mb-6">
           <span className="text-xs text-tg-hint">
-            {t('step', { current: currentStepIndex + 1, total: WIZARD_STEPS.length })}
+            {t('step', { current: currentStepIndex + 1, total: visibleSteps.length })}
           </span>
           <h2 className="text-xl font-semibold mt-1">{t(`steps.${currentStep}`)}</h2>
         </div>
@@ -624,7 +628,7 @@ export default function GiveawayWizardPage() {
                         const selectedPost = postTemplates.find(p => p.id === payload.postTemplateId);
                         return selectedPost ? (
                           <>
-                            {selectedPost.mediaType !== 'NONE' ? (selectedPost.mediaType === 'PHOTO' ? '🖼️ ' : '🎬 ') : '📄 '}
+                            {selectedPost.mediaType !== 'NONE' ? (selectedPost.mediaType === 'PHOTO' ? <><AppIcon name="icon-image" size={14} />{' '}</> : <><AppIcon name="icon-camera" size={14} />{' '}</>) : <><AppIcon name="icon-edit" size={14} />{' '}</>}
                             {selectedPost.text.slice(0, 50)}...
                           </>
                         ) : t('basics.selectTemplate');
@@ -744,7 +748,7 @@ export default function GiveawayWizardPage() {
                 </div>
                 {(payload.requiredSubscriptionChannelIds || []).length >= subscriptionChannelLimit && subscriptionChannelLimit !== Infinity && (
                   <p className="text-xs text-yellow-600 mt-1">
-                    ⚠️ {t('subscriptions.limitReached')}
+                    <AppIcon name="icon-warning" size={14} /> {t('subscriptions.limitReached')}
                   </p>
                 )}
                 {userTier === 'FREE' && (
@@ -779,11 +783,11 @@ export default function GiveawayWizardPage() {
                         <span className={`w-5 h-5 rounded flex items-center justify-center text-xs ${
                           isSelected ? 'bg-tg-button text-tg-button-text' : 'bg-tg-secondary'
                         }`}>
-                          {isSelected ? '✓' : ''}
+                          {isSelected ? <AppIcon name="icon-success" size={14} /> : ''}
                         </span>
                         <div className="flex-1 min-w-0">
                           <div className="font-medium truncate">
-                            {channel.type === 'CHANNEL' ? '📢' : '👥'} {channel.title}
+                            {channel.type === 'CHANNEL' ? <AppIcon name="icon-channel" size={14} /> : <AppIcon name="icon-group" size={14} />} {channel.title}
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
                             {channel.username && (
@@ -844,11 +848,11 @@ export default function GiveawayWizardPage() {
                         <span className={`w-5 h-5 rounded flex items-center justify-center text-xs ${
                           isSelected ? 'bg-tg-button text-tg-button-text' : 'bg-tg-secondary'
                         }`}>
-                          {isSelected ? '✓' : ''}
+                          {isSelected ? <AppIcon name="icon-success" size={14} /> : ''}
                         </span>
                         <div className="flex-1 min-w-0">
                           <div className="font-medium truncate">
-                            {channel.type === 'CHANNEL' ? '📢' : '👥'} {channel.title}
+                            {channel.type === 'CHANNEL' ? <AppIcon name="icon-channel" size={14} /> : <AppIcon name="icon-group" size={14} />} {channel.title}
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
                             {channel.username && (
@@ -910,11 +914,11 @@ export default function GiveawayWizardPage() {
                       <span className={`w-5 h-5 rounded flex items-center justify-center text-xs ${
                         isSelected ? 'bg-tg-button text-tg-button-text' : 'bg-tg-secondary'
                       }`}>
-                        {isSelected ? '✓' : ''}
+                        {isSelected ? <AppIcon name="icon-success" size={14} /> : ''}
                       </span>
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate">
-                          {channel.type === 'CHANNEL' ? '📢' : '👥'} {channel.title}
+                          {channel.type === 'CHANNEL' ? <AppIcon name="icon-channel" size={14} /> : <AppIcon name="icon-group" size={14} />} {channel.title}
                         </div>
                       </div>
                     </button>
@@ -1068,7 +1072,7 @@ export default function GiveawayWizardPage() {
               </div>
 
               <p className="text-xs text-tg-hint text-center">
-                ⏰ {t('dates.timezoneHint')}
+                <AppIcon name="icon-calendar" size={16} /> {t('dates.timezoneHint')}
               </p>
             </motion.div>
           )}
@@ -1121,8 +1125,8 @@ export default function GiveawayWizardPage() {
               </div>
 
               <div className="bg-tg-bg rounded-lg p-3 text-sm text-tg-hint">
-                <p className="mb-1">🎲 {t('winners.randomHint')}</p>
-                <p>📊 {t('winners.maxFree', { max: winnerLimit })}</p>
+                <p className="mb-1"><AppIcon name="icon-giveaway" size={14} /> {t('winners.randomHint')}</p>
+                <p><AppIcon name="icon-chart" size={14} /> {t('winners.maxFree', { max: winnerLimit })}</p>
                 {userTier === 'FREE' && (
                   <p className="mt-1 text-xs">FREE: 10 · PLUS: 50 · PRO: 100 · BUSINESS: 200</p>
                 )}
@@ -1215,7 +1219,7 @@ export default function GiveawayWizardPage() {
               {/* Блок Капча */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-2xl">🔒</span>
+                  <span className="text-2xl"><AppIcon name="icon-lock" size={14} /></span>
                   <div>
                     <h3 className="font-semibold">{t('protection.botProtection')}</h3>
                     <p className="text-xs text-tg-hint">{t('protection.defaultHint')}</p>
@@ -1235,7 +1239,7 @@ export default function GiveawayWizardPage() {
                             : 'bg-tg-bg border-2 border-transparent hover:border-tg-secondary'
                         }`}
                       >
-                        <span className="text-2xl">{modeValue === 'OFF' ? '🚫' : modeValue === 'SUSPICIOUS_ONLY' ? '⚠️' : '✅'}</span>
+                        <span className="text-2xl">{modeValue === 'OFF' ? <AppIcon name="icon-cancelled" size={14} /> : modeValue === 'SUSPICIOUS_ONLY' ? <AppIcon name="icon-warning" size={14} /> : <AppIcon name="icon-success" size={14} />}</span>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{t(`protection.captcha.${modeValue}.label`)}</span>
@@ -1252,7 +1256,7 @@ export default function GiveawayWizardPage() {
                             ? 'bg-[#f2b6b6] text-white'
                             : 'bg-tg-secondary'
                         }`}>
-                          {payload.captchaMode === modeValue && '✓'}
+                          {payload.captchaMode === modeValue && <AppIcon name="icon-success" size={14} />}
                         </span>
                       </button>
                     );
@@ -1264,7 +1268,7 @@ export default function GiveawayWizardPage() {
               <div className="border-t border-tg-bg pt-6">
                 <div className="flex items-center justify-between p-4 bg-tg-bg rounded-lg">
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl">📸</span>
+                    <span className="text-2xl"><AppIcon name="icon-camera" size={14} /></span>
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{t('protection.livenessTitle')}</span>
@@ -1288,7 +1292,7 @@ export default function GiveawayWizardPage() {
                   </button>
                 </div>
                 <p className="text-xs text-tg-hint mt-2 text-center">
-                  💎 {t('protection.availableInPro')}
+                  <AppIcon name="icon-diamond" size={14} /> {t('protection.availableInPro')}
                 </p>
               </div>
             </motion.div>
@@ -1313,7 +1317,7 @@ export default function GiveawayWizardPage() {
               <div className="bg-tg-bg rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">👥</span>
+                    <span className="text-2xl"><AppIcon name="icon-group" size={14} /></span>
                     <div>
                       <span className="font-medium">{t('extras.inviteFriends')}</span>
                     </div>
@@ -1360,7 +1364,7 @@ export default function GiveawayWizardPage() {
               <div className="bg-tg-bg rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">⚡</span>
+                    <span className="text-2xl"><AppIcon name="icon-boost" size={14} /></span>
                     <div>
                       <span className="font-medium">{t('extras.channelBoosts')}</span>
                     </div>
@@ -1417,9 +1421,9 @@ export default function GiveawayWizardPage() {
                               <span className={`w-4 h-4 rounded flex items-center justify-center text-xs ${
                                 isSelected ? 'bg-tg-button text-tg-button-text' : 'bg-tg-bg'
                               }`}>
-                                {isSelected ? '✓' : ''}
+                                {isSelected ? <AppIcon name="icon-success" size={14} /> : ''}
                               </span>
-                              <span className="truncate">📢 {channel.title}</span>
+                              <span className="truncate"><AppIcon name="icon-channel" size={14} /> {channel.title}</span>
                             </button>
                           );
                         })}
@@ -1427,7 +1431,7 @@ export default function GiveawayWizardPage() {
                     )}
                     {payload.boostEnabled && (payload.boostChannelIds || []).length === 0 && channels.filter(c => c.type === 'CHANNEL').length > 0 && (
                       <p className="text-xs text-yellow-600 mt-2">
-                        ⚠️ {t('extras.selectAtLeastOneBoost')}
+                        <AppIcon name="icon-warning" size={14} /> {t('extras.selectAtLeastOneBoost')}
                       </p>
                     )}
                   </div>
@@ -1438,7 +1442,7 @@ export default function GiveawayWizardPage() {
               <div className="bg-tg-bg rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">📺</span>
+                    <span className="text-2xl"><AppIcon name="icon-view" size={14} /></span>
                     <div>
                       <span className="font-medium">{t('extras.stories')}</span>
                     </div>
@@ -1460,13 +1464,13 @@ export default function GiveawayWizardPage() {
                 {payload.storiesEnabled && (
                   <div className="mt-3 p-2 bg-blue-500/10 rounded-lg">
                     <p className="text-xs text-blue-600">
-                      ℹ️ {t('extras.storiesManualCheck')}
+                      <AppIcon name="icon-info" size={14} /> {t('extras.storiesManualCheck')}
                     </p>
                     <p className="text-xs text-tg-hint mt-1">
                       {t('extras.moderationPage')}: <span className="font-mono">/creator/giveaway/[id]/stories</span>
                     </p>
                     <p className="text-xs text-yellow-600 mt-1">
-                      ⚠️ {t('extras.storiesPremiumOnly')}
+                      <AppIcon name="icon-warning" size={14} /> {t('extras.storiesPremiumOnly')}
                     </p>
                   </div>
                 )}
@@ -1476,7 +1480,7 @@ export default function GiveawayWizardPage() {
               <div className="bg-tg-secondary rounded-xl p-4 relative overflow-hidden">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">📣</span>
+                    <span className="text-xl"><AppIcon name="icon-channel" size={14} /></span>
                     <span className="font-medium">{t('extras.catalogPromotion')}</span>
                     <span className="text-xs bg-yellow-500/20 text-yellow-600 px-2 py-0.5 rounded-full">
                       PRO
@@ -1494,7 +1498,7 @@ export default function GiveawayWizardPage() {
                 </p>
                 <div className="mt-3 p-2 bg-yellow-500/10 rounded-lg">
                   <p className="text-xs text-yellow-600">
-                    🔒 {t('extras.comingSoon')}
+                    <AppIcon name="icon-lock" size={14} /> {t('extras.comingSoon')}
                   </p>
                 </div>
               </div>
@@ -1533,7 +1537,7 @@ export default function GiveawayWizardPage() {
                 >
                   <div className="flex flex-col items-center gap-2">
                     <Mascot type="mascot-free-default" size={80} loop={false} autoplay={false} />
-                    <span className="text-xs">🎁 {t('mascot.free')}</span>
+                    <span className="text-xs"><AppIcon name="icon-giveaway" size={16} /> {t('mascot.free')}</span>
                   </div>
                 </button>
 
@@ -1558,12 +1562,12 @@ export default function GiveawayWizardPage() {
                       <div className="flex flex-col items-center gap-2">
                         <Mascot type={mascotId} size={80} loop={false} autoplay={false} />
                         <span className="text-xs">
-                          {isLocked ? '🔒' : '✨'} #{num}
+                          {isLocked ? <AppIcon name="icon-lock" size={14} /> : <AppIcon name="icon-star" size={14} />} {['Магнит призов', 'Бог рандома', 'Фортуна', 'Удачливый', 'Звёздный'][num - 1]}
                         </span>
                       </div>
                       {isLocked && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
-                          <span className="text-2xl">🔒</span>
+                          <span className="text-2xl"><AppIcon name="icon-lock" size={14} /></span>
                         </div>
                       )}
                     </button>
@@ -1592,7 +1596,7 @@ export default function GiveawayWizardPage() {
               {!userHasPremium && (
                 <div className="bg-yellow-500/10 rounded-lg p-3">
                   <p className="text-sm text-yellow-600">
-                    ⭐ {t('mascot.premiumHint')}
+                    <AppIcon name="icon-star" size={14} /> {t('mascot.premiumHint')}
                   </p>
                 </div>
               )}
@@ -1634,7 +1638,7 @@ export default function GiveawayWizardPage() {
                         }}
                         className="text-red-500 text-xs"
                       >
-                        🗑️ {t('customTasks.remove')}
+                        <AppIcon name="icon-delete" size={14} /> {t('customTasks.remove')}
                       </button>
                     </div>
 
@@ -1692,7 +1696,7 @@ export default function GiveawayWizardPage() {
                         }}
                         className="w-20 bg-tg-secondary rounded-lg px-3 py-1 text-sm text-tg-text text-center"
                       />
-                      <span className="text-xs text-tg-hint">🎫</span>
+                      <span className="text-xs text-tg-hint"><AppIcon name="icon-ticket" size={14} /></span>
                     </div>
                   </div>
                 ))}
@@ -1707,7 +1711,7 @@ export default function GiveawayWizardPage() {
                     }}
                     className="w-full py-3 border-2 border-dashed border-tg-hint/30 rounded-lg text-tg-hint hover:border-tg-button hover:text-tg-button transition-colors"
                   >
-                    ➕ {t('customTasks.addTask')}
+                    <AppIcon name="icon-create" size={14} /> {t('customTasks.addTask')}
                   </button>
                 )}
               </div>
@@ -1715,7 +1719,7 @@ export default function GiveawayWizardPage() {
               {/* Подсказка */}
               <div className="bg-tg-bg rounded-lg p-3">
                 <p className="text-xs text-tg-hint">
-                  💡 {t('customTasks.hint')}
+                  <AppIcon name="icon-info" size={14} /> {t('customTasks.hint')}
                 </p>
               </div>
             </motion.div>
@@ -1739,8 +1743,8 @@ export default function GiveawayWizardPage() {
               {/* Основное + кнопка Edit */}
               <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-tg-hint text-xs font-medium">📋 {t('review.basics')}</span>
-                  <button onClick={() => { hapticNavigation(); goToStep('BASICS'); }} className="text-xs text-tg-button underline">✏️ {t('review.edit')}</button>
+                  <span className="text-tg-hint text-xs font-medium"><AppIcon name="icon-edit" size={14} /> {t('review.basics')}</span>
+                  <button onClick={() => { hapticNavigation(); goToStep('BASICS'); }} className="text-xs text-tg-button"><AppIcon name="icon-edit" size={14} /> {t('review.edit')}</button>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-tg-hint">{t('review.type')}:</span>
@@ -1773,8 +1777,8 @@ export default function GiveawayWizardPage() {
               {/* Даты */}
               <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-tg-hint text-xs font-medium">📆 {t('review.dates')}</span>
-                  <button onClick={() => { hapticNavigation(); goToStep('DATES'); }} className="text-xs text-tg-button underline">✏️ {t('review.edit')}</button>
+                  <span className="text-tg-hint text-xs font-medium"><AppIcon name="icon-calendar" size={14} /> {t('review.dates')}</span>
+                  <button onClick={() => { hapticNavigation(); goToStep('DATES'); }} className="text-xs text-tg-button"><AppIcon name="icon-edit" size={14} /> {t('review.edit')}</button>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-tg-hint">{t('review.start')}:</span>
@@ -1789,8 +1793,8 @@ export default function GiveawayWizardPage() {
               {/* Победители */}
               <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-tg-hint text-xs font-medium">🏆 {t('review.winners')}</span>
-                  <button onClick={() => { hapticNavigation(); goToStep('WINNERS'); }} className="text-xs text-tg-button underline">✏️ {t('review.edit')}</button>
+                  <span className="text-tg-hint text-xs font-medium"><AppIcon name="icon-winner" size={14} /> {t('review.winners')}</span>
+                  <button onClick={() => { hapticNavigation(); goToStep('WINNERS'); }} className="text-xs text-tg-button"><AppIcon name="icon-edit" size={14} /> {t('review.edit')}</button>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-tg-hint">{t('review.count')}:</span>
@@ -1807,8 +1811,8 @@ export default function GiveawayWizardPage() {
               {/* Каналы */}
               <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-tg-hint text-xs font-medium">📣 {t('review.channels')}</span>
-                  <button onClick={() => { hapticNavigation(); goToStep('SUBSCRIPTIONS'); }} className="text-xs text-tg-button underline">✏️ {t('review.edit')}</button>
+                  <span className="text-tg-hint text-xs font-medium"><AppIcon name="icon-channel" size={14} /> {t('review.channels')}</span>
+                  <button onClick={() => { hapticNavigation(); goToStep('SUBSCRIPTIONS'); }} className="text-xs text-tg-button"><AppIcon name="icon-edit" size={14} /> {t('review.edit')}</button>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-tg-hint">{t('review.subscriptions')}:</span>
@@ -1827,8 +1831,8 @@ export default function GiveawayWizardPage() {
               {/* Защита */}
               <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-tg-hint text-xs font-medium">🔒 {t('review.protection')}</span>
-                  <button onClick={() => { hapticNavigation(); goToStep('PROTECTION'); }} className="text-xs text-tg-button underline">✏️ {t('review.edit')}</button>
+                  <span className="text-tg-hint text-xs font-medium"><AppIcon name="icon-lock" size={14} /> {t('review.protection')}</span>
+                  <button onClick={() => { hapticNavigation(); goToStep('PROTECTION'); }} className="text-xs text-tg-button"><AppIcon name="icon-edit" size={14} /> {t('review.edit')}</button>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-tg-hint">{t('review.captcha')}:</span>
@@ -1843,14 +1847,14 @@ export default function GiveawayWizardPage() {
               {/* Дополнительные билеты */}
               <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-tg-hint text-xs font-medium">🎫 {t('review.extraTickets')}</span>
-                  <button onClick={() => { hapticNavigation(); goToStep('EXTRAS'); }} className="text-xs text-tg-button underline">✏️ {t('review.edit')}</button>
+                  <span className="text-tg-hint text-xs font-medium"><AppIcon name="icon-ticket" size={14} /> {t('review.extraTickets')}</span>
+                  <button onClick={() => { hapticNavigation(); goToStep('EXTRAS'); }} className="text-xs text-tg-button"><AppIcon name="icon-edit" size={14} /> {t('review.edit')}</button>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-tg-hint">{t('review.invites')}:</span>
                   <span>
                     {payload.inviteEnabled 
-                      ? `✅ ${t('review.upToFriends', { count: payload.inviteMax || 10 })}` 
+                      ? <><AppIcon name="icon-success" size={14} /> {t('review.upToFriends', { count: payload.inviteMax || 10 })}</> 
                       : t('review.disabled')}
                   </span>
                 </div>
@@ -1858,7 +1862,7 @@ export default function GiveawayWizardPage() {
                   <span className="text-tg-hint">{t('review.boosts')}:</span>
                   <span>
                     {payload.boostEnabled 
-                      ? `✅ ${t('review.channelsCount', { count: (payload.boostChannelIds || []).length })}` 
+                      ? <><AppIcon name="icon-success" size={14} /> {t('review.channelsCount', { count: (payload.boostChannelIds || []).length })}</> 
                       : t('review.disabled')}
                   </span>
                 </div>
@@ -1866,13 +1870,13 @@ export default function GiveawayWizardPage() {
                   <span className="text-tg-hint">{t('review.stories')}:</span>
                   <span>
                     {payload.storiesEnabled 
-                      ? `✅ ${t('review.enabledManual')}` 
+                      ? <><AppIcon name="icon-success" size={14} /> {t('review.enabledManual')}</> 
                       : t('review.disabled')}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-tg-hint">{t('review.catalog')}:</span>
-                  <span className="text-yellow-600">🔒 PRO</span>
+                  <span className="text-yellow-600"><AppIcon name="icon-lock" size={14} /> PRO</span>
                 </div>
               </div>
 
@@ -1880,14 +1884,14 @@ export default function GiveawayWizardPage() {
               {payload.type === 'CUSTOM' && (payload.customTasks || []).length > 0 && (
                 <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-tg-hint text-xs font-medium">✅ {t('review.customTasks')}</span>
-                    <button onClick={() => { hapticNavigation(); goToStep('CUSTOM_TASKS'); }} className="text-xs text-tg-button underline">✏️ {t('review.edit')}</button>
+                    <span className="text-tg-hint text-xs font-medium"><AppIcon name="icon-success" size={14} /> {t('review.customTasks')}</span>
+                    <button onClick={() => { hapticNavigation(); goToStep('CUSTOM_TASKS'); }} className="text-xs text-tg-button"><AppIcon name="icon-edit" size={14} /> {t('review.edit')}</button>
                   </div>
                   {(payload.customTasks || []).map((task, idx) => (
                     <div key={idx} className="flex justify-between items-start gap-2">
                       <span className="text-tg-hint text-xs">#{idx + 1}</span>
                       <span className="flex-1 text-xs truncate">{task.description || '—'}</span>
-                      {task.tickets && <span className="text-xs text-tg-button">+{task.tickets} 🎫</span>}
+                      {task.tickets && <span className="text-xs text-tg-button">+{task.tickets} <AppIcon name="icon-ticket" size={14} /></span>}
                     </div>
                   ))}
                 </div>
@@ -1897,10 +1901,18 @@ export default function GiveawayWizardPage() {
               {payload.mascotId && (
                 <div className="bg-tg-bg rounded-lg p-3 text-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-tg-hint text-xs font-medium">🐾 {t('review.mascot')}</span>
-                    <button onClick={() => { hapticNavigation(); goToStep('MASCOT'); }} className="text-xs text-tg-button underline">✏️ {t('review.edit')}</button>
+                    <span className="text-tg-hint text-xs font-medium"><AppIcon name="icon-star" size={14} /> {t('review.mascot')}</span>
+                    <button onClick={() => { hapticNavigation(); goToStep('MASCOT'); }} className="text-xs text-tg-button"><AppIcon name="icon-edit" size={14} /> {t('review.edit')}</button>
                   </div>
-                  <div className="mt-1 text-xs">{t('review.mascotSelected', { id: payload.mascotId })}</div>
+                  <div className="mt-1 text-xs">
+                    {payload.mascotId === 'mascot-free-default'
+                      ? t('mascot.free')
+                      : (() => {
+                          const num = parseInt(payload.mascotId.replace('mascot-paid-', ''), 10);
+                          return ['Магнит призов', 'Бог рандома', 'Фортуна', 'Удачливый', 'Звёздный'][num - 1] || payload.mascotId;
+                        })()
+                    }
+                  </div>
                 </div>
               )}
 
@@ -1909,13 +1921,13 @@ export default function GiveawayWizardPage() {
                 onClick={() => { hapticError(); setShowExitConfirm(true); }}
                 className="w-full py-2 text-sm text-red-500 hover:text-red-600 transition-colors"
               >
-                ❌ {t('review.cancelDraft')}
+                <AppIcon name="icon-cancelled" size={14} /> {t('review.cancelDraft')}
               </button>
 
               {/* Validation warnings */}
               {(!payload.type || !payload.title || !payload.buttonText || !payload.postTemplateId || (payload.publishChannelIds || []).length === 0) && (
                 <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-sm text-yellow-600">
-                  ⚠️ {t('review.fillRequired')}:
+                  <AppIcon name="icon-warning" size={14} /> {t('review.fillRequired')}:
                   <ul className="list-disc list-inside mt-1">
                     {!payload.type && <li>{t('review.required.type')}</li>}
                     {!payload.title && <li>{t('review.required.title')}</li>}
@@ -1938,7 +1950,7 @@ export default function GiveawayWizardPage() {
               disabled={saving}
               className="flex-1 bg-tg-secondary text-tg-text rounded-lg py-3 font-medium"
             >
-              ← {t('nav.back')}
+              <AppIcon name="icon-back" size={16} /> {t('nav.back')}
             </button>
           )}
           
@@ -1948,7 +1960,7 @@ export default function GiveawayWizardPage() {
               disabled={saving}
               className="flex-1 bg-tg-button text-tg-button-text rounded-lg py-3 font-medium"
             >
-              {t('nav.next')} →
+              {t('nav.next')} <AppIcon name="icon-back" size={16} className="rotate-180" />
             </button>
           ) : (
             <button
@@ -1956,7 +1968,7 @@ export default function GiveawayWizardPage() {
               disabled={confirming || !payload.type || !payload.title || !payload.buttonText || !payload.postTemplateId || (payload.publishChannelIds || []).length === 0}
               className="flex-1 bg-green-500 text-white rounded-lg py-3 font-medium disabled:opacity-50"
             >
-              {confirming ? `⏳ ${t('nav.creating')}` : `✅ ${t('nav.create')}`}
+              {confirming ? <><AppIcon name="icon-pending" size={14} /> {t('nav.creating')}</> : <><AppIcon name="icon-success" size={14} /> {t('nav.create')}</>}
             </button>
           )}
         </div>
@@ -1997,7 +2009,7 @@ export default function GiveawayWizardPage() {
           <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm p-4">
             <div className="w-full max-w-sm bg-tg-bg rounded-2xl shadow-xl p-6 animate-in slide-in-from-bottom-4">
               <div className="text-center mb-5">
-                <span className="text-4xl block mb-3">📋</span>
+                <span className="text-4xl block mb-3"><AppIcon name="icon-edit" size={14} /></span>
                 <h2 className="text-lg font-bold mb-1">{tCommon('statusDraft')}</h2>
                 <p className="text-sm text-tg-hint">
                   У вас есть несохранённый черновик. Хотите продолжить редактирование или начать заново?
@@ -2008,13 +2020,13 @@ export default function GiveawayWizardPage() {
                   onClick={handleResumeDraft}
                   className="w-full py-3 px-4 bg-tg-button text-tg-button-text rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
                 >
-                  📝 Продолжить редактирование
+                  <AppIcon name="icon-edit" size={14} /> Продолжить редактирование
                 </button>
                 <button
                   onClick={handleDiscardAndNew}
                   className="w-full py-3 px-4 bg-tg-secondary text-tg-text rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
                 >
-                  🆕 Начать заново
+                  <AppIcon name="icon-create" size={14} /> Начать заново
                 </button>
               </div>
             </div>

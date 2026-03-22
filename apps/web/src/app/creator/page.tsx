@@ -21,16 +21,17 @@ const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
 type StatusFilter = 'all' | 'DRAFT' | 'PENDING_CONFIRM' | 'SCHEDULED' | 'ACTIVE' | 'FINISHED' | 'CANCELLED' | 'ERROR';
 
 // Получить метку статуса (будет заменено на переводы в компоненте)
+const STATUS_ICON_MAP: Record<string, string> = {
+  'DRAFT': 'icon-edit',
+  'PENDING_CONFIRM': 'icon-pending',
+  'SCHEDULED': 'icon-calendar',
+  'ACTIVE': 'icon-active',
+  'FINISHED': 'icon-success',
+  'CANCELLED': 'icon-cancelled',
+  'ERROR': 'icon-warning',
+};
+
 function getStatusLabel(status: string, tGiveaway: ReturnType<typeof useTranslations<'giveaway'>>): string {
-  const icons: Record<string, string> = {
-    'DRAFT': '📝',
-    'PENDING_CONFIRM': '⏳',
-    'SCHEDULED': '⏰',
-    'ACTIVE': '🟢',
-    'FINISHED': '✅',
-    'CANCELLED': '❌',
-    'ERROR': '⚠️',
-  };
   const statusMap: Record<string, string> = {
     'DRAFT': 'draft',
     'PENDING_CONFIRM': 'pending',
@@ -39,12 +40,17 @@ function getStatusLabel(status: string, tGiveaway: ReturnType<typeof useTranslat
     'FINISHED': 'finished',
     'CANCELLED': 'cancelled',
   };
-  const icon = icons[status] || '';
   const key = statusMap[status];
   if (key) {
-    return `${icon} ${tGiveaway(`status.${key}`)}`;
+    return tGiveaway(`status.${key}`);
   }
   return status;
+}
+
+function StatusIcon({ status }: { status: string }) {
+  const iconName = STATUS_ICON_MAP[status];
+  if (!iconName) return null;
+  return <AppIcon name={iconName} size={14} className="inline-block mr-1" />;
 }
 
 // Получить CSS класс для бейджа статуса
@@ -116,7 +122,7 @@ function GiveawayCard({
     switch (giveaway.status) {
       case 'ACTIVE':
         return giveaway.endAt 
-          ? { text: `⏰ ${tCard('timeLeft')}: ${formatTimeLeft(giveaway.endAt, tCommon('finishing'))}`, className: 'text-orange-500' }
+          ? { icon: 'icon-calendar', text: `${tCard('timeLeft')}: ${formatTimeLeft(giveaway.endAt, tCommon('finishing'))}`, className: 'text-orange-500' }
           : { text: tCard('noEndDate'), className: 'text-tg-hint' };
       case 'FINISHED':
         return { text: `${tCard('finished')} ${giveaway.endAt ? formatDate(giveaway.endAt) : ''}`, className: 'text-tg-hint' };
@@ -147,11 +153,12 @@ function GiveawayCard({
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             {giveaway.isSandbox && (
-              <span className="text-xs bg-orange-500/15 text-orange-400 px-2 py-0.5 rounded-full font-medium flex-shrink-0">🧪 Тест</span>
+              <span className="text-xs bg-orange-500/15 text-orange-400 px-2 py-0.5 rounded-full font-medium flex-shrink-0 flex items-center gap-1"><AppIcon name="icon-sandbox" size={12} /> Тест</span>
             )}
             <h3 className="font-semibold text-lg line-clamp-2">{giveaway.title || tCard('noTitle')}</h3>
           </div>
-          <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${getStatusBadgeClass(giveaway.status)}`}>
+          <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap flex items-center ${getStatusBadgeClass(giveaway.status)}`}>
+            <StatusIcon status={giveaway.status} />
             {getStatusLabel(giveaway.status, tGiveaway)}
           </span>
         </div>
@@ -169,7 +176,8 @@ function GiveawayCard({
         </div>
 
         {/* Дата — всегда показываем для одинаковой высоты карточек */}
-        <div className={`text-sm ${dateInfo.className}`}>
+        <div className={`text-sm flex items-center gap-1 ${dateInfo.className}`}>
+          {'icon' in dateInfo && dateInfo.icon && <AppIcon name={dateInfo.icon} size={14} />}
           {dateInfo.text}
         </div>
       </div>
@@ -436,14 +444,14 @@ export default function CreatorDashboardPage() {
     { key: 'SCHEDULED', label: t('filters.scheduled'), icon: 'icon-calendar' },
     { key: 'FINISHED',  label: t('filters.finished'),  icon: 'icon-completed' },
     { key: 'DRAFT',     label: t('filters.draft'),     icon: 'icon-edit' },
-    ...(counts['ERROR'] ? [{ key: 'ERROR' as StatusFilter, label: '⚠️ Ошибка', icon: '' }] : []),
+    ...(counts['ERROR'] ? [{ key: 'ERROR' as StatusFilter, label: 'Ошибка', icon: 'icon-warning' }] : []),
   ];
 
   if (loading) {
     return (
       <main className="min-h-screen p-4">
         <div className="max-w-4xl mx-auto text-center py-12">
-          <div className="text-4xl mb-4">⏳</div>
+          <div className="flex justify-center mb-4"><AppIcon name="icon-pending" size={40} /></div>
           <p className="text-tg-hint">{tCommon('loading')}</p>
         </div>
       </main>
@@ -454,7 +462,7 @@ export default function CreatorDashboardPage() {
     return (
       <main className="min-h-screen p-4">
         <div className="max-w-4xl mx-auto text-center py-12">
-          <div className="text-4xl mb-4">❌</div>
+          <div className="flex justify-center mb-4"><AppIcon name="icon-error" size={40} /></div>
           <p className="text-tg-hint mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
@@ -477,7 +485,8 @@ export default function CreatorDashboardPage() {
           transition={{ duration: 0.3 }}
           className="flex items-center gap-1 text-tg-link text-sm mb-4"
         >
-          ← Назад
+          <AppIcon name="icon-back" size={16} />
+          Назад
         </motion.button>
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -504,7 +513,7 @@ export default function CreatorDashboardPage() {
               onClick={async () => {
                 const res = await createSandboxGiveaway();
                 if (res.ok && res.id) {
-                  setMessage('🧪 Sandbox создан');
+                  setMessage('Sandbox создан');
                   router.push(`/creator/giveaway/${res.id}`);
                 } else {
                   setMessage(res.error || 'Ошибка создания sandbox');
@@ -514,7 +523,7 @@ export default function CreatorDashboardPage() {
               className="bg-tg-secondary text-tg-hint rounded-lg px-3 py-2 font-medium flex items-center gap-2 hover:bg-tg-secondary/80 transition-colors"
               title="Создать тестовый (sandbox) розыгрыш"
             >
-              <span>🧪</span>
+              <AppIcon name="icon-sandbox" size={16} />
               <span className="hidden sm:inline">Тест</span>
             </button>
             <button
@@ -560,9 +569,7 @@ export default function CreatorDashboardPage() {
           >
             <div className="flex items-center justify-between mb-2">
               <AppIcon name="icon-channel" variant="brand" size={32} />
-              <svg className="w-5 h-5 text-tg-hint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              <AppIcon name="icon-back" size={20} className="rotate-180 text-tg-hint" />
             </div>
             <div className="text-lg font-semibold mb-1">{t('blocks.channels.title')}</div>
             <div className="text-sm text-tg-hint">{t('blocks.channels.subtitle')}</div>
@@ -584,9 +591,7 @@ export default function CreatorDashboardPage() {
           >
             <div className="flex items-center justify-between mb-2">
               <AppIcon name="icon-edit" variant="brand" size={32} />
-              <svg className="w-5 h-5 text-tg-hint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              <AppIcon name="icon-back" size={20} className="rotate-180 text-tg-hint" />
             </div>
             <div className="text-lg font-semibold mb-1">{t('blocks.posts.title')}</div>
             <div className="text-sm text-tg-hint">{t('blocks.posts.subtitle')}</div>

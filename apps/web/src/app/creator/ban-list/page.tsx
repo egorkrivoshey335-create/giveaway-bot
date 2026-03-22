@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { getBanList, deleteBanEntry, BanEntry } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AppIcon } from '@/components/AppIcon';
 
 /**
  * Страница бан-листа создателя
@@ -40,7 +41,7 @@ export default function BanListPage() {
     if (!confirm(`Разбанить ${name}?`)) return;
     const res = await deleteBanEntry(entryId);
     if (res.ok) {
-      showMessage('✅ Пользователь разбанен');
+      showMessage('Пользователь разбанен');
       setEntries((prev) => prev.filter((e) => e.id !== entryId));
     } else {
       showMessage(res.error || 'Ошибка');
@@ -57,9 +58,7 @@ export default function BanListPage() {
               onClick={() => router.back()}
               className="p-2 -ml-2 rounded-full hover:bg-tg-secondary transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+              <AppIcon name="icon-back" size={20} />
             </button>
             <div>
               <h1 className="text-xl font-bold">🚫 Бан-лист</h1>
@@ -101,7 +100,7 @@ export default function BanListPage() {
               layout
               transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
             >
-              <span className="text-5xl block mb-3">✅</span>
+              <span className="text-5xl block mb-3"><AppIcon name="icon-success" size={14} /></span>
               <p className="font-semibold mb-1">Бан-лист пуст</p>
               <p className="text-tg-hint text-sm">Заблокированных пользователей нет</p>
             </motion.div>

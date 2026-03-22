@@ -1,17 +1,18 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getMyParticipations, MyParticipation } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AppIcon } from '@/components/AppIcon';
 
 type FilterStatus = 'all' | 'active' | 'finished' | 'won';
 
-const FILTER_LABELS: Record<FilterStatus, string> = {
-  all: '🎫 Все',
-  active: '🟢 Активные',
-  finished: '✅ Завершённые',
-  won: '🏆 Победы',
+const FILTER_LABELS: Record<FilterStatus, React.ReactNode> = {
+  all: <><AppIcon name="icon-ticket" size={16} /> Все</>,
+  active: <>🟢 Активные</>,
+  finished: <><AppIcon name="icon-success" size={14} /> Завершённые</>,
+  won: <><AppIcon name="icon-winner" size={14} /> Победы</>,
 };
 
 const PAGE_SIZE = 20;
@@ -102,9 +103,7 @@ export default function ParticipationHistoryPage() {
               onClick={() => router.back()}
               className="p-2 -ml-2 rounded-full hover:bg-tg-secondary transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+              <AppIcon name="icon-back" size={20} />
             </button>
             <div>
               <h1 className="text-xl font-bold">📜 История участий</h1>
@@ -164,7 +163,7 @@ export default function ParticipationHistoryPage() {
               layout
               transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
             >
-              <span className="text-5xl block mb-3">🎫</span>
+              <span className="text-5xl block mb-3"><AppIcon name="icon-ticket" size={16} /></span>
               <p className="font-semibold mb-1">Здесь пусто</p>
               <p className="text-tg-hint text-sm">
                 {filter === 'all'
@@ -197,7 +196,7 @@ export default function ParticipationHistoryPage() {
                           <div className="flex items-center gap-2 mb-1">
                             {p.isWinner && (
                               <span className="text-xs font-bold text-yellow-500">
-                                🏆 {p.winnerPlace ? `#${p.winnerPlace}` : 'Победитель'}
+                                <AppIcon name="icon-winner" size={14} /> {p.winnerPlace ? `#${p.winnerPlace}` : 'Победитель'}
                               </span>
                             )}
                             {statusInfo && (
@@ -210,16 +209,16 @@ export default function ParticipationHistoryPage() {
                             {p.giveaway.title}
                           </h3>
                           <div className="flex items-center gap-3 mt-1.5 text-xs text-tg-hint">
-                            <span>🎟 {p.totalTickets} билет{p.totalTickets !== 1 ? (p.totalTickets < 5 ? 'а' : 'ов') : ''}</span>
+                            <span><AppIcon name="icon-ticket" size={16} /> {p.totalTickets} билет{p.totalTickets !== 1 ? (p.totalTickets < 5 ? 'а' : 'ов') : ''}</span>
                             {p.ticketsExtra > 0 && (
                               <span className="text-green-500">+{p.ticketsExtra} бонус</span>
                             )}
-                            <span>📅 {formatDate(p.joinedAt)}</span>
+                            <span><AppIcon name="icon-calendar" size={14} /> {formatDate(p.joinedAt)}</span>
                           </div>
                         </div>
                         <div className="text-right text-xs text-tg-hint flex-shrink-0">
                           <div>{p.giveaway.participantsCount} уч.</div>
-                          <div>👥 {p.giveaway.winnersCount} победит.</div>
+                          <div><AppIcon name="icon-group" size={14} /> {p.giveaway.winnersCount} победит.</div>
                         </div>
                       </div>
                     </div>

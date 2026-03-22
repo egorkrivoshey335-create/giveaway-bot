@@ -216,7 +216,7 @@ export function PostsManager({
           </div>
         ) : posts.length === 0 ? (
           <EmptyState
-            icon="📝"
+            icon="icon-edit"
             title={t('empty.title')}
             description={t('empty.description')}
             action={{
