@@ -10,6 +10,7 @@ import {
   Channel,
 } from '@/lib/api';
 import { InlineToast } from '@/components/Toast';
+import { motion, AnimatePresence } from 'framer-motion';
 // Типы Telegram WebApp загружаются из @/types/telegram.d.ts
 
 // Берём username бота из env
@@ -265,17 +266,28 @@ export default function ChannelsPage() {
     router.push('/creator');
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-tg-bg flex items-center justify-center">
-        <div className="text-tg-hint">{tCommon('loading')}</div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-tg-bg">
-
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div
+            key="loading"
+            className="flex items-center justify-center min-h-screen"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            <div className="text-tg-hint">{tCommon('loading')}</div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="content"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
       {/* Header */}
       <header className="sticky top-0 z-10 bg-tg-bg border-b border-tg-secondary">
         <div className="max-w-xl mx-auto px-4 py-3 flex items-center gap-3">
@@ -343,6 +355,9 @@ export default function ChannelsPage() {
           </div>
         )}
       </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

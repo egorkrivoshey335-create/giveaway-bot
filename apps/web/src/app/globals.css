@@ -9,16 +9,16 @@
   --brand-primary-light: #fef2f2;
   --brand-primary-dark: #d97777;
   
-  /* Telegram Theme Colors */
-  --tg-theme-bg-color: #ffffff;
-  --tg-theme-text-color: #000000;
-  --tg-theme-hint-color: #999999;
-  --tg-theme-link-color: #f2b6b6;
-  --tg-theme-button-color: #f2b6b6;
+  /* Telegram Theme Colors — розовый бренд */
+  --tg-theme-bg-color: #fef2f2;
+  --tg-theme-text-color: #4a2020;
+  --tg-theme-hint-color: #a06060;
+  --tg-theme-link-color: #cc5555;
+  --tg-theme-button-color: #d97777;
   --tg-theme-button-text-color: #ffffff;
-  --tg-theme-secondary-bg-color: #f7f7f7;
+  --tg-theme-secondary-bg-color: #fce4e4;
   --tg-theme-header-bg-color: #f2b6b6;
-  --tg-theme-section-bg-color: #ffffff;
+  --tg-theme-section-bg-color: #fee8e8;
   
   /* Safe Area Insets (устанавливаются через FullscreenInit.tsx) */
   --tg-safe-area-top: 0px;
@@ -30,17 +30,17 @@
   --tg-header-height: 16px;
   --tg-footer-height: 16px;
   
-  /* Dark theme overrides — розовый бренд на тёмном фоне */
+  /* Dark theme overrides — розовый бренд, светлый фон как на заставке */
   &[data-theme='dark'] {
-    --tg-theme-bg-color: #1a1216;
-    --tg-theme-text-color: #f5e6e9;
-    --tg-theme-hint-color: #9e7a82;
-    --tg-theme-link-color: #f2b6b6;
-    --tg-theme-button-color: #e89999;
-    --tg-theme-button-text-color: #1a1216;
-    --tg-theme-secondary-bg-color: #241a1e;
-    --tg-theme-header-bg-color: #2a1d21;
-    --tg-theme-section-bg-color: #201619;
+    --tg-theme-bg-color: #fef2f2;
+    --tg-theme-text-color: #4a2020;
+    --tg-theme-hint-color: #a06060;
+    --tg-theme-link-color: #cc5555;
+    --tg-theme-button-color: #d97777;
+    --tg-theme-button-text-color: #ffffff;
+    --tg-theme-secondary-bg-color: #fce4e4;
+    --tg-theme-header-bg-color: #f2b6b6;
+    --tg-theme-section-bg-color: #fee8e8;
   }
 }
 

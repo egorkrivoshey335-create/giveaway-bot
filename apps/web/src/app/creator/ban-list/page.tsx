@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { getBanList, deleteBanEntry, BanEntry } from '@/lib/api';
+import { motion, AnimatePresence } from 'framer-motion';
 
 /**
  * Страница бан-листа создателя
@@ -76,50 +77,73 @@ export default function BanListPage() {
       )}
 
       <div className="max-w-2xl mx-auto px-4 py-4">
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin w-8 h-8 border-2 border-tg-button border-t-transparent rounded-full mx-auto mb-3" />
-            <p className="text-tg-hint text-sm">Загрузка...</p>
-          </div>
-        ) : entries.length === 0 ? (
-          <div className="text-center py-16">
-            <span className="text-5xl block mb-3">✅</span>
-            <p className="font-semibold mb-1">Бан-лист пуст</p>
-            <p className="text-tg-hint text-sm">Заблокированных пользователей нет</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <p className="text-tg-hint text-sm px-1 mb-3">{entries.length} пользователей заблокировано</p>
-            {entries.map((entry) => {
-              const name = [entry.bannedUser.firstName, entry.bannedUser.lastName]
-                .filter(Boolean)
-                .join(' ') || `User ${entry.bannedUser.telegramUserId}`;
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div
+              key="loading"
+              className="text-center py-12"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
+              <div className="animate-spin w-8 h-8 border-2 border-tg-button border-t-transparent rounded-full mx-auto mb-3" />
+              <p className="text-tg-hint text-sm">Загрузка...</p>
+            </motion.div>
+          ) : entries.length === 0 ? (
+            <motion.div
+              key="empty"
+              className="text-center py-16"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
+              <span className="text-5xl block mb-3">✅</span>
+              <p className="font-semibold mb-1">Бан-лист пуст</p>
+              <p className="text-tg-hint text-sm">Заблокированных пользователей нет</p>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="list"
+              className="space-y-2"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
+              <p className="text-tg-hint text-sm px-1 mb-3">{entries.length} пользователей заблокировано</p>
+              {entries.map((entry) => {
+                const name = [entry.bannedUser.firstName, entry.bannedUser.lastName]
+                  .filter(Boolean)
+                  .join(' ') || `User ${entry.bannedUser.telegramUserId}`;
 
-              return (
-                <div
-                  key={entry.id}
-                  className="flex items-center justify-between bg-tg-secondary rounded-xl px-4 py-3"
-                >
-                  <div>
-                    <div className="font-medium">{name}</div>
-                    {entry.bannedUser.username && (
-                      <div className="text-tg-hint text-xs">@{entry.bannedUser.username}</div>
-                    )}
-                    {entry.reason && (
-                      <div className="text-tg-hint text-xs mt-0.5">Причина: {entry.reason}</div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => handleUnban(entry.id, name)}
-                    className="text-sm text-tg-button font-medium hover:underline"
+                return (
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between bg-tg-secondary rounded-xl px-4 py-3"
                   >
-                    Разбанить
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                    <div>
+                      <div className="font-medium">{name}</div>
+                      {entry.bannedUser.username && (
+                        <div className="text-tg-hint text-xs">@{entry.bannedUser.username}</div>
+                      )}
+                      {entry.reason && (
+                        <div className="text-tg-hint text-xs mt-0.5">Причина: {entry.reason}</div>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleUnban(entry.id, name)}
+                      className="text-sm text-tg-button font-medium hover:underline"
+                    >
+                      Разбанить
+                    </button>
+                  </div>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </main>
   );

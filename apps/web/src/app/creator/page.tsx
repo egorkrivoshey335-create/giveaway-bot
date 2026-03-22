@@ -471,7 +471,7 @@ export default function CreatorDashboardPage() {
     <main className="min-h-screen p-4">
       <div className="max-w-4xl mx-auto">
         <motion.button
-          onClick={() => router.back()}
+          onClick={() => router.push('/')}
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3 }}
@@ -596,11 +596,11 @@ export default function CreatorDashboardPage() {
         {/* Список розыгрышей */}
         <AnimatePresence mode="wait">
           <motion.div
-            key={statusFilter}
-            initial={{ opacity: 0, y: 8 }}
+            key={`${statusFilter}-${loading ? 'loading' : 'ready'}`}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             {giveaways.length > 0 ? (
               <>

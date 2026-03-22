@@ -11,6 +11,7 @@ import {
 } from '@/lib/api';
 import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
 import { haptic } from '@/lib/haptic';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // ============================================================================
 // Types
@@ -186,16 +187,28 @@ export default function CreatorSubscriptionPage() {
       })
     : null;
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-tg-bg">
-        <div className="animate-pulse text-4xl">⭐</div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-tg-bg pb-8">
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div
+            key="loading"
+            className="flex items-center justify-center min-h-screen"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            <div className="animate-pulse text-4xl">⭐</div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="content"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
       {/* Header */}
       <div className="sticky top-0 z-10 bg-tg-bg border-b border-tg-secondary px-4 py-3 flex items-center gap-3">
         <button
@@ -327,6 +340,9 @@ export default function CreatorSubscriptionPage() {
         onClose={() => setShowSubscriptionSheet(false)}
         currentTier={currentTier === 'free' ? null : currentTier}
       />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

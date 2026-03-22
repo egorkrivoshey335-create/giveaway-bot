@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getMyParticipations, MyParticipation } from '@/lib/api';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type FilterStatus = 'all' | 'active' | 'finished' | 'won';
 
@@ -117,7 +118,7 @@ export default function ParticipationHistoryPage() {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${
                   filter === f
                     ? 'bg-tg-button text-tg-button-text'
                     : 'bg-tg-secondary text-tg-hint hover:bg-tg-secondary/80'
@@ -135,87 +136,108 @@ export default function ParticipationHistoryPage() {
 
       {/* Content */}
       <div className="max-w-2xl mx-auto px-4 py-4">
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="bg-tg-secondary rounded-xl p-4 animate-pulse">
-                <div className="h-5 bg-tg-bg rounded w-3/4 mb-2" />
-                <div className="h-4 bg-tg-bg rounded w-1/3" />
-              </div>
-            ))}
-          </div>
-        ) : participations.length === 0 ? (
-          <div className="text-center py-16">
-            <span className="text-5xl block mb-3">🎫</span>
-            <p className="font-semibold mb-1">Здесь пусто</p>
-            <p className="text-tg-hint text-sm">
-              {filter === 'all'
-                ? 'Вы ещё не участвовали ни в одном розыгрыше'
-                : filter === 'won'
-                ? 'У вас пока нет побед'
-                : 'Нет участий с таким статусом'}
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="space-y-3">
-              {participations.map((p) => {
-                const statusInfo = GIVEAWAY_STATUS_BADGE[p.giveaway.status];
-                return (
-                  <div
-                    key={p.id}
-                    onClick={() => router.push(`/giveaway/${p.giveaway.id}`)}
-                    className="bg-tg-secondary rounded-xl p-4 cursor-pointer hover:bg-tg-secondary/80 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          {p.isWinner && (
-                            <span className="text-xs font-bold text-yellow-500">
-                              🏆 {p.winnerPlace ? `#${p.winnerPlace}` : 'Победитель'}
-                            </span>
-                          )}
-                          {statusInfo && (
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusInfo.className}`}>
-                              {statusInfo.label}
-                            </span>
-                          )}
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div
+              key="loading"
+              className="space-y-3"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="bg-tg-secondary rounded-xl p-4 animate-pulse">
+                  <div className="h-5 bg-tg-bg rounded w-3/4 mb-2" />
+                  <div className="h-4 bg-tg-bg rounded w-1/3" />
+                </div>
+              ))}
+            </motion.div>
+          ) : participations.length === 0 ? (
+            <motion.div
+              key={`empty-${filter}`}
+              className="text-center py-16"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
+              <span className="text-5xl block mb-3">🎫</span>
+              <p className="font-semibold mb-1">Здесь пусто</p>
+              <p className="text-tg-hint text-sm">
+                {filter === 'all'
+                  ? 'Вы ещё не участвовали ни в одном розыгрыше'
+                  : filter === 'won'
+                  ? 'У вас пока нет побед'
+                  : 'Нет участий с таким статусом'}
+              </p>
+            </motion.div>
+          ) : (
+            <motion.div
+              key={`list-${filter}`}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
+              <div className="space-y-3">
+                {participations.map((p) => {
+                  const statusInfo = GIVEAWAY_STATUS_BADGE[p.giveaway.status];
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => router.push(`/giveaway/${p.giveaway.id}`)}
+                      className="bg-tg-secondary rounded-xl p-4 cursor-pointer hover:bg-tg-secondary/80 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            {p.isWinner && (
+                              <span className="text-xs font-bold text-yellow-500">
+                                🏆 {p.winnerPlace ? `#${p.winnerPlace}` : 'Победитель'}
+                              </span>
+                            )}
+                            {statusInfo && (
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusInfo.className}`}>
+                                {statusInfo.label}
+                              </span>
+                            )}
+                          </div>
+                          <h3 className="font-semibold text-sm leading-tight line-clamp-2">
+                            {p.giveaway.title}
+                          </h3>
+                          <div className="flex items-center gap-3 mt-1.5 text-xs text-tg-hint">
+                            <span>🎟 {p.totalTickets} билет{p.totalTickets !== 1 ? (p.totalTickets < 5 ? 'а' : 'ов') : ''}</span>
+                            {p.ticketsExtra > 0 && (
+                              <span className="text-green-500">+{p.ticketsExtra} бонус</span>
+                            )}
+                            <span>📅 {formatDate(p.joinedAt)}</span>
+                          </div>
                         </div>
-                        <h3 className="font-semibold text-sm leading-tight line-clamp-2">
-                          {p.giveaway.title}
-                        </h3>
-                        <div className="flex items-center gap-3 mt-1.5 text-xs text-tg-hint">
-                          <span>🎟 {p.totalTickets} билет{p.totalTickets !== 1 ? (p.totalTickets < 5 ? 'а' : 'ов') : ''}</span>
-                          {p.ticketsExtra > 0 && (
-                            <span className="text-green-500">+{p.ticketsExtra} бонус</span>
-                          )}
-                          <span>📅 {formatDate(p.joinedAt)}</span>
+                        <div className="text-right text-xs text-tg-hint flex-shrink-0">
+                          <div>{p.giveaway.participantsCount} уч.</div>
+                          <div>👥 {p.giveaway.winnersCount} победит.</div>
                         </div>
-                      </div>
-                      <div className="text-right text-xs text-tg-hint flex-shrink-0">
-                        <div>{p.giveaway.participantsCount} уч.</div>
-                        <div>👥 {p.giveaway.winnersCount} победит.</div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Load more */}
-            {hasMore && (
-              <div className="mt-4 text-center">
-                <button
-                  onClick={handleLoadMore}
-                  disabled={loadingMore}
-                  className="px-6 py-2.5 bg-tg-secondary rounded-xl text-sm font-medium hover:bg-tg-secondary/80 transition-colors disabled:opacity-50"
-                >
-                  {loadingMore ? 'Загрузка...' : 'Загрузить ещё'}
-                </button>
+                  );
+                })}
               </div>
-            )}
-          </>
-        )}
+
+              {hasMore && (
+                <div className="mt-4 text-center">
+                  <button
+                    onClick={handleLoadMore}
+                    disabled={loadingMore}
+                    className="px-6 py-2.5 bg-tg-secondary rounded-xl text-sm font-medium hover:bg-tg-secondary/80 transition-colors disabled:opacity-50"
+                  >
+                    {loadingMore ? 'Загрузка...' : 'Загрузить ещё'}
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </main>
   );

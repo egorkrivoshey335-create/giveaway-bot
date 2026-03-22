@@ -70,31 +70,19 @@ export function FullscreenInit() {
         root.classList.remove('dark');
       }
       
-      // Принудительно задаём брендовые цвета, перебивая любой кэш Telegram
-      if (isDark) {
-        root.style.setProperty('--tg-theme-bg-color', '#1a1216');
-        root.style.setProperty('--tg-theme-text-color', '#f5e6e9');
-        root.style.setProperty('--tg-theme-hint-color', '#9e7a82');
-        root.style.setProperty('--tg-theme-link-color', '#f2b6b6');
-        root.style.setProperty('--tg-theme-button-color', '#e89999');
-        root.style.setProperty('--tg-theme-button-text-color', '#1a1216');
-        root.style.setProperty('--tg-theme-secondary-bg-color', '#241a1e');
-        root.style.setProperty('--tg-theme-header-bg-color', '#2a1d21');
-        root.style.setProperty('--tg-theme-section-bg-color', '#201619');
-      } else {
-        root.style.setProperty('--tg-theme-bg-color', '#ffffff');
-        root.style.setProperty('--tg-theme-text-color', '#000000');
-        root.style.setProperty('--tg-theme-hint-color', '#999999');
-        root.style.setProperty('--tg-theme-link-color', '#f2b6b6');
-        root.style.setProperty('--tg-theme-button-color', '#f2b6b6');
-        root.style.setProperty('--tg-theme-button-text-color', '#ffffff');
-        root.style.setProperty('--tg-theme-secondary-bg-color', '#f7f7f7');
-        root.style.setProperty('--tg-theme-header-bg-color', '#f2b6b6');
-        root.style.setProperty('--tg-theme-section-bg-color', '#ffffff');
-      }
+      // Принудительно задаём брендовые розовые цвета — одинаковые для обоих тем
+      root.style.setProperty('--tg-theme-bg-color', '#fef2f2');
+      root.style.setProperty('--tg-theme-text-color', '#4a2020');
+      root.style.setProperty('--tg-theme-hint-color', '#a06060');
+      root.style.setProperty('--tg-theme-link-color', '#cc5555');
+      root.style.setProperty('--tg-theme-button-color', '#d97777');
+      root.style.setProperty('--tg-theme-button-text-color', '#ffffff');
+      root.style.setProperty('--tg-theme-secondary-bg-color', '#fce4e4');
+      root.style.setProperty('--tg-theme-header-bg-color', '#f2b6b6');
+      root.style.setProperty('--tg-theme-section-bg-color', '#fee8e8');
 
-      const headerColor = isDark ? '#2a1d21' : '#f2b6b6';
-      const bgColor = isDark ? '#1a1216' : '#ffffff';
+      const headerColor = '#f2b6b6';
+      const bgColor = '#fef2f2';
       
       try {
         if (tg.setHeaderColor) {

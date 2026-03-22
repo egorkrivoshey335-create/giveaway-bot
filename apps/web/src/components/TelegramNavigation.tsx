@@ -31,8 +31,7 @@ export function TelegramNavigation() {
       }
       tg.BackButton.hide();
     } else {
-      // На остальных страницах показываем BackButton с router.back()
-      const handleBack = () => router.back();
+      const handleBack = () => router.push('/');
       callbackRef.current = handleBack;
       tg.BackButton.onClick(handleBack);
       tg.BackButton.show();

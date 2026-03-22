@@ -591,10 +591,10 @@ export default function GiveawayDetailsPage() {
           <motion.div
             key="overview"
             className="space-y-6"
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             {/* Статистика */}
             {stats && (
@@ -946,10 +946,10 @@ export default function GiveawayDetailsPage() {
           <motion.div
             key="participants"
             className="space-y-4"
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             {/* Поиск */}
             <input
@@ -1045,10 +1045,10 @@ export default function GiveawayDetailsPage() {
           <motion.div
             key="winners"
             className="space-y-4"
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             {giveaway.winners.length > 0 ? (
               <div className="space-y-2">
@@ -1087,10 +1087,10 @@ export default function GiveawayDetailsPage() {
           <motion.div
             key="stories"
             className="text-center py-12 bg-tg-secondary rounded-xl"
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <div className="text-4xl mb-4">📺</div>
             <p className="text-tg-hint mb-4">{t('storiesTab.description')}</p>
@@ -1108,10 +1108,10 @@ export default function GiveawayDetailsPage() {
           <motion.div
             key="liveness"
             className="space-y-4"
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
           {/* Статистика */}
           {livenessStats && (
@@ -1140,10 +1140,10 @@ export default function GiveawayDetailsPage() {
           <AnimatePresence mode="wait">
             <motion.div
               key={livenessFilter === '' ? 'NOT_SUBMITTED' : livenessFilter}
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
               {livenessLoading ? (
                 <div className="text-center py-8 text-tg-hint">⏳ Загружаем...</div>
