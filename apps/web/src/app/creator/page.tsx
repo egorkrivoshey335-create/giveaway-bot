@@ -8,12 +8,12 @@ import {
   getGiveawaysList,
   duplicateGiveaway,
   deleteGiveaway,
-  createSandboxGiveaway,
   GiveawaySummary,
 } from '@/lib/api';
 import { InlineToast } from '@/components/Toast';
 import { AppIcon } from '@/components/AppIcon';
 import { Mascot } from '@/components/Mascot';
+import { Stagger, StaggerItem } from '@/components/FadeIn';
 
 // Берём username бота из env
 const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
@@ -313,7 +313,8 @@ export default function CreatorDashboardPage() {
 
   const GIVEAWAY_PAGE_SIZE = 20;
 
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [filterLoading, setFilterLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [giveawayOffset, setGiveawayOffset] = useState(0);
@@ -327,7 +328,7 @@ export default function CreatorDashboardPage() {
   const loadGiveaways = useCallback(async (reset = true) => {
     const currentOffset = reset ? 0 : giveawayOffset;
     if (reset) {
-      setLoading(true);
+      setFilterLoading(true);
     } else {
       setLoadingMore(true);
     }
@@ -369,7 +370,8 @@ export default function CreatorDashboardPage() {
       console.error('Failed to load giveaways:', err);
       setError(tErrors('loadFailed'));
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setFilterLoading(false);
       setLoadingMore(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -448,7 +450,7 @@ export default function CreatorDashboardPage() {
     ...(counts['ERROR'] ? [{ key: 'ERROR' as StatusFilter, label: 'Ошибка', icon: 'icon-warning' }] : []),
   ];
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <main className="min-h-screen p-4">
         <div className="max-w-4xl mx-auto flex flex-col items-center text-center py-12">
@@ -479,187 +481,182 @@ export default function CreatorDashboardPage() {
   return (
     <main className="min-h-screen p-4">
       <div className="max-w-4xl mx-auto">
-        <motion.button
-          onClick={() => router.push('/')}
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3 }}
-          className="flex items-center gap-1 text-tg-link text-sm mb-4"
-        >
-          <AppIcon name="icon-back" size={16} />
-          Назад
-        </motion.button>
-        {/* Header — как в Участнике */}
-        <div className="mb-4">
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <AppIcon name="icon-giveaway" size={22} />
-            {t('title')}
-          </h1>
-          <p className="text-tg-hint text-sm">{t('subtitle')}</p>
-        </div>
-
-        {/* Кнопка «Создать розыгрыш» — акцентная */}
-        <button
-          onClick={() => router.push('/creator/giveaway/new')}
-          className="catalog-btn relative w-full rounded-2xl py-4 px-5 mb-6 font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2.5 overflow-hidden"
-        >
-          <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer_3s_ease-in-out_infinite]" />
-          <AppIcon name="icon-create" size={22} className="relative z-10 drop-shadow-sm" />
-          <span className="relative z-10 text-[15px]">{t('create')}</span>
-          <AppIcon name="icon-back" size={14} className="rotate-180 relative z-10 opacity-60" />
-        </button>
-
-        {/* Быстрые блоки 2×2 */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <button
-            onClick={() => router.push('/creator/profile')}
-            className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <AppIcon name="icon-participant" variant="brand" size={28} />
-              <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint" />
-            </div>
-            <div className="text-sm font-semibold">{t('profile')}</div>
-          </button>
-
-          <button
-            onClick={() => router.push('/creator/channels')}
-            className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <AppIcon name="icon-channel" variant="brand" size={28} />
-              <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint" />
-            </div>
-            <div className="text-sm font-semibold">{t('channelsShort')}</div>
-          </button>
-
-          <button
-            onClick={() => {
-              const tg = window.Telegram?.WebApp;
-              const link = `https://t.me/${BOT_USERNAME}?start=posts`;
-              if (tg) {
-                tg.openTelegramLink(link);
-              } else {
-                window.open(link, '_blank');
-              }
-            }}
-            className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <AppIcon name="icon-edit" variant="brand" size={28} />
-              <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint" />
-            </div>
-            <div className="text-sm font-semibold">{t('blocks.posts.title')}</div>
-          </button>
-
-          <button
-            onClick={async () => {
-              const res = await createSandboxGiveaway();
-              if (res.ok && res.id) {
-                setMessage('Sandbox создан');
-                router.push(`/creator/giveaway/${res.id}`);
-              } else {
-                setMessage(res.error || 'Ошибка создания sandbox');
-                setTimeout(() => setMessage(null), 3000);
-              }
-            }}
-            className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <AppIcon name="icon-sandbox" variant="brand" size={28} />
-              <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint" />
-            </div>
-            <div className="text-sm font-semibold">Тест</div>
-          </button>
-        </div>
-
-        {/* Сообщение */}
-        <InlineToast message={message} onClose={() => setMessage(null)} />
-
-        {/* Фильтры — сетка 2×2 */}
-        <div className="grid grid-cols-2 gap-2 mb-6">
-          {filters.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setStatusFilter(f.key)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
-                statusFilter === f.key
-                  ? 'bg-tg-button text-tg-button-text'
-                  : 'bg-tg-secondary text-tg-text hover:bg-tg-secondary/80'
-              }`}
+        <Stagger>
+          <StaggerItem>
+            <motion.button
+              onClick={() => router.push('/')}
+              className="flex items-center gap-1 text-tg-link text-sm mb-4"
             >
-              {f.icon && <span className="mr-1 inline-flex items-center align-middle"><AppIcon name={f.icon} variant="brand" size={18} /></span>}
-              {f.label}
-              {counts[f.key] !== undefined && (
-                <span className="ml-1 opacity-70">({counts[f.key]})</span>
-              )}
-            </button>
-          ))}
-        </div>
+              <AppIcon name="icon-back" size={16} />
+              Назад
+            </motion.button>
+          </StaggerItem>
 
-        {/* Список розыгрышей */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            layout
-            key={`${statusFilter}-${loading ? 'loading' : 'ready'}`}
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
-          >
-            {giveaways.length > 0 ? (
-              <>
-                <div className="grid gap-4 md:grid-cols-2">
-                  {giveaways.map((g) => (
-                    <GiveawayCard
-                      key={g.id}
-                      giveaway={g}
-                      onDuplicate={handleDuplicate}
-                      onDelete={handleDelete}
-                      onOpenDetails={handleOpenDetails}
-                      onCopyLink={handleCopyLink}
-                      onEdit={handleEdit}
-                    />
-                  ))}
+          {/* Header — как в Участнике */}
+          <StaggerItem>
+            <div className="mb-4">
+              <h1 className="text-xl font-bold flex items-center gap-2">
+                <AppIcon name="icon-giveaway" size={22} />
+                {t('title')}
+              </h1>
+              <p className="text-tg-hint text-sm">{t('subtitle')}</p>
+            </div>
+          </StaggerItem>
+
+          {/* Кнопка «Создать розыгрыш» — как в CreatorSection */}
+          <StaggerItem>
+            <button
+              onClick={() => router.push('/creator/giveaway/new')}
+              className="w-full bg-tg-button text-tg-button-text rounded-xl py-3 px-4 font-medium mb-6 hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+            >
+              <AppIcon name="icon-create" size={18} />
+              {t('createGiveaway')}
+            </button>
+          </StaggerItem>
+
+          {/* Быстрые блоки 2×2 (Профиль, Каналы, Посты) */}
+          <StaggerItem>
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <button
+                onClick={() => router.push('/creator/profile')}
+                className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <AppIcon name="icon-participant" variant="brand" size={28} />
+                  <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint" />
                 </div>
-                {hasMore && (
-                  <button
-                    onClick={() => loadGiveaways(false)}
-                    disabled={loadingMore}
-                    className="w-full mt-4 py-3 bg-tg-secondary rounded-xl text-sm text-tg-hint hover:text-tg-text transition-colors disabled:opacity-50"
-                  >
-                    {loadingMore ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <span className="animate-spin w-4 h-4 border-2 border-tg-button border-t-transparent rounded-full" />
-                        {tCommon('loading')}
-                      </span>
-                    ) : (
-                      tCommon('loadMore')
-                    )}
-                  </button>
-                )}
-              </>
-            ) : (
-              <div className="flex flex-col items-center text-center py-8 bg-tg-secondary rounded-xl">
-                <div className="mb-2">
-                  <Mascot type="state-empty" size={120} loop autoplay />
+                <div className="text-sm font-semibold">{t('profile')}</div>
+              </button>
+
+              <button
+                onClick={() => router.push('/creator/channels')}
+                className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <AppIcon name="icon-channel" variant="brand" size={28} />
+                  <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint" />
                 </div>
-                <h2 className="text-xl font-semibold mb-2">
-                  {statusFilter === 'all' ? t('empty.title') : t('empty.titleFiltered')}
-                </h2>
-                <p className="text-tg-hint mb-6">
-                  {t('empty.subtitle')}
-                </p>
+                <div className="text-sm font-semibold">{t('channelsShort')}</div>
+              </button>
+
+              <button
+                onClick={() => {
+                  const tg = window.Telegram?.WebApp;
+                  const link = `https://t.me/${BOT_USERNAME}?start=posts`;
+                  if (tg) {
+                    tg.openTelegramLink(link);
+                  } else {
+                    window.open(link, '_blank');
+                  }
+                }}
+                className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left col-span-2"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <AppIcon name="icon-edit" variant="brand" size={28} />
+                  <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint" />
+                </div>
+                <div className="text-sm font-semibold">{t('blocks.posts.title')}</div>
+              </button>
+            </div>
+          </StaggerItem>
+
+          {/* Сообщение */}
+          <InlineToast message={message} onClose={() => setMessage(null)} />
+
+          {/* Фильтры — сетка 2×2, нечётный по центру */}
+          <StaggerItem>
+            <div className="grid grid-cols-2 gap-2 mb-6">
+              {filters.map((f, idx) => (
                 <button
-                  onClick={() => router.push('/creator/giveaway/new')}
-                  className="bg-tg-button text-tg-button-text rounded-lg px-6 py-3 font-medium"
+                  key={f.key}
+                  onClick={() => setStatusFilter(f.key)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                    statusFilter === f.key
+                      ? 'bg-tg-button text-tg-button-text'
+                      : 'bg-tg-secondary text-tg-text hover:bg-tg-secondary/80'
+                  } ${filters.length % 2 !== 0 && idx === filters.length - 1 ? 'col-span-2 max-w-[50%] mx-auto' : ''}`}
                 >
-                  {t('createGiveaway')}
+                  {f.icon && <span className="mr-1 inline-flex items-center align-middle"><AppIcon name={f.icon} variant="brand" size={18} /></span>}
+                  {f.label}
+                  {counts[f.key] !== undefined && (
+                    <span className="ml-1 opacity-70">({counts[f.key]})</span>
+                  )}
                 </button>
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
+              ))}
+            </div>
+          </StaggerItem>
+
+          {/* Список розыгрышей */}
+          <StaggerItem>
+            <AnimatePresence mode="wait">
+              <motion.div
+                layout
+                key={`${statusFilter}-${filterLoading ? 'loading' : 'ready'}`}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
+              >
+                {filterLoading ? (
+                  <div className="flex flex-col items-center text-center py-8">
+                    <Mascot type="state-loading" size={80} loop autoplay />
+                    <p className="text-tg-hint text-sm mt-2">{tCommon('loading')}</p>
+                  </div>
+                ) : giveaways.length > 0 ? (
+                  <>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {giveaways.map((g) => (
+                        <GiveawayCard
+                          key={g.id}
+                          giveaway={g}
+                          onDuplicate={handleDuplicate}
+                          onDelete={handleDelete}
+                          onOpenDetails={handleOpenDetails}
+                          onCopyLink={handleCopyLink}
+                          onEdit={handleEdit}
+                        />
+                      ))}
+                    </div>
+                    {hasMore && (
+                      <button
+                        onClick={() => loadGiveaways(false)}
+                        disabled={loadingMore}
+                        className="w-full mt-4 py-3 bg-tg-secondary rounded-xl text-sm text-tg-hint hover:text-tg-text transition-colors disabled:opacity-50"
+                      >
+                        {loadingMore ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <span className="animate-spin w-4 h-4 border-2 border-tg-button border-t-transparent rounded-full" />
+                            {tCommon('loading')}
+                          </span>
+                        ) : (
+                          tCommon('loadMore')
+                        )}
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center text-center py-8 bg-tg-secondary rounded-xl">
+                    <div className="mb-2">
+                      <Mascot type="state-empty" size={120} loop autoplay />
+                    </div>
+                    <h2 className="text-xl font-semibold mb-2">
+                      {statusFilter === 'all' ? t('empty.title') : t('empty.titleFiltered')}
+                    </h2>
+                    <p className="text-tg-hint mb-6">
+                      {t('empty.subtitle')}
+                    </p>
+                    <button
+                      onClick={() => router.push('/creator/giveaway/new')}
+                      className="bg-tg-button text-tg-button-text rounded-lg px-6 py-3 font-medium"
+                    >
+                      {t('createGiveaway')}
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </StaggerItem>
+        </Stagger>
       </div>
     </main>
   );
