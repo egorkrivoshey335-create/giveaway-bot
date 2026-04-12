@@ -2,6 +2,7 @@
 
 import { useEffect, useState, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AppIcon } from '@/components/AppIcon';
 
 interface BottomSheetProps {
   isOpen: boolean;
@@ -16,7 +17,7 @@ export function BottomSheet({
   onClose, 
   title, 
   children,
-  maxHeight = '80vh'
+  maxHeight = '85vh'
 }: BottomSheetProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -26,10 +27,9 @@ export function BottomSheet({
 
   useEffect(() => {
     if (isOpen) {
-      // Блокируем скролл body
       document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = '';
+      setTimeout(() => { document.body.style.overflow = ''; }, 300);
     }
 
     return () => {
@@ -48,7 +48,7 @@ export function BottomSheet({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.25 }}
             className="fixed inset-0 bg-black/50 z-40"
             onClick={onClose}
           />
@@ -75,25 +75,13 @@ export function BottomSheet({
                   onClick={onClose}
                   className="text-tg-hint hover:text-tg-text transition-colors p-1"
                 >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  <AppIcon name="icon-close" size={20} />
                 </button>
               </div>
             )}
 
             {/* Контент */}
-            <div className="overflow-y-auto" style={{ maxHeight: 'calc(80vh - 100px)' }}>
+            <div className="overflow-y-auto pb-safe" style={{ maxHeight: `calc(${maxHeight} - 100px)` }}>
               {children}
             </div>
           </motion.div>

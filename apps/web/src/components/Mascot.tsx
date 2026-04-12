@@ -58,6 +58,10 @@ export interface MascotProps {
     | 'mascot-paid-3'
     | 'mascot-paid-4'
     | 'mascot-paid-5'
+    // Tier mascots (subscription)
+    | 'tier-plus'
+    | 'tier-pro'
+    | 'tier-business'
     | string; // Поддержка кастомных путей
   /**
    * Размер маскота (px или rem)
@@ -127,6 +131,11 @@ const MASCOT_PATHS: Record<string, string> = {
   'mascot-paid-3': '/mascots/characters/mascot-paid-3.json',
   'mascot-paid-4': '/mascots/characters/mascot-paid-4.json',
   'mascot-paid-5': '/mascots/characters/mascot-paid-5.json',
+
+  // Tier mascots (subscription)
+  'tier-plus': '/mascots/tiers/tier-plus.json',
+  'tier-pro': '/mascots/tiers/tier-pro.json',
+  'tier-business': '/mascots/tiers/tier-business.json',
 };
 
 /**
@@ -246,6 +255,10 @@ export function Mascot({
       'mascot-paid-3': '🐼',
       'mascot-paid-4': '🦊',
       'mascot-paid-5': '🚀',
+      // Tiers
+      'tier-plus': '⭐',
+      'tier-pro': '🚀',
+      'tier-business': '💼',
     };
 
     const emoji = fallbackEmoji[type] || '🎭';

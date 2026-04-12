@@ -2,8 +2,11 @@
 
 import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
+import { AnimatePresence, motion } from 'framer-motion';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { createPayment } from '@/lib/api';
+import { AppIcon } from '@/components/AppIcon';
+import { Mascot } from '@/components/Mascot';
 
 // ============================================================================
 // Types
@@ -18,7 +21,7 @@ interface TierConfig {
   color: string;
   bgColor: string;
   borderColor: string;
-  icon: string;
+  mascot: 'tier-plus' | 'tier-pro' | 'tier-business';
 }
 
 const TIERS: TierConfig[] = [
@@ -28,7 +31,7 @@ const TIERS: TierConfig[] = [
     color: 'text-blue-600',
     bgColor: 'bg-blue-500/10',
     borderColor: 'border-blue-500/30',
-    icon: '⭐',
+    mascot: 'tier-plus',
   },
   {
     key: 'pro',
@@ -36,7 +39,7 @@ const TIERS: TierConfig[] = [
     color: 'text-purple-600',
     bgColor: 'bg-purple-500/10',
     borderColor: 'border-purple-500/30',
-    icon: '🚀',
+    mascot: 'tier-pro',
   },
   {
     key: 'business',
@@ -44,11 +47,10 @@ const TIERS: TierConfig[] = [
     color: 'text-amber-600',
     bgColor: 'bg-amber-500/10',
     borderColor: 'border-amber-500/30',
-    icon: '💼',
+    mascot: 'tier-business',
   },
 ];
 
-// Фичи для каждого таба
 const CREATOR_FEATURES = [
   'analytics',
   'mascot',
@@ -65,7 +67,6 @@ const PARTICIPANT_FEATURES = [
   'notifications',
 ] as const;
 
-// Какие тарифы включают каждую фичу
 const FEATURE_TIERS: Record<string, TierKey[]> = {
   analytics: ['plus', 'pro', 'business'],
   mascot: ['plus', 'pro', 'business'],
@@ -82,17 +83,6 @@ const FEATURE_TIERS: Record<string, TierKey[]> = {
 // ============================================================================
 // Sub-components
 // ============================================================================
-
-function TierBadge({ tier }: { tier: TierConfig }) {
-  const t = useTranslations('subscription.tiers');
-  return (
-    <span
-      className={`text-xs font-bold px-2 py-0.5 rounded-full ${tier.bgColor} ${tier.color}`}
-    >
-      {t(`${tier.key}.badge`)}
-    </span>
-  );
-}
 
 function FeatureRow({
   featureKey,
@@ -113,21 +103,33 @@ function FeatureRow({
       className="w-full text-left"
       onClick={() => setExpanded(e => !e)}
     >
-      <div className="flex items-start gap-3 py-2">
-        <span className={`text-lg mt-0.5 ${included ? '' : 'opacity-40'}`}>
-          {included ? '✅' : '🔒'}
+      <div className="flex items-start gap-3 py-2.5">
+        <span className={`mt-0.5 ${included ? '' : 'opacity-40'}`}>
+          {included ? (
+            <AppIcon name="icon-back" size={16} className="rotate-180 text-green-500" />
+          ) : (
+            <AppIcon name="icon-lock" size={16} />
+          )}
         </span>
         <div className="flex-1 min-w-0">
           <div className={`font-medium text-sm ${included ? 'text-tg-text' : 'text-tg-hint'}`}>
             {t(`${featureKey}.title`)}
           </div>
-          {expanded && (
-            <div className="text-xs text-tg-hint mt-1 leading-relaxed">
-              {t(`${featureKey}.description`)}
+          <div
+            className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
+          >
+            <div className="overflow-hidden">
+              <div className="text-xs text-tg-hint mt-1 leading-relaxed">
+                {t(`${featureKey}.description`)}
+              </div>
             </div>
-          )}
+          </div>
         </div>
-        <span className="text-tg-hint text-xs mt-0.5">{expanded ? '▲' : '▼'}</span>
+        <AppIcon
+          name="icon-back"
+          size={14}
+          className={`text-tg-hint mt-0.5 transition-transform duration-200 ${expanded ? 'rotate-90' : '-rotate-90'}`}
+        />
       </div>
     </button>
   );
@@ -155,7 +157,9 @@ function TierCard({
           : 'border-tg-secondary bg-tg-secondary'
       }`}
     >
-      <div className="text-xl mb-1">{tier.icon}</div>
+      <div className="flex justify-center mb-1">
+        <Mascot type={tier.mascot} size={48} loop autoplay />
+      </div>
       <div className={`font-bold text-sm ${isSelected ? tier.color : 'text-tg-text'}`}>
         {t(`tiers.${tier.key}.name`)}
       </div>
@@ -176,11 +180,8 @@ function TierCard({
 interface SubscriptionBottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  /** Какой тариф сейчас активен у пользователя (чтобы не предлагать его снова) */
   currentTier?: TierKey | 'free' | null;
-  /** Начальный выбранный таб */
   defaultTab?: TabKey;
-  /** Начальный выбранный тариф */
   defaultTier?: TierKey;
 }
 
@@ -226,13 +227,15 @@ export function SubscriptionBottomSheet({
 
   const isAlreadySubscribed = currentTier === selectedTier;
 
+  const features = activeTab === 'creators' ? CREATOR_FEATURES : PARTICIPANT_FEATURES;
+
   return (
     <BottomSheet
       isOpen={isOpen}
       onClose={onClose}
       title={t('title')}
     >
-      <div className="space-y-4">
+      <div className="px-4 pb-6 space-y-4">
         {/* Subtitle */}
         <p className="text-sm text-tg-hint text-center">{t('subtitle')}</p>
 
@@ -266,36 +269,39 @@ export function SubscriptionBottomSheet({
           ))}
         </div>
 
-        {/* Features list */}
-        <div className="space-y-0.5 divide-y divide-tg-secondary">
-          {activeTab === 'creators'
-            ? CREATOR_FEATURES.map(f => (
-                <FeatureRow
-                  key={f}
-                  featureKey={f}
-                  namespace="creators"
-                  selectedTier={selectedTier}
-                />
-              ))
-            : PARTICIPANT_FEATURES.map(f => (
-                <FeatureRow
-                  key={f}
-                  featureKey={f}
-                  namespace="participants"
-                  selectedTier={selectedTier}
-                />
-              ))}
-        </div>
+        {/* Features list with smooth transition */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="space-y-0.5 divide-y divide-tg-secondary"
+          >
+            {features.map(f => (
+              <FeatureRow
+                key={f}
+                featureKey={f}
+                namespace={activeTab}
+                selectedTier={selectedTier}
+              />
+            ))}
+          </motion.div>
+        </AnimatePresence>
 
         {/* Pricing */}
         <div className={`rounded-xl p-4 ${selectedTierConfig.bgColor} ${selectedTierConfig.borderColor} border`}>
           <div className="flex items-center justify-between">
-            <div>
-              <div className={`text-lg font-bold ${selectedTierConfig.color}`}>
-                {selectedTierConfig.icon} {t(`tiers.${selectedTier}.name`)}
-              </div>
-              <div className="text-xs text-tg-hint">
-                {t(`tiers.${selectedTier}.starsPrice`)}
+            <div className="flex items-center gap-3">
+              <Mascot type={selectedTierConfig.mascot} size={36} loop autoplay />
+              <div>
+                <div className={`text-lg font-bold ${selectedTierConfig.color}`}>
+                  {t(`tiers.${selectedTier}.name`)}
+                </div>
+                <div className="text-xs text-tg-hint">
+                  {t(`tiers.${selectedTier}.starsPrice`)}
+                </div>
               </div>
             </div>
             <div className="text-right">
@@ -317,25 +323,33 @@ export function SubscriptionBottomSheet({
         {/* Pay button */}
         {isAlreadySubscribed ? (
           <div className="w-full bg-green-500/10 border border-green-500/30 rounded-xl py-3 text-center">
-            <p className="text-sm text-green-600 font-medium">✅ {t('alreadySubscribed')}</p>
+            <p className="text-sm text-green-600 font-medium flex items-center justify-center gap-1.5">
+              <AppIcon name="icon-success" size={16} />
+              {t('alreadySubscribed')}
+            </p>
           </div>
         ) : (
           <button
             onClick={handlePay}
             disabled={loading}
-            className={`w-full rounded-xl py-3.5 px-4 font-semibold text-white transition-all ${
-              loading ? 'opacity-60' : 'active:scale-95'
-            } ${
-              selectedTier === 'plus'
-                ? 'bg-blue-500'
-                : selectedTier === 'pro'
-                ? 'bg-purple-500'
-                : 'bg-amber-500'
+            className={`catalog-btn relative w-full rounded-2xl py-4 px-5 font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2.5 overflow-hidden ${
+              loading ? 'opacity-60' : ''
             }`}
           >
-            {loading
-              ? t('loading')
-              : t('payBtn', { price: t(`tiers.${selectedTier}.price`) })}
+            <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer_3s_ease-in-out_infinite]" />
+            {loading ? (
+              <span className="relative z-10 flex items-center gap-2">
+                <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                {t('loading')}
+              </span>
+            ) : (
+              <>
+                <AppIcon name="icon-diamond" size={20} className="relative z-10 drop-shadow-sm" />
+                <span className="relative z-10 text-[15px]">
+                  {t('payBtn', { price: t(`tiers.${selectedTier}.price`) })}
+                </span>
+              </>
+            )}
           </button>
         )}
 
