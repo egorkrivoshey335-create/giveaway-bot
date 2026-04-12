@@ -433,6 +433,13 @@ export async function getPostTemplates(): Promise<PostTemplatesResponse> {
 }
 
 /**
+ * Get media preview URL for a post template
+ */
+export function getPostTemplateMediaUrl(templateId: string): string {
+  return `${API_URL}/post-templates/${templateId}/media`;
+}
+
+/**
  * Delete a post template (soft delete)
  */
 export async function deletePostTemplate(id: string): Promise<DeletePostTemplateResponse> {

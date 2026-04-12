@@ -8,6 +8,7 @@ import {
   getGiveawaysList,
   getChannels,
   getPostTemplates,
+  getPostTemplateMediaUrl,
   deleteChannel,
   deletePostTemplate,
   undoDeletePostTemplate,
@@ -291,16 +292,35 @@ export function CreatorSection() {
               ) : (
                 <motion.div key="posts-list" {...contentMotion} className="space-y-3">
                   {postTemplates.map((post) => (
-                    <div key={post.id} className="bg-tg-bg rounded-lg p-3 flex items-start justify-between">
+                    <div key={post.id} className="bg-tg-bg rounded-lg p-3 flex items-start gap-3">
+                      {/* Превью медиа */}
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-tg-secondary flex-shrink-0 flex items-center justify-center">
+                        {post.hasMedia && post.telegramFileId ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={getPostTemplateMediaUrl(post.id)}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                const fallback = document.createElement('div');
+                                fallback.className = 'w-full h-full flex items-center justify-center';
+                                fallback.innerHTML = `<img src="/icons/brand/icon-camera.webp" width="24" height="24" alt="" />`;
+                                parent.appendChild(fallback);
+                              }
+                            }}
+                          />
+                        ) : (
+                          <AppIcon name="icon-cancel" size={24} />
+                        )}
+                      </div>
+
+                      {/* Контент */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          {post.mediaType === 'NONE' ? (
-                            <AppIcon name="icon-edit" size={20} />
-                          ) : post.mediaType === 'PHOTO' ? (
-                            <AppIcon name="icon-camera" size={20} />
-                          ) : (
-                            <AppIcon name="icon-view" size={20} />
-                          )}
                           <span className={`text-xs px-2 py-0.5 rounded ${
                             post.mediaType === 'NONE'
                               ? 'bg-gray-500/10 text-gray-500'
@@ -316,9 +336,11 @@ export function CreatorSection() {
                           {new Date(post.createdAt).toLocaleString()}
                         </p>
                       </div>
+
+                      {/* Удалить */}
                       <button
                         onClick={() => handleDeletePost(post.id)}
-                        className="text-red-500 text-sm ml-2 p-1 inline-flex items-center justify-center"
+                        className="text-red-500 text-sm p-1 inline-flex items-center justify-center flex-shrink-0"
                         title={tCommon('delete')}
                       >
                         <AppIcon name="icon-delete" size={14} />
