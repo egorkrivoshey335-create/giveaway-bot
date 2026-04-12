@@ -1491,69 +1491,6 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   /**
-   * GET /giveaways/:id/participants/export
-   * CSV экспорт участников (только owner)
-   */
-  fastify.get<{ Params: { id: string } }>('/giveaways/:id/participants/export', async (request, reply) => {
-    const user = await requireUser(request, reply);
-    if (!user) return;
-
-    const { id } = request.params;
-
-    // Проверяем владельца
-    const giveaway = await prisma.giveaway.findFirst({
-      where: { id, ownerUserId: user.id },
-    });
-
-    if (!giveaway) {
-      return reply.notFound('Розыгрыш не найден');
-    }
-
-    // Получаем всех участников
-    const participations = await prisma.participation.findMany({
-      where: { giveawayId: id },
-      include: {
-        user: {
-          select: {
-            telegramUserId: true,
-            username: true,
-            firstName: true,
-            lastName: true,
-            language: true,
-          },
-        },
-      },
-      orderBy: { joinedAt: 'asc' },
-    });
-
-    // Генерируем CSV
-    const csvHeader = 'telegramUserId,username,firstName,lastName,language,ticketsBase,ticketsExtra,ticketsTotal,joinedAt,sourceTag,fraudScore\n';
-    const csvRows = participations.map(p => {
-      const totalTickets = p.ticketsBase + p.ticketsExtra;
-      return [
-        p.user.telegramUserId.toString(),
-        p.user.username || '',
-        (p.user.firstName || '').replace(/,/g, ''),
-        (p.user.lastName || '').replace(/,/g, ''),
-        p.user.language,
-        p.ticketsBase,
-        p.ticketsExtra,
-        totalTickets,
-        p.joinedAt.toISOString(),
-        p.sourceTag || '',
-        p.fraudScore || 0,
-      ].join(',');
-    }).join('\n');
-
-    const csv = csvHeader + csvRows;
-
-    return reply
-      .header('Content-Type', 'text/csv; charset=utf-8')
-      .header('Content-Disposition', `attachment; filename="participants-${id}.csv"`)
-      .send(csv);
-  });
-
-  /**
    * POST /giveaways/:id/retry
    * Повторная попытка для розыгрышей в статусе ERROR
    * Сбрасывает статус обратно на ACTIVE для повторного выполнения
