@@ -8,19 +8,19 @@
  */
 
 // Types
-export * from './types.js';
+export * from './types';
 
 // API Response Types
-export * from './api-types.js';
+export * from './api-types';
 
 // Constants
-export * from './constants.js';
+export * from './constants';
 
 // Moderation
-export * from './moderation.js';
+export * from './moderation';
 
 // Validation (Zod schemas)
-export * from './validation.js';
+export * from './validation';
 
 // Short Code utilities
-export * from './shortCode.js';
+export * from './shortCode';

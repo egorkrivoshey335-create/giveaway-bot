@@ -7,7 +7,7 @@
  * @packageDocumentation
  */
 
-import { ErrorCode } from './types.js';
+import { ErrorCode } from './types';
 
 // ============================================================================
 // Success Response
