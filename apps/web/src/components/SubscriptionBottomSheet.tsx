@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { createPayment } from '@/lib/api';
@@ -174,7 +175,7 @@ function TierCard({
       </div>
       <div className="text-[10px] text-tg-hint mt-0.5 opacity-70 flex items-center justify-center gap-0.5">
         {t(`tiers.${tier.key}.starsPrice`).replace('⭐', '')}
-        <img src="/icons/brand/icon-star.webp" alt="stars" className="w-3 h-3 inline-block" />
+        <Image src="/icons/brand/icon-star.webp" alt="stars" width={12} height={12} className="inline-block" />
       </div>
       {isCurrent && (
         <div className="mt-1 text-xs text-green-600 font-medium">{t('current')}</div>
@@ -309,7 +310,7 @@ export function SubscriptionBottomSheet({
                 </div>
                 <div className="text-xs text-tg-hint flex items-center gap-0.5">
                   {t(`tiers.${selectedTier}.starsPrice`).replace('⭐', '')}
-                  <img src="/icons/brand/icon-star.webp" alt="stars" className="w-3.5 h-3.5 inline-block" />
+                  <Image src="/icons/brand/icon-star.webp" alt="stars" width={14} height={14} className="inline-block" />
                 </div>
               </div>
             </div>
