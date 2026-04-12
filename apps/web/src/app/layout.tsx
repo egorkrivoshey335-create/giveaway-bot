@@ -47,7 +47,7 @@ export default async function RootLayout({
         <LoadingScreen />
         <FullscreenInit />
         <TelegramNavigation />
-        <FloatingIcons count={10} opacity={0.06} />
+        <FloatingIcons count={10} opacity={0.1} />
         <ErrorBoundary>
           <NextIntlClientProvider locale={locale} messages={messages}>
             <SWRProvider>

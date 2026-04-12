@@ -560,20 +560,33 @@ export default function GiveawayWizardPage() {
               </div>
 
               <div className="space-y-3">
-              {(['STANDARD', 'BOOST_REQUIRED', 'INVITE_REQUIRED', 'CUSTOM'] as const).map((typeValue) => (
-                <button
-                  key={typeValue}
-                  onClick={() => updatePayload({ type: typeValue as GiveawayDraftPayload['type'] })}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
-                    payload.type === typeValue
-                      ? 'border-tg-button bg-tg-button/10'
-                      : 'border-transparent bg-tg-bg'
-                  }`}
-                >
-                  <div className="font-medium">{t(`types.${typeValue}.label`)}</div>
-                  <div className="text-sm text-tg-hint mt-1">{t(`types.${typeValue}.desc`)}</div>
-                </button>
-              ))}
+              {(['STANDARD', 'BOOST_REQUIRED', 'INVITE_REQUIRED', 'CUSTOM'] as const).map((typeValue) => {
+                const typeMascots: Record<string, string> = {
+                  STANDARD: 'wizard-promotion',
+                  BOOST_REQUIRED: 'wizard-boost',
+                  INVITE_REQUIRED: 'wizard-invite',
+                  CUSTOM: 'wizard-stories',
+                };
+                return (
+                  <button
+                    key={typeValue}
+                    onClick={() => updatePayload({ type: typeValue as GiveawayDraftPayload['type'] })}
+                    className={`w-full text-left p-4 rounded-lg border-2 transition-colors flex items-center gap-4 ${
+                      payload.type === typeValue
+                        ? 'border-tg-button bg-tg-button/10'
+                        : 'border-transparent bg-tg-bg'
+                    }`}
+                  >
+                    <div className="flex-shrink-0">
+                      <Mascot type={typeMascots[typeValue]} size={70} loop={payload.type === typeValue} autoplay={payload.type === typeValue} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium">{t(`types.${typeValue}.label`)}</div>
+                      <div className="text-sm text-tg-hint mt-1">{t(`types.${typeValue}.desc`)}</div>
+                    </div>
+                  </button>
+                );
+              })}
               </div>
             </motion.div>
           )}
@@ -594,7 +607,7 @@ export default function GiveawayWizardPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-tg-hint mb-1">{t('basics.title')} *</label>
+                <label className="block text-sm text-tg-hint mb-1"><AppIcon name="icon-giveaway" size={14} /> {t('basics.title')} *</label>
                 <input
                   type="text"
                   value={payload.title || ''}
@@ -605,7 +618,7 @@ export default function GiveawayWizardPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-tg-hint mb-1">{t('basics.language')}</label>
+                <label className="block text-sm text-tg-hint mb-1"><AppIcon name="icon-language" size={14} /> {t('basics.language')}</label>
                 <select
                   value={payload.language || 'ru'}
                   onChange={(e) => updatePayload({ language: e.target.value as 'ru' | 'en' | 'kk' })}
@@ -618,7 +631,7 @@ export default function GiveawayWizardPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-tg-hint mb-1">{t('basics.postTemplate')} *</label>
+                <label className="block text-sm text-tg-hint mb-1"><AppIcon name="icon-info" size={14} /> {t('basics.postTemplate')} *</label>
                 <button
                   type="button"
                   onClick={() => setShowPostsManager(true)}
@@ -651,7 +664,7 @@ export default function GiveawayWizardPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-tg-hint mb-1">{t('basics.buttonText')} *</label>
+                <label className="block text-sm text-tg-hint mb-1"><AppIcon name="icon-info" size={14} /> {t('basics.buttonText')} *</label>
                 <input
                   type="text"
                   value={payload.buttonText || ''}
@@ -680,7 +693,7 @@ export default function GiveawayWizardPage() {
 
               {/* Описание приза (опционально) */}
               <div>
-                <label className="block text-sm text-tg-hint mb-1">{t('basics.prizeDescription')}</label>
+                <label className="block text-sm text-tg-hint mb-1"><AppIcon name="icon-giveaway" size={14} /> {t('basics.prizeDescription')}</label>
                 <textarea
                   value={payload.prizeDescription || ''}
                   onChange={(e) => updatePayload({ prizeDescription: e.target.value })}
@@ -696,7 +709,7 @@ export default function GiveawayWizardPage() {
 
               {/* Способ получения приза */}
               <div>
-                <label className="block text-sm text-tg-hint mb-1">{t('basics.prizeDeliveryMethod')}</label>
+                <label className="block text-sm text-tg-hint mb-1"><AppIcon name="icon-giveaway" size={14} /> {t('basics.prizeDeliveryMethod')}</label>
                 <select
                   value={payload.prizeDeliveryMethod || 'CONTACT_ORGANIZER'}
                   onChange={(e) => updatePayload({ prizeDeliveryMethod: e.target.value as 'CONTACT_ORGANIZER' | 'INSTRUCTION' | 'FORM' })}
@@ -737,13 +750,13 @@ export default function GiveawayWizardPage() {
               </div>
 
               <p className="text-sm text-tg-hint mb-4">
-                {t('subscriptions.description')}
+                <AppIcon name="icon-channel" size={14} /> {t('subscriptions.description')}
               </p>
 
               {/* Subscription channel limit banner */}
               <div className="mb-4 bg-tg-bg rounded-lg p-3 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-tg-hint">{t('subscriptions.channelLimit')}:</span>
+                  <span className="text-tg-hint"><AppIcon name="icon-diamond" size={14} /> {t('subscriptions.channelLimit')}:</span>
                   <span className="font-medium text-tg-button">
                     {(payload.requiredSubscriptionChannelIds || []).length} / {subscriptionChannelLimit === Infinity ? '∞' : subscriptionChannelLimit}
                   </span>
@@ -762,7 +775,7 @@ export default function GiveawayWizardPage() {
 
               {channels.length === 0 ? (
                 <p className="text-center text-tg-hint py-8">
-                  {t('subscriptions.noChannels')}
+                  <AppIcon name="icon-channel" size={16} /> {t('subscriptions.noChannels')}
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -823,11 +836,11 @@ export default function GiveawayWizardPage() {
               </div>
 
               <p className="text-sm text-tg-hint mb-4">
-                {t('publish.description')}
+                <AppIcon name="icon-channel" size={14} /> {t('publish.description')}
               </p>
               {channels.length === 0 ? (
                 <p className="text-center text-tg-hint py-8">
-                  {t('publish.noChannels')}
+                  <AppIcon name="icon-channel" size={16} /> {t('publish.noChannels')}
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -947,7 +960,7 @@ export default function GiveawayWizardPage() {
                       {(payload.publishResultsMode || 'SEPARATE_POSTS') === 'SEPARATE_POSTS' ? '●' : ''}
                     </span>
                     <div>
-                      <div className="font-medium">{t('resultsStep.separatePosts')}</div>
+                      <div className="font-medium"><AppIcon name="icon-winner" size={14} /> {t('resultsStep.separatePosts')}</div>
                       <div className="text-xs text-tg-hint">{t('resultsStep.separatePostsHint')}</div>
                     </div>
                   </button>
@@ -967,7 +980,7 @@ export default function GiveawayWizardPage() {
                       {payload.publishResultsMode === 'EDIT_START_POST' ? '●' : ''}
                     </span>
                     <div>
-                      <div className="font-medium">{t('resultsStep.editStartPost')}</div>
+                      <div className="font-medium"><AppIcon name="icon-winner" size={14} /> {t('resultsStep.editStartPost')}</div>
                       <div className="text-xs text-tg-hint">{t('resultsStep.editStartPostHint')}</div>
                     </div>
                   </button>
@@ -987,7 +1000,7 @@ export default function GiveawayWizardPage() {
                       {payload.publishResultsMode === 'RANDOMIZER' ? '●' : ''}
                     </span>
                     <div>
-                      <div className="font-medium">{t('resultsStep.randomizer')}</div>
+                      <div className="font-medium"><AppIcon name="icon-winner" size={14} /> {t('resultsStep.randomizer')}</div>
                       <div className="text-xs text-tg-hint">{t('resultsStep.randomizerHint')}</div>
                     </div>
                   </button>
@@ -1056,7 +1069,7 @@ export default function GiveawayWizardPage() {
 
               {/* Выбор даты окончания */}
               <div>
-                <label className="block text-sm text-tg-hint mb-1">{t('dates.endDateTime')}</label>
+                <label className="block text-sm text-tg-hint mb-1"><AppIcon name="icon-calendar" size={14} /> {t('dates.endDateTime')}</label>
                 <DateTimePicker
                   value={payload.endAt || null}
                   onChange={(iso) => updatePayload({ endAt: iso })}
@@ -1095,7 +1108,7 @@ export default function GiveawayWizardPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-tg-hint mb-1">{t('winners.count')}:</label>
+                <label className="block text-sm text-tg-hint mb-1"><AppIcon name="icon-group" size={14} /> {t('winners.count')}:</label>
                 <input
                   type="number"
                   min={1}
@@ -1127,8 +1140,8 @@ export default function GiveawayWizardPage() {
               </div>
 
               <div className="bg-tg-bg rounded-lg p-3 text-sm text-tg-hint">
-                <p className="mb-1"><AppIcon name="icon-giveaway" size={14} /> {t('winners.randomHint')}</p>
-                <p><AppIcon name="icon-chart" size={14} /> {t('winners.maxFree', { max: winnerLimit })}</p>
+                <p className="mb-1"><AppIcon name="icon-winner" size={14} /> {t('winners.randomHint')}</p>
+                <p><AppIcon name="icon-diamond" size={14} /> {t('winners.maxFree', { max: winnerLimit })}</p>
                 {userTier === 'FREE' && (
                   <p className="mt-1 text-xs">FREE: 10 · PLUS: 50 · PRO: 100 · BUSINESS: 200</p>
                 )}
@@ -1136,7 +1149,7 @@ export default function GiveawayWizardPage() {
 
               {/* Минимальное количество участников */}
               <div className="border-t border-tg-bg pt-4 mt-4">
-                <label className="block text-sm text-tg-hint mb-2">{t('winners.minParticipants')}</label>
+                <label className="block text-sm text-tg-hint mb-2"><AppIcon name="icon-group" size={14} /> {t('winners.minParticipants')}</label>
                 <input
                   type="number"
                   min={0}
@@ -1221,7 +1234,7 @@ export default function GiveawayWizardPage() {
               {/* Блок Капча */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-2xl"><AppIcon name="icon-lock" size={14} /></span>
+                  <AppIcon name="icon-verify" size={18} />
                   <div>
                     <h3 className="font-semibold">{t('protection.botProtection')}</h3>
                     <p className="text-xs text-tg-hint">{t('protection.defaultHint')}</p>
@@ -1241,7 +1254,7 @@ export default function GiveawayWizardPage() {
                             : 'bg-tg-bg border-2 border-transparent hover:border-tg-secondary'
                         }`}
                       >
-                        <span className="text-2xl">{modeValue === 'OFF' ? <AppIcon name="icon-cancelled" size={14} /> : modeValue === 'SUSPICIOUS_ONLY' ? <AppIcon name="icon-view" size={16} /> : <AppIcon name="icon-success" size={14} />}</span>
+                        <span className="flex-shrink-0 mt-0.5">{modeValue === 'OFF' ? <AppIcon name="icon-cancelled" size={18} /> : modeValue === 'SUSPICIOUS_ONLY' ? <AppIcon name="icon-group" size={18} /> : <AppIcon name="icon-success" size={18} />}</span>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{t(`protection.captcha.${modeValue}.label`)}</span>
@@ -1270,7 +1283,7 @@ export default function GiveawayWizardPage() {
               <div className="border-t border-tg-bg pt-6">
                 <div className="flex items-center justify-between p-4 bg-tg-bg rounded-lg">
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl"><AppIcon name="icon-camera" size={14} /></span>
+                    <AppIcon name="icon-view" size={18} />
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{t('protection.livenessTitle')}</span>
@@ -1319,7 +1332,7 @@ export default function GiveawayWizardPage() {
               <div className="bg-tg-bg rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl"><AppIcon name="icon-group" size={14} /></span>
+                    <AppIcon name="icon-group" size={18} />
                     <div>
                       <span className="font-medium">{t('extras.inviteFriends')}</span>
                     </div>
@@ -1366,7 +1379,7 @@ export default function GiveawayWizardPage() {
               <div className="bg-tg-bg rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl"><AppIcon name="icon-boost" size={14} /></span>
+                    <AppIcon name="icon-boost" size={18} />
                     <div>
                       <span className="font-medium">{t('extras.channelBoosts')}</span>
                     </div>
@@ -1444,7 +1457,7 @@ export default function GiveawayWizardPage() {
               <div className="bg-tg-bg rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl"><AppIcon name="icon-story" size={18} /></span>
+                    <AppIcon name="icon-story" size={18} />
                     <div>
                       <span className="font-medium">{t('extras.stories')}</span>
                     </div>
@@ -1482,7 +1495,7 @@ export default function GiveawayWizardPage() {
               <div className="bg-tg-secondary rounded-xl p-4 relative overflow-hidden">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xl"><AppIcon name="icon-channel" size={14} /></span>
+                    <AppIcon name="icon-channel" size={18} />
                     <span className="font-medium">{t('extras.catalogPromotion')}</span>
                     <span className="text-xs bg-yellow-500/20 text-yellow-600 px-2 py-0.5 rounded-full">
                       PRO
@@ -1500,7 +1513,7 @@ export default function GiveawayWizardPage() {
                 </p>
                 <div className="mt-3 p-2 bg-yellow-500/10 rounded-lg">
                   <p className="text-xs text-yellow-600">
-                    <AppIcon name="icon-lock" size={14} /> {t('extras.comingSoon')}
+                    <AppIcon name="icon-diamond" size={14} /> {t('extras.comingSoon')}
                   </p>
                 </div>
               </div>
@@ -1569,7 +1582,7 @@ export default function GiveawayWizardPage() {
                       </div>
                       {isLocked && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
-                          <span className="text-2xl"><AppIcon name="icon-lock" size={14} /></span>
+                          <AppIcon name="icon-lock" size={28} />
                         </div>
                       )}
                     </button>
@@ -1598,7 +1611,7 @@ export default function GiveawayWizardPage() {
               {!userHasPremium && (
                 <div className="bg-yellow-500/10 rounded-lg p-3">
                   <p className="text-sm text-yellow-600">
-                    <AppIcon name="icon-star" size={14} /> {t('mascot.premiumHint')}
+                    <AppIcon name="icon-diamond" size={14} /> {t('mascot.premiumHint')}
                   </p>
                 </div>
               )}
