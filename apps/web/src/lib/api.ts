@@ -1943,7 +1943,7 @@ export interface UserProfile {
   language?: string;
   notificationsBlocked: boolean;
   joinedAt: string;
-  subscriptionTier: 'FREE' | 'PLUS' | 'PRO';
+  subscriptionTier: 'FREE' | 'PLUS' | 'PRO' | 'BUSINESS';
   entitlementCode: string | null;
   entitlementExpiresAt: string | null;
   stats: {
