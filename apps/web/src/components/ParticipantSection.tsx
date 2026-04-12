@@ -6,11 +6,13 @@ import { useTranslations } from 'next-intl';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   getMyParticipations,
+  getMyEntitlements,
   MyParticipation,
   ParticipationFilterStatus,
 } from '@/lib/api';
 import { AppIcon } from '@/components/AppIcon';
 import { Mascot } from '@/components/Mascot';
+import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
 
 // Форматирование оставшегося времени
 function formatTimeLeft(endAt: string): string {
@@ -139,9 +141,28 @@ function EmptyState({ filter }: { filter: ParticipationFilterStatus }) {
   );
 }
 
+type TierKey = 'FREE' | 'PLUS' | 'PRO' | 'BUSINESS';
+
+function getTierFromEntitlements(items: { code: string }[]): TierKey {
+  for (const item of items) {
+    if (item.code === 'tier.business') return 'BUSINESS';
+    if (item.code === 'tier.pro') return 'PRO';
+    if (item.code === 'tier.plus') return 'PLUS';
+  }
+  return 'FREE';
+}
+
+function getNextTier(current: TierKey): 'plus' | 'pro' | 'business' {
+  if (current === 'PLUS') return 'pro';
+  if (current === 'PRO') return 'business';
+  if (current === 'BUSINESS') return 'business';
+  return 'plus';
+}
+
 export function ParticipantSection() {
   const router = useRouter();
   const t = useTranslations('participant');
+  const tSub = useTranslations('subscription');
   const tCommon = useTranslations('common');
   const tErrors = useTranslations('errors');
   
@@ -155,6 +176,9 @@ export function ParticipantSection() {
   const [hasMore, setHasMore] = useState(false);
   const [offset, setOffset] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [userTier, setUserTier] = useState<TierKey>('FREE');
+  const [showSubscription, setShowSubscription] = useState(false);
+  const [tierExpiry, setTierExpiry] = useState<string | null>(null);
 
   const loadParticipations = useCallback(async (reset = true) => {
     const currentOffset = reset ? 0 : offset;
@@ -197,6 +221,17 @@ export function ParticipantSection() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
+  useEffect(() => {
+    getMyEntitlements().then(res => {
+      if (res.ok && res.items) {
+        const tier = getTierFromEntitlements(res.items);
+        setUserTier(tier);
+        const tierItem = res.items.find(i => i.code.startsWith('tier.'));
+        if (tierItem?.expiresAt) setTierExpiry(tierItem.expiresAt);
+      }
+    }).catch(() => {});
+  }, []);
+
   const filterButtonIcons: Partial<Record<ParticipationFilterStatus, ReactNode>> = {
     active: <AppIcon name="icon-active" size={18} className="shrink-0" />,
     finished: <AppIcon name="icon-completed" size={18} className="shrink-0" />,
@@ -205,6 +240,7 @@ export function ParticipantSection() {
   };
 
   return (
+    <>
     <div>
       {/* Заголовок */}
       <div className="mb-4">
@@ -218,12 +254,37 @@ export function ParticipantSection() {
       {/* Кнопка каталога */}
       <button
         onClick={() => router.push('/catalog')}
-        className="catalog-btn relative w-full rounded-2xl py-4 px-5 mb-6 font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2.5 overflow-hidden"
+        className="catalog-btn relative w-full rounded-2xl py-4 px-5 mb-3 font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2.5 overflow-hidden"
       >
         <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer_3s_ease-in-out_infinite]" />
         <AppIcon name="icon-giveaway" size={22} className="relative z-10 drop-shadow-sm" />
         <span className="relative z-10 text-[15px]">{t('catalogButton')}</span>
         <AppIcon name="icon-back" size={14} className="rotate-180 relative z-10 opacity-60" />
+      </button>
+
+      {/* Кнопка подписки */}
+      <button
+        onClick={() => setShowSubscription(true)}
+        className="w-full rounded-2xl py-4 px-5 mb-6 font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2.5 bg-gradient-to-r from-purple-500 to-blue-500 text-white"
+      >
+        <AppIcon name="icon-diamond" size={20} className="drop-shadow-sm" />
+        <span className="text-[15px]">
+          {userTier === 'FREE'
+            ? tSub('upgradeBtn', { tier: 'PLUS' })
+            : userTier === 'PLUS'
+            ? tSub('upgradeBtn', { tier: 'PRO' })
+            : userTier === 'PRO'
+            ? tSub('upgradeBtn', { tier: 'BUSINESS' })
+            : tSub('manageBtn')}
+        </span>
+        {tierExpiry && userTier !== 'FREE' && (
+          <span className="text-xs opacity-80 ml-1">
+            · {(() => {
+              const days = Math.ceil((new Date(tierExpiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+              return days > 0 ? tSub('expiresIn', { days }) : '';
+            })()}
+          </span>
+        )}
       </button>
 
       {/* Фильтры — сетка 2x2 */}
@@ -307,6 +368,14 @@ export function ParticipantSection() {
         </motion.div>
       </AnimatePresence>
     </div>
+    <SubscriptionBottomSheet
+      isOpen={showSubscription}
+      onClose={() => setShowSubscription(false)}
+      currentTier={userTier === 'FREE' ? 'free' : userTier.toLowerCase() as 'plus' | 'pro' | 'business'}
+      defaultTab="participants"
+      defaultTier={getNextTier(userTier)}
+    />
+    </>
   );
 }
 

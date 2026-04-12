@@ -1,11 +1,12 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { prisma, GiveawayStatus, LanguageCode, ChannelType, MediaType, Prisma, GiveawayMessageKind } from '@randombeast/database';
-import { POST_LIMITS, POST_TEMPLATE_UNDO_WINDOW_MS } from '@randombeast/shared';
+import { POST_LIMITS, POST_TEMPLATE_UNDO_WINDOW_MS, TIER_LIMITS } from '@randombeast/shared';
 import { ErrorCode } from '@randombeast/shared';
 import { config } from '../config.js';
 import { getCache, setCache } from '../lib/redis.js';
 import { sendAdminNotification } from '../lib/admin-notify.js';
+import { getUserTier } from '../lib/subscription.js';
 
 // Schema for giveaway accept
 const internalGiveawayAcceptSchema = z.object({
@@ -251,15 +252,30 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       const body = internalPostTemplateCreateSchema.parse(request.body);
       const user = await findOrCreateUser(body.telegramUserId);
 
-      // Validate text length based on media type
+      // Tier-based post template count limit
+      const tier = await getUserTier(user.id);
+      const maxTemplates = TIER_LIMITS.maxPostTemplates[tier];
+      const currentTemplateCount = await prisma.postTemplate.count({
+        where: { ownerUserId: user.id, deletedAt: null },
+      });
+      if (currentTemplateCount >= maxTemplates) {
+        return reply.status(403).send({
+          ok: false,
+          error: `Достигнут лимит шаблонов постов для тарифа ${tier}: ${maxTemplates}. Повысьте подписку.`,
+          code: 'TIER_LIMIT_REACHED',
+        });
+      }
+
+      // Tier-based text length with media
+      const tierCharLimit = body.mediaType !== 'NONE' ? TIER_LIMITS.postCharLimit[tier] : POST_LIMITS.TEXT_MAX_LENGTH;
       const maxLength = body.mediaType === 'NONE' 
         ? POST_LIMITS.TEXT_MAX_LENGTH 
-        : POST_LIMITS.CAPTION_MAX_LENGTH;
+        : Math.min(tierCharLimit, POST_LIMITS.CAPTION_MAX_LENGTH);
 
       if (body.text.length > maxLength) {
         return reply.status(400).send({
           ok: false,
-          error: `Text exceeds ${maxLength} characters limit for ${body.mediaType === 'NONE' ? 'text-only' : 'media'} posts`,
+          error: `Text exceeds ${maxLength} characters limit for ${body.mediaType === 'NONE' ? 'text-only' : 'media'} posts (тариф ${tier})`,
           maxLength,
           currentLength: body.text.length,
         });
@@ -1200,9 +1216,32 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
           sourceType: 'purchase',
           sourceId: purchase.id,
           expiresAt,
-          autoRenew: false, // Stars не поддерживает автопродление
+          autoRenew: false,
         },
       });
+
+      // Auto-grant catalog.access with any tier subscription
+      const tierCodes = ['tier.plus', 'tier.pro', 'tier.business'];
+      if (tierCodes.includes(product.entitlementCode)) {
+        await tx.entitlement.updateMany({
+          where: {
+            userId: user.id,
+            code: 'catalog.access',
+            revokedAt: null,
+          },
+          data: { revokedAt: new Date() },
+        });
+        await tx.entitlement.create({
+          data: {
+            userId: user.id,
+            code: 'catalog.access',
+            sourceType: 'purchase',
+            sourceId: purchase.id,
+            expiresAt,
+            autoRenew: false,
+          },
+        });
+      }
     });
 
     fastify.log.info(

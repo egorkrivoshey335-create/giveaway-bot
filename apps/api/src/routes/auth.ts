@@ -257,15 +257,19 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Determine effective subscription tier
-    const tierCodes = ['BUSINESS', 'PRO', 'PLUS'];
+    const TIER_CODE_MAP: Record<string, string> = {
+      'tier.business': 'BUSINESS',
+      'tier.pro': 'PRO',
+      'tier.plus': 'PLUS',
+    };
+    const tierPriority = ['tier.business', 'tier.pro', 'tier.plus'];
     let tier = 'FREE';
     let activeTierEntitlement = null;
 
-    for (const code of tierCodes) {
+    for (const code of tierPriority) {
       const found = entitlements.find((e) => e.code === code);
       if (found) {
-        tier = code;
+        tier = TIER_CODE_MAP[code];
         activeTierEntitlement = found;
         break;
       }

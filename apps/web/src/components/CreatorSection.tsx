@@ -9,6 +9,7 @@ import {
   getChannels,
   getPostTemplates,
   getPostTemplateMediaUrl,
+  getMyEntitlements,
   deleteChannel,
   deletePostTemplate,
   undoDeletePostTemplate,
@@ -19,6 +20,25 @@ import {
 import { Stagger, StaggerItem } from '@/components/FadeIn';
 import { AppIcon } from '@/components/AppIcon';
 import { Mascot } from '@/components/Mascot';
+import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
+
+type TierKey = 'FREE' | 'PLUS' | 'PRO' | 'BUSINESS';
+
+function getTierFromEntitlements(items: { code: string }[]): TierKey {
+  for (const item of items) {
+    if (item.code === 'tier.business') return 'BUSINESS';
+    if (item.code === 'tier.pro') return 'PRO';
+    if (item.code === 'tier.plus') return 'PLUS';
+  }
+  return 'FREE';
+}
+
+function getNextTier(current: TierKey): 'plus' | 'pro' | 'business' {
+  if (current === 'PLUS') return 'pro';
+  if (current === 'PRO') return 'business';
+  if (current === 'BUSINESS') return 'business';
+  return 'plus';
+}
 
 // Undo state для постов
 interface UndoState {
@@ -29,6 +49,7 @@ interface UndoState {
 export function CreatorSection() {
   const router = useRouter();
   const t = useTranslations('creator');
+  const tSub = useTranslations('subscription');
   const tCommon = useTranslations('common');
   const tChannels = useTranslations('channels');
   
@@ -44,6 +65,11 @@ export function CreatorSection() {
   const [postTemplates, setPostTemplates] = useState<PostTemplate[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [undoState, setUndoState] = useState<UndoState | null>(null);
+
+  // Подписка
+  const [userTier, setUserTier] = useState<TierKey>('FREE');
+  const [showSubscription, setShowSubscription] = useState(false);
+  const [tierExpiry, setTierExpiry] = useState<string | null>(null);
 
   // Загрузка данных
   const loadCounts = useCallback(async () => {
@@ -95,6 +121,14 @@ export function CreatorSection() {
     loadCounts();
     loadChannels();
     loadPostTemplates();
+    getMyEntitlements().then(res => {
+      if (res.ok && res.items) {
+        const tier = getTierFromEntitlements(res.items);
+        setUserTier(tier);
+        const tierItem = res.items.find(i => i.code.startsWith('tier.'));
+        if (tierItem?.expiresAt) setTierExpiry(tierItem.expiresAt);
+      }
+    }).catch(() => {});
   }, [loadCounts, loadChannels, loadPostTemplates]);
 
   // Удаление канала
@@ -148,6 +182,7 @@ export function CreatorSection() {
   };
 
   return (
+    <>
     <div>
       {/* Заголовок */}
       <div className="mb-4">
@@ -162,10 +197,35 @@ export function CreatorSection() {
         <StaggerItem>
           <button
             onClick={() => router.push('/creator/giveaway/new')}
-            className="w-full bg-tg-button text-tg-button-text rounded-xl py-3 px-4 font-medium mb-6 hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+            className="w-full bg-tg-button text-tg-button-text rounded-xl py-3 px-4 font-medium mb-3 hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
           >
             <AppIcon name="icon-create" size={18} />
             {t('createButton')}
+          </button>
+
+          {/* Кнопка подписки */}
+          <button
+            onClick={() => setShowSubscription(true)}
+            className="w-full rounded-xl py-3 px-4 font-medium mb-6 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white"
+          >
+            <AppIcon name="icon-diamond" size={18} className="drop-shadow-sm" />
+            <span>
+              {userTier === 'FREE'
+                ? tSub('upgradeBtn', { tier: 'PLUS' })
+                : userTier === 'PLUS'
+                ? tSub('upgradeBtn', { tier: 'PRO' })
+                : userTier === 'PRO'
+                ? tSub('upgradeBtn', { tier: 'BUSINESS' })
+                : tSub('manageBtn')}
+            </span>
+            {tierExpiry && userTier !== 'FREE' && (
+              <span className="text-xs opacity-80 ml-1">
+                · {(() => {
+                  const days = Math.ceil((new Date(tierExpiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                  return days > 0 ? tSub('expiresIn', { days }) : '';
+                })()}
+              </span>
+            )}
           </button>
         </StaggerItem>
 
@@ -390,6 +450,14 @@ export function CreatorSection() {
         </StaggerItem>
       </Stagger>
     </div>
+    <SubscriptionBottomSheet
+      isOpen={showSubscription}
+      onClose={() => setShowSubscription(false)}
+      currentTier={userTier === 'FREE' ? 'free' : userTier.toLowerCase() as 'plus' | 'pro' | 'business'}
+      defaultTab="creators"
+      defaultTier={getNextTier(userTier)}
+    />
+    </>
   );
 }
 

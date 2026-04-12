@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { getMyProfile, updateNotifications, UserProfile } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppIcon } from '@/components/AppIcon';
+import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
 
 const BADGE_EMOJI: Record<string, React.ReactNode> = {
   newcomer: '🌱',
@@ -43,6 +44,7 @@ export default function CreatorProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [togglingNotif, setTogglingNotif] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [showSubscription, setShowSubscription] = useState(false);
 
   const showMessage = (msg: string) => {
     setMessage(msg);
@@ -166,7 +168,9 @@ export default function CreatorProfilePage() {
                   ? 'bg-gray-500/20 text-gray-500'
                   : p.subscriptionTier === 'PLUS'
                   ? 'bg-blue-500/20 text-blue-500'
-                  : 'bg-purple-500/20 text-purple-500';
+                  : p.subscriptionTier === 'PRO'
+                  ? 'bg-purple-500/20 text-purple-500'
+                  : 'bg-amber-500/20 text-amber-600';
               return (
                 <>
                   {message && (
@@ -208,25 +212,38 @@ export default function CreatorProfilePage() {
                 <span>📅 {t('member', { days: memberDays })}</span>
                 <span className={`px-2 py-0.5 rounded-full font-medium ${subscriptionColor}`}>
                   {p.subscriptionTier === 'FREE' && 'FREE'}
-                  {p.subscriptionTier === 'PLUS' && <><AppIcon name="icon-star" size={14} /> PLUS+</>}
-                  {p.subscriptionTier === 'PRO' && <><AppIcon name="icon-diamond" size={14} /> PRO+</>}
+                  {p.subscriptionTier === 'PLUS' && <><AppIcon name="icon-star" size={14} /> PLUS</>}
+                  {p.subscriptionTier === 'PRO' && <><AppIcon name="icon-diamond" size={14} /> PRO</>}
+                  {p.subscriptionTier === 'BUSINESS' && <><AppIcon name="icon-diamond" size={14} /> BUSINESS</>}
                 </span>
               </div>
               {p.entitlementExpiresAt && (
                 <p className="text-xs text-tg-hint mt-1">
-                  До: {new Date(p.entitlementExpiresAt).toLocaleDateString('ru-RU')}
+                  Активна до {new Date(p.entitlementExpiresAt).toLocaleDateString('ru-RU')}
+                  {' · '}
+                  {(() => {
+                    const days = Math.ceil((new Date(p.entitlementExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                    return days > 0 ? `${days} дн.` : 'истекла';
+                  })()}
                 </p>
               )}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2 mt-4">
-            <Link
-              href="/creator/subscription"
-              className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg py-2 px-4 text-sm font-medium text-center"
+            <button
+              onClick={() => setShowSubscription(true)}
+              className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg py-2 px-4 text-sm font-medium text-center flex items-center justify-center gap-1"
             >
-              <AppIcon name="icon-star" size={14} /> {t('upgradePremium')}
-            </Link>
+              <AppIcon name="icon-star" size={14} />
+              {p.subscriptionTier === 'FREE'
+                ? 'Повысить до PLUS'
+                : p.subscriptionTier === 'PLUS'
+                ? 'Повысить до PRO'
+                : p.subscriptionTier === 'PRO'
+                ? 'Повысить до BUSINESS'
+                : t('upgradePremium')}
+            </button>
             <button
               onClick={handleToggleNotifications}
               disabled={togglingNotif}
@@ -372,6 +389,24 @@ export default function CreatorProfilePage() {
           </motion.div>
         )}
       </AnimatePresence>
+      <SubscriptionBottomSheet
+        isOpen={showSubscription}
+        onClose={() => setShowSubscription(false)}
+        currentTier={
+          profile?.subscriptionTier === 'FREE' ? 'free'
+          : profile?.subscriptionTier === 'PLUS' ? 'plus'
+          : profile?.subscriptionTier === 'PRO' ? 'pro'
+          : profile?.subscriptionTier === 'BUSINESS' ? 'business'
+          : 'free'
+        }
+        defaultTab="creators"
+        defaultTier={
+          profile?.subscriptionTier === 'PLUS' ? 'pro'
+          : profile?.subscriptionTier === 'PRO' ? 'business'
+          : profile?.subscriptionTier === 'BUSINESS' ? 'business'
+          : 'plus'
+        }
+      />
     </main>
   );
 }

@@ -194,6 +194,29 @@ async function processSuccessfulPayment(
         autoRenew: purchase.product.periodDays !== null,
       },
     });
+
+    // Auto-grant catalog.access with any tier subscription (PLUS/PRO/BUSINESS)
+    const tierCodes = ['tier.plus', 'tier.pro', 'tier.business'];
+    if (tierCodes.includes(purchase.product.entitlementCode)) {
+      await tx.entitlement.updateMany({
+        where: {
+          userId: purchase.userId,
+          code: 'catalog.access',
+          revokedAt: null,
+        },
+        data: { revokedAt: new Date() },
+      });
+      await tx.entitlement.create({
+        data: {
+          userId: purchase.userId,
+          code: 'catalog.access',
+          sourceType: 'purchase',
+          sourceId: purchase.id,
+          expiresAt,
+          autoRenew: purchase.product.periodDays !== null,
+        },
+      });
+    }
   });
 
   log.info(

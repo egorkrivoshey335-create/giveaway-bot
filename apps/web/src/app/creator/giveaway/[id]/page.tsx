@@ -28,6 +28,7 @@ import {
 import { InlineToast } from '@/components/Toast';
 import { ShareBottomSheet } from '@/components/ShareBottomSheet';
 import { StatsBottomSheet } from '@/components/StatsBottomSheet';
+import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
 import { AppIcon } from '@/components/AppIcon';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -136,8 +137,9 @@ export default function GiveawayDetailsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
-  // Subscription tier (for stats gating)
+  // Subscription tier (for stats gating & CSV export)
   const [userTier, setUserTier] = useState<'FREE' | 'PLUS' | 'PRO' | 'BUSINESS'>('FREE');
+  const [showSubscription, setShowSubscription] = useState(false);
 
   // Legacy inline editing state (endAt only)
   const [editingEndAt, setEditingEndAt] = useState(false);
@@ -967,14 +969,30 @@ export default function GiveawayDetailsPage() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
-            {/* Поиск */}
-            <input
-              type="text"
-              placeholder={t('participantsTab.searchPlaceholder')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-tg-secondary text-tg-text rounded-lg px-4 py-3"
-            />
+            {/* Поиск + экспорт */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder={t('participantsTab.searchPlaceholder')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-tg-secondary text-tg-text rounded-lg px-4 py-3"
+              />
+              <button
+                onClick={() => {
+                  if (userTier === 'FREE') {
+                    setShowSubscription(true);
+                  } else {
+                    window.open(`/api/giveaways/${giveawayId}/participants/export`, '_blank');
+                  }
+                }}
+                className="bg-tg-secondary text-tg-text rounded-lg px-4 py-3 hover:opacity-80 transition-opacity flex items-center gap-1 text-sm whitespace-nowrap"
+                title="CSV"
+              >
+                <AppIcon name="icon-download" size={16} />
+                CSV
+              </button>
+            </div>
 
             {/* Таблица */}
             {participants.length > 0 ? (
@@ -1353,6 +1371,12 @@ export default function GiveawayDetailsPage() {
         isOpen={showStatsSheet}
         onClose={() => setShowStatsSheet(false)}
         giveawayId={giveawayId}
+      />
+
+      {/* BottomSheet: Подписка */}
+      <SubscriptionBottomSheet
+        isOpen={showSubscription}
+        onClose={() => setShowSubscription(false)}
       />
     </main>
   );

@@ -4,18 +4,13 @@ import { prisma, GiveawayStatus } from '@randombeast/database';
 import { ErrorCode } from '@randombeast/shared';
 import { getUser, requireUser } from '../plugins/auth.js';
 import { getCache, setCache } from '../lib/redis.js';
+import { getUserTier, isTierAtLeast } from '../lib/subscription.js';
 
-// Код права доступа к каталогу
-const CATALOG_ENTITLEMENT_CODE = 'catalog.access';
-
-// Сколько розыгрышей показывать без подписки
 const PREVIEW_COUNT = 3;
-
-// Цена подписки
 const SUBSCRIPTION_PRICE = 1000;
 
 /**
- * Проверить есть ли у пользователя активный доступ к каталогу
+ * Catalog access: either catalog.access entitlement OR any tier subscription (PLUS+).
  */
 async function checkCatalogAccess(userId: string): Promise<{ hasAccess: boolean; expiresAt: Date | null }> {
   const now = new Date();
@@ -23,11 +18,11 @@ async function checkCatalogAccess(userId: string): Promise<{ hasAccess: boolean;
   const entitlement = await prisma.entitlement.findFirst({
     where: {
       userId,
-      code: CATALOG_ENTITLEMENT_CODE,
+      code: { in: ['catalog.access', 'tier.plus', 'tier.pro', 'tier.business'] },
       revokedAt: null,
       OR: [
-        { expiresAt: null }, // Бессрочный
-        { expiresAt: { gt: now } }, // Ещё не истёк
+        { expiresAt: null },
+        { expiresAt: { gt: now } },
       ],
     },
     orderBy: { expiresAt: 'desc' },

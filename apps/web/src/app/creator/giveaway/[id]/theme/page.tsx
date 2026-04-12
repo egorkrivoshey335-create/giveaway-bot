@@ -9,7 +9,7 @@ import { AppIcon } from '@/components/AppIcon';
 /**
  * Страница кастомизации темы розыгрыша (задача 9.6)
  * Доступна по /creator/giveaway/[id]/theme
- * Требует PRO/BUSINESS подписку
+ * Требует BUSINESS подписку
  */
 export default function GiveawayThemePage() {
   const params = useParams();

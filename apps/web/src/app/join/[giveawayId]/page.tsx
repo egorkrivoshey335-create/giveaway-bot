@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import Script from 'next/script';
 import { syncLocaleFromDb } from '@/hooks/useLocale';
 import { CountdownTimer } from '@/components/ui/CountdownTimer';
 import { ConfettiOverlay } from '@/components/ui/ConfettiOverlay';
@@ -104,6 +105,13 @@ export default function JoinGiveawayPage() {
   const [captchaAnswer, setCaptchaAnswer] = useState('');
   const [captchaError, setCaptchaError] = useState<string | null>(null);
   const [captchaPassed, setCaptchaPassed] = useState(false);
+
+  // Turnstile
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileReady, setTurnstileReady] = useState(false);
+  const turnstileContainerRef = useRef<HTMLDivElement>(null);
+  const turnstileWidgetId = useRef<string | null>(null);
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '';
 
   // Joining
   const [joining, setJoining] = useState(false);
@@ -483,11 +491,54 @@ export default function JoinGiveawayPage() {
     }
   }, []);
 
+  // Render Turnstile widget when captcha screen is shown and captchaMode is ALL
+  const renderTurnstile = useCallback(() => {
+    if (!turnstileSiteKey || !turnstileContainerRef.current || turnstileWidgetId.current) return;
+    const w = window as any;
+    if (!w.turnstile) return;
+
+    turnstileWidgetId.current = w.turnstile.render(turnstileContainerRef.current, {
+      sitekey: turnstileSiteKey,
+      theme: 'light',
+      callback: (token: string) => {
+        setTurnstileToken(token);
+      },
+      'expired-callback': () => {
+        setTurnstileToken(null);
+      },
+      'error-callback': () => {
+        setTurnstileToken(null);
+        turnstileWidgetId.current = null;
+      },
+    });
+  }, [turnstileSiteKey]);
+
+  useEffect(() => {
+    if (screen === 'captcha' && giveaway?.conditions.captchaMode === 'ALL' && turnstileSiteKey && turnstileReady) {
+      renderTurnstile();
+    }
+    return () => {
+      if (turnstileWidgetId.current) {
+        const w = window as any;
+        if (w.turnstile) {
+          try { w.turnstile.remove(turnstileWidgetId.current); } catch {}
+        }
+        turnstileWidgetId.current = null;
+      }
+    };
+  }, [screen, giveaway?.conditions.captchaMode, turnstileSiteKey, turnstileReady, renderTurnstile]);
+
   // Проверка капчи
   const handleVerifyCaptcha = useCallback(async () => {
     const answer = parseInt(captchaAnswer, 10);
     if (isNaN(answer)) {
       setCaptchaError(t('captcha.invalidNumber'));
+      return;
+    }
+
+    // For ALL mode: require Turnstile
+    if (giveaway?.conditions.captchaMode === 'ALL' && turnstileSiteKey && !turnstileToken) {
+      setCaptchaError(t('captcha.turnstileRequired'));
       return;
     }
 
@@ -498,7 +549,6 @@ export default function JoinGiveawayPage() {
         await handleJoin(true);
       } else {
         setCaptchaError(res.error || t('captcha.wrong'));
-        // Перезагружаем капчу
         await loadCaptcha();
       }
     } catch (err) {
@@ -506,7 +556,7 @@ export default function JoinGiveawayPage() {
       setCaptchaError(tErrors('error'));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [captchaAnswer, captchaToken, loadCaptcha, t, tErrors]);
+  }, [captchaAnswer, captchaToken, giveaway?.conditions.captchaMode, turnstileSiteKey, turnstileToken, loadCaptcha, t, tErrors]);
 
   // Участие в розыгрыше
   const handleJoin = useCallback(async (withCaptcha: boolean) => {
@@ -515,6 +565,7 @@ export default function JoinGiveawayPage() {
     try {
       const res = await joinGiveaway(giveawayId, {
         captchaPassed: withCaptcha || captchaPassed,
+        turnstileToken: turnstileToken || undefined,
         referrerUserId: referrerUserId || undefined,
         sourceTag: 'mini_app',
       });
@@ -538,6 +589,10 @@ export default function JoinGiveawayPage() {
       } else if (res.code === 'CAPTCHA_REQUIRED') {
         await loadCaptcha();
         setScreen('captcha');
+      } else if (res.code === 'TURNSTILE_REQUIRED' || res.code === 'TURNSTILE_FAILED') {
+        await loadCaptcha();
+        setScreen('captcha');
+        setCaptchaError(t('captcha.turnstileRequired'));
       } else {
         setError(res.error || tErrors('error'));
       }
@@ -547,7 +602,7 @@ export default function JoinGiveawayPage() {
     } finally {
       setJoining(false);
     }
-  }, [giveawayId, captchaPassed, referrerUserId, loadCaptcha, loadReferralData, loadBoostData, loadStoryRequestStatus, loadCustomTasks, tErrors]);
+  }, [giveawayId, captchaPassed, turnstileToken, referrerUserId, loadCaptcha, loadReferralData, loadBoostData, loadStoryRequestStatus, loadCustomTasks, t, tErrors]);
 
   // Начать участие (кнопка)
   const handleStartParticipation = useCallback(() => {
@@ -919,18 +974,29 @@ export default function JoinGiveawayPage() {
 
   // Капча
   if (screen === 'captcha') {
+    const showTurnstile = giveaway?.conditions.captchaMode === 'ALL' && !!turnstileSiteKey;
+    const canSubmit = !!captchaAnswer && (!showTurnstile || !!turnstileToken);
+
     return (
       <main className="min-h-screen p-4">
+        {showTurnstile && (
+          <Script
+            src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+            onReady={() => setTurnstileReady(true)}
+          />
+        )}
         <div className="max-w-md mx-auto">
           <div className="text-center mb-6">
             <div className="flex justify-center mb-2">
               <Mascot type="state-captcha" size={120} loop autoplay />
             </div>
             <h1 className="text-xl font-bold">{t('captcha.title')}</h1>
-            <p className="text-tg-hint mt-2">{t('captcha.description')}</p>
+            <p className="text-tg-hint mt-2">
+              {showTurnstile ? t('captcha.descriptionEnhanced') : t('captcha.description')}
+            </p>
           </div>
 
-          <div className="bg-tg-secondary rounded-lg p-6 mb-6 text-center">
+          <div className="bg-tg-secondary rounded-lg p-6 mb-4 text-center">
             <div className="text-3xl font-mono mb-4">{captchaQuestion}</div>
             <input
               type="number"
@@ -941,14 +1007,21 @@ export default function JoinGiveawayPage() {
               className="w-full bg-tg-bg rounded-lg px-4 py-3 text-center text-2xl"
               autoFocus
             />
-            {captchaError && (
-              <p className="text-red-500 text-sm mt-2">{captchaError}</p>
-            )}
           </div>
+
+          {showTurnstile && (
+            <div className="flex justify-center mb-4">
+              <div ref={turnstileContainerRef} />
+            </div>
+          )}
+
+          {captchaError && (
+            <p className="text-red-500 text-sm text-center mb-4">{captchaError}</p>
+          )}
 
           <button
             onClick={handleVerifyCaptcha}
-            disabled={!captchaAnswer || joining}
+            disabled={!canSubmit || joining}
             className="w-full bg-tg-button text-tg-button-text rounded-lg py-4 font-medium disabled:opacity-50"
           >
             {joining ? <>⏳ {tCommon('loading')}</> : <><AppIcon name="icon-success" size={14} /> {t('captcha.checkButton')}</>}

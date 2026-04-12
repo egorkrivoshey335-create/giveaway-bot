@@ -8,10 +8,6 @@ import { createPayment } from '@/lib/api';
 import { AppIcon } from '@/components/AppIcon';
 import { Mascot } from '@/components/Mascot';
 
-// ============================================================================
-// Types
-// ============================================================================
-
 type TierKey = 'plus' | 'pro' | 'business';
 type TabKey = 'creators' | 'participants';
 
@@ -22,6 +18,7 @@ interface TierConfig {
   bgColor: string;
   borderColor: string;
   mascot: 'tier-plus' | 'tier-pro' | 'tier-business';
+  gradient: string;
 }
 
 const TIERS: TierConfig[] = [
@@ -32,6 +29,7 @@ const TIERS: TierConfig[] = [
     bgColor: 'bg-blue-500/10',
     borderColor: 'border-blue-500/30',
     mascot: 'tier-plus',
+    gradient: 'from-blue-500 to-blue-600',
   },
   {
     key: 'pro',
@@ -40,6 +38,7 @@ const TIERS: TierConfig[] = [
     bgColor: 'bg-purple-500/10',
     borderColor: 'border-purple-500/30',
     mascot: 'tier-pro',
+    gradient: 'from-purple-500 to-purple-600',
   },
   {
     key: 'business',
@@ -48,16 +47,26 @@ const TIERS: TierConfig[] = [
     bgColor: 'bg-amber-500/10',
     borderColor: 'border-amber-500/30',
     mascot: 'tier-business',
+    gradient: 'from-amber-500 to-amber-600',
   },
 ];
 
 const CREATOR_FEATURES = [
-  'analytics',
-  'mascot',
-  'export',
-  'liveness',
+  'activeGiveaways',
+  'channels',
+  'postTemplates',
   'winners',
-  'tasks',
+  'invites',
+  'trackingLinks',
+  'channelsPerGiveaway',
+  'customTasks',
+  'postCharLimit',
+  'export',
+  'mascot',
+  'analytics',
+  'liveness',
+  'theme',
+  'randomizer',
 ] as const;
 
 const PARTICIPANT_FEATURES = [
@@ -66,23 +75,6 @@ const PARTICIPANT_FEATURES = [
   'noCaptcha',
   'notifications',
 ] as const;
-
-const FEATURE_TIERS: Record<string, TierKey[]> = {
-  analytics: ['plus', 'pro', 'business'],
-  mascot: ['plus', 'pro', 'business'],
-  export: ['plus', 'pro', 'business'],
-  liveness: ['pro', 'business'],
-  winners: ['plus', 'pro', 'business'],
-  tasks: ['plus', 'pro', 'business'],
-  bonus: ['plus', 'pro', 'business'],
-  catalog: ['plus', 'pro', 'business'],
-  noCaptcha: ['plus', 'pro', 'business'],
-  notifications: ['plus', 'pro', 'business'],
-};
-
-// ============================================================================
-// Sub-components
-// ============================================================================
 
 function FeatureRow({
   featureKey,
@@ -93,43 +85,57 @@ function FeatureRow({
   namespace: 'creators' | 'participants';
   selectedTier: TierKey;
 }) {
-  const t = useTranslations(`subscription.${namespace}`);
+  const t = useTranslations(`subscription.${namespace}.${featureKey}`);
+  const value = t(selectedTier);
+  const isDisabled = value === '—';
+  const hasDescription = (() => {
+    try { return !!t('description'); } catch { return false; }
+  })();
   const [expanded, setExpanded] = useState(false);
-  const tiers = FEATURE_TIERS[featureKey] || [];
-  const included = tiers.includes(selectedTier);
 
   return (
     <button
       className="w-full text-left"
-      onClick={() => setExpanded(e => !e)}
+      onClick={() => hasDescription && setExpanded(e => !e)}
     >
       <div className="flex items-start gap-3 py-2.5">
-        <span className={`mt-0.5 ${included ? '' : 'opacity-40'}`}>
-          {included ? (
-            <AppIcon name="icon-back" size={16} className="rotate-180 text-green-500" />
-          ) : (
+        <span className={`mt-0.5 ${isDisabled ? 'opacity-40' : ''}`}>
+          {isDisabled ? (
             <AppIcon name="icon-lock" size={16} />
+          ) : (
+            <AppIcon name="icon-back" size={16} className="rotate-180 text-green-500" />
           )}
         </span>
         <div className="flex-1 min-w-0">
-          <div className={`font-medium text-sm ${included ? 'text-tg-text' : 'text-tg-hint'}`}>
-            {t(`${featureKey}.title`)}
+          <div className="flex items-center justify-between">
+            <span className={`font-medium text-sm ${isDisabled ? 'text-tg-hint' : 'text-tg-text'}`}>
+              {t('title')}
+            </span>
+            <span className={`text-xs font-medium ml-2 shrink-0 ${isDisabled ? 'text-tg-hint/60' : 'text-green-600'}`}>
+              {value}
+            </span>
           </div>
-          <div
-            className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
-          >
-            <div className="overflow-hidden">
-              <div className="text-xs text-tg-hint mt-1 leading-relaxed">
-                {t(`${featureKey}.description`)}
+          {hasDescription && (
+            <div
+              className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
+                expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+              }`}
+            >
+              <div className="overflow-hidden">
+                <div className="text-xs text-tg-hint mt-1 leading-relaxed">
+                  {t('description')}
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
-        <AppIcon
-          name="icon-back"
-          size={14}
-          className={`text-tg-hint mt-0.5 transition-transform duration-200 ${expanded ? 'rotate-90' : '-rotate-90'}`}
-        />
+        {hasDescription && (
+          <AppIcon
+            name="icon-back"
+            size={14}
+            className={`text-tg-hint mt-0.5 transition-transform duration-200 ${expanded ? 'rotate-90' : '-rotate-90'}`}
+          />
+        )}
       </div>
     </button>
   );
@@ -166,16 +172,15 @@ function TierCard({
       <div className="text-xs text-tg-hint mt-0.5">
         {t(`tiers.${tier.key}.price`)}
       </div>
+      <div className="text-[10px] text-tg-hint mt-0.5 opacity-70">
+        {t(`tiers.${tier.key}.starsPrice`)}
+      </div>
       {isCurrent && (
         <div className="mt-1 text-xs text-green-600 font-medium">{t('current')}</div>
       )}
     </button>
   );
 }
-
-// ============================================================================
-// Main component
-// ============================================================================
 
 interface SubscriptionBottomSheetProps {
   isOpen: boolean;
@@ -200,7 +205,7 @@ export function SubscriptionBottomSheet({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const selectedTierConfig = TIERS.find(t => t.key === selectedTier)!;
+  const selectedTierConfig = TIERS.find(tc => tc.key === selectedTier)!;
 
   const handlePay = useCallback(async () => {
     setLoading(true);
@@ -222,9 +227,7 @@ export function SubscriptionBottomSheet({
     }
   }, [selectedTierConfig.productCode, t, tErrors]);
 
-  const isCurrent = (tierKey: TierKey) =>
-    currentTier === tierKey;
-
+  const isCurrent = (tierKey: TierKey) => currentTier === tierKey;
   const isAlreadySubscribed = currentTier === selectedTier;
 
   const features = activeTab === 'creators' ? CREATOR_FEATURES : PARTICIPANT_FEATURES;
@@ -236,7 +239,6 @@ export function SubscriptionBottomSheet({
       title={t('title')}
     >
       <div className="px-4 pb-6 space-y-4">
-        {/* Subtitle */}
         <p className="text-sm text-tg-hint text-center">{t('subtitle')}</p>
 
         {/* Tier selector */}
@@ -269,10 +271,10 @@ export function SubscriptionBottomSheet({
           ))}
         </div>
 
-        {/* Features list with smooth transition */}
+        {/* Features list */}
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeTab}
+            key={`${activeTab}-${selectedTier}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -290,7 +292,12 @@ export function SubscriptionBottomSheet({
           </motion.div>
         </AnimatePresence>
 
-        {/* Pricing */}
+        {/* Free tier reference */}
+        <p className="text-xs text-tg-hint text-center bg-tg-secondary rounded-lg py-2 px-3">
+          {t('freeIncludes')}
+        </p>
+
+        {/* Pricing block */}
         <div className={`rounded-xl p-4 ${selectedTierConfig.bgColor} ${selectedTierConfig.borderColor} border`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -306,7 +313,7 @@ export function SubscriptionBottomSheet({
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold text-tg-text">
-                {t(`tiers.${selectedTier}.price`).split('/')[0]}
+                {t(`tiers.${selectedTier}.price`)}
               </div>
               <div className="text-xs text-tg-hint">{t('perMonth')}</div>
             </div>
@@ -353,7 +360,6 @@ export function SubscriptionBottomSheet({
           </button>
         )}
 
-        {/* Security note */}
         <p className="text-xs text-tg-hint text-center">{t('secure')}</p>
       </div>
     </BottomSheet>

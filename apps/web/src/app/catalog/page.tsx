@@ -156,24 +156,19 @@ function CatalogCardWithAccess({
   );
 }
 
-// Полноэкранный Paywall overlay — блокирует весь контент
 function PaywallFullOverlay({
   total,
-  price,
   onShowModal,
   t,
 }: {
   total: number;
-  price: number;
   onShowModal: () => void;
   t: TranslateFunc;
 }) {
   return (
     <div className="absolute inset-0 z-10 flex flex-col">
-      {/* Градиент сверху вниз — контент виден, но затемнён */}
       <div className="flex-1 bg-gradient-to-b from-transparent via-tg-bg/70 to-tg-bg pointer-events-none" />
       
-      {/* Блок с информацией о подписке */}
       <div className="bg-tg-bg p-4">
         <div className="bg-tg-secondary rounded-xl p-6 flex flex-col items-center text-center">
           <Mascot type="state-locked" size={100} loop={false} autoplay />
@@ -183,17 +178,13 @@ function PaywallFullOverlay({
             {t('paywall.description')}
           </p>
 
-          <div className="mb-4">
-            <span className="text-2xl font-bold">{price} ₽</span>
-            <span className="text-tg-hint"> {t('paywall.perMonth')}</span>
-          </div>
-
           <button
             onClick={onShowModal}
-            className="w-full bg-tg-button text-tg-button-text rounded-xl py-3 px-4 font-medium"
+            className="w-full bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-xl py-3 px-4 font-medium"
           >
             {t('paywall.unlock')}
           </button>
+          <p className="text-xs text-tg-hint mt-2">{t('paywall.includedInPlus')}</p>
         </div>
       </div>
     </div>
@@ -246,7 +237,6 @@ export default function CatalogPage() {
   const [hasAccess, setHasAccess] = useState(false);
   const [total, setTotal] = useState(0);
   const [previewCount, setPreviewCount] = useState(3);
-  const [price, setPrice] = useState(1000);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -270,7 +260,6 @@ export default function CatalogPage() {
         setHasAccess(res.hasAccess || false);
         setTotal(res.total || 0);
         setPreviewCount(res.previewCount || 3);
-        setPrice(res.subscriptionPrice || 1000);
         setHasMore(res.hasMore || false);
         if (res.nextCursor) setCursor(res.nextCursor);
       } else {
@@ -316,14 +305,6 @@ export default function CatalogPage() {
             <h1 className="text-lg font-semibold text-tg-text flex-1">
               {t('title')}
             </h1>
-            {!hasAccess && (
-              <button
-                onClick={() => setShowModal(true)}
-                className="text-xs text-tg-button font-medium"
-              >
-                <span className="flex items-center gap-1">{t('paywall.unlock')} <AppIcon name="icon-star" size={14} /></span>
-              </button>
-            )}
           </div>
           {/* Фильтры сортировки */}
           {hasAccess && (
@@ -385,19 +366,13 @@ export default function CatalogPage() {
               <h2 className="text-xl font-semibold mb-2">{t('empty')}</h2>
               <p className="text-tg-hint mb-6">{t('emptySubtitle')}</p>
 
-              {/* Кнопка подписки для тестирования оплаты */}
               {!hasAccess && (
-                <div className="border-t border-tg-bg pt-6 mt-6">
-                  <p className="text-sm text-tg-hint mb-4">
-                    {t('getAccessEarly')}
-                  </p>
-                  <button
-                    onClick={() => setShowModal(true)}
-                    className="bg-tg-button text-tg-button-text rounded-xl py-3 px-6 font-medium"
-                  >
-                    {t('paywall.unlock')} {price} ₽
-                  </button>
-                </div>
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-xl py-3 px-6 font-medium"
+                >
+                  {t('paywall.unlock')}
+                </button>
               )}
 
               {hasAccess && (
@@ -471,7 +446,6 @@ export default function CatalogPage() {
             {/* Полноэкранный paywall overlay */}
             <PaywallFullOverlay
               total={total}
-              price={price}
               onShowModal={() => setShowModal(true)}
               t={t}
             />
@@ -479,11 +453,11 @@ export default function CatalogPage() {
         )}
       </AnimatePresence>
 
-      {/* SubscriptionBottomSheet */}
       <SubscriptionBottomSheet
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         defaultTab="participants"
+        defaultTier="plus"
       />
     </div>
   );

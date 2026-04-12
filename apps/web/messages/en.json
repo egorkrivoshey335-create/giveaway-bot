@@ -234,13 +234,14 @@
         },
         "ALL": {
           "label": "For everyone",
-          "desc": "Mandatory check for all participants"
+          "desc": "Math problem + Cloudflare check. No bot will pass."
         }
       },
+      "captchaAllPlusAlert": "\"For everyone\" mode requires PLUS subscription or higher.\n\nThis mode includes enhanced protection: two-digit math problems + Cloudflare Turnstile.",
       "livenessTitle": "Liveness Check",
       "livenessHint": "Camera verification of participant — protection close to 100%",
-      "livenessProAlert": "This feature is available in PRO subscription\n\nLiveness Check verifies that a real person is behind the screen, not a bot.",
-      "availableInPro": "Available in PRO subscription"
+      "livenessProAlert": "This feature is available in BUSINESS subscription\n\nLiveness Check verifies that a real person is behind the screen, not a bot.",
+      "availableInPro": "Available in BUSINESS subscription"
     },
     "extras": {
       "title": "Extra Tickets",
@@ -370,10 +371,12 @@
     "captcha": {
       "title": "Verification",
       "description": "Solve the problem to continue",
+      "descriptionEnhanced": "Solve the problem and pass Cloudflare check",
       "placeholder": "Your answer",
       "invalidNumber": "Enter a number",
       "checkButton": "Verify",
-      "wrong": "Wrong answer, try again"
+      "wrong": "Wrong answer, try again",
+      "turnstileRequired": "Please complete the Cloudflare check"
     },
     "success": {
       "title": "You're in!",
@@ -568,24 +571,34 @@
     "subtitle": "Expand your giveaway capabilities",
     "tabs": { "creators": "For creators", "participants": "For participants" },
     "tiers": {
-      "plus": { "name": "PLUS", "price": "190 ₽/mo", "starsPrice": "200/mo", "badge": "Popular" },
-      "pro": { "name": "PRO", "price": "490 ₽/mo", "starsPrice": "500/mo", "badge": "Professional" },
-      "business": { "name": "BUSINESS", "price": "1490 ₽/mo", "starsPrice": "1500/mo", "badge": "Maximum" }
+      "plus": { "name": "PLUS", "price": "299 ₽", "priceNum": "299", "starsPrice": "200 ⭐", "badge": "Popular" },
+      "pro": { "name": "PRO", "price": "599 ₽", "priceNum": "599", "starsPrice": "400 ⭐", "badge": "Professional" },
+      "business": { "name": "BUSINESS", "price": "1 499 ₽", "priceNum": "1499", "starsPrice": "1 000 ⭐", "badge": "Maximum" }
     },
     "creators": {
-      "analytics": { "title": "Advanced Analytics", "description": "Traffic sources, invite tree, conversion, anti-fraud statistics" },
-      "mascot": { "title": "Mascot Selection", "description": "Various characters to accompany participants" },
-      "export": { "title": "Export Participants CSV", "description": "Full participant list in CSV format" },
-      "liveness": { "title": "Liveness Check", "description": "Advanced bot protection with camera verification" },
-      "winners": { "title": "More Winners", "description": "Up to 50 (PLUS), 100 (PRO) or 200 (BUSINESS) winners" },
-      "tasks": { "title": "Custom Tasks", "description": "Up to 5 (PRO) or 10 (BUSINESS) custom participant tasks" }
+      "activeGiveaways": { "title": "Active giveaways", "plus": "up to 5", "pro": "up to 10", "business": "Unlimited" },
+      "channels": { "title": "Channels", "plus": "up to 5", "pro": "up to 10", "business": "Unlimited" },
+      "postTemplates": { "title": "Post templates", "plus": "up to 10", "pro": "up to 20", "business": "Unlimited" },
+      "winners": { "title": "Winners", "plus": "up to 10", "pro": "up to 20", "business": "up to 200" },
+      "invites": { "title": "Invites per participant", "plus": "up to 10", "pro": "up to 20", "business": "up to 10,000" },
+      "trackingLinks": { "title": "Tracking links", "description": "Track where participants come from", "plus": "up to 3", "pro": "up to 5", "business": "Unlimited" },
+      "channelsPerGiveaway": { "title": "Channels per giveaway", "plus": "up to 3", "pro": "up to 5", "business": "Unlimited" },
+      "customTasks": { "title": "Custom tasks", "description": "Custom tasks for participants", "plus": "up to 3", "pro": "up to 5", "business": "up to 10" },
+      "postCharLimit": { "title": "Post character limit", "plus": "up to 2,048", "pro": "up to 4,096", "business": "up to 4,096" },
+      "export": { "title": "CSV export", "description": "Full participant list in CSV", "plus": "✓", "pro": "✓", "business": "✓" },
+      "mascot": { "title": "Mascot selection", "description": "Characters to accompany participants", "plus": "Lucky, Fortune", "pro": "All mascots", "business": "All mascots" },
+      "analytics": { "title": "Advanced analytics", "description": "Traffic, conversion, anti-fraud, invite tree", "plus": "—", "pro": "✓", "business": "✓" },
+      "liveness": { "title": "Liveness Check", "description": "Bot protection with camera verification", "plus": "—", "pro": "—", "business": "✓" },
+      "theme": { "title": "Custom theme", "description": "Unique giveaway page design", "plus": "—", "pro": "—", "business": "✓" },
+      "randomizer": { "title": "Randomizer", "description": "Beautiful winner selection with animations", "plus": "—", "pro": "—", "business": "✓" }
     },
     "participants": {
-      "bonus": { "title": "+100% chance", "description": "Extra ticket in all giveaways automatically" },
-      "catalog": { "title": "Catalog access", "description": "Giveaways from all channels in one place" },
-      "noCaptcha": { "title": "No captcha", "description": "Participate without captcha verification" },
-      "notifications": { "title": "Notifications", "description": "Be first to know about new giveaways" }
+      "bonus": { "title": "+100% chance", "description": "Extra ticket in all giveaways — doubled chances", "plus": "✓", "pro": "✓", "business": "✓" },
+      "catalog": { "title": "Giveaway catalog", "description": "All active giveaways in one place", "plus": "Full access", "pro": "Full access", "business": "Full access" },
+      "noCaptcha": { "title": "No captcha", "description": "Instant participation without captcha", "plus": "✓", "pro": "✓", "business": "✓" },
+      "notifications": { "title": "Notifications", "description": "Be first to know about new giveaways", "plus": "✓", "pro": "✓", "business": "✓" }
     },
+    "freeIncludes": "Free: 3 giveaways, 3 channels, 5 templates, 5 winners, 1 tracking link, 1 channel per giveaway",
     "payBtn": "Pay {price}",
     "payStarsBtn": "Pay with Stars {stars}",
     "current": "Current plan",
@@ -593,7 +606,13 @@
     "secure": "Secure payment via YooKassa",
     "alreadySubscribed": "You already have this subscription",
     "loading": "Creating payment...",
-    "error": "Payment creation error"
+    "error": "Payment creation error",
+    "upgradeBtn": "Upgrade to {tier}",
+    "manageBtn": "Manage subscription",
+    "expiresIn": "Expires in {days} days",
+    "expiresAt": "Active until {date}",
+    "lockedFeature": "Available with {tier} subscription",
+    "unlockWith": "Unlock with {tier}"
   },
   "creatorSubscription": {
     "title": "Subscription Management",

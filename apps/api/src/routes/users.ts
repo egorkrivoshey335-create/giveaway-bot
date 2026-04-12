@@ -67,6 +67,7 @@ export const usersRoutes: FastifyPluginAsync = async (fastify) => {
         prisma.entitlement.findFirst({
           where: {
             userId: user.id,
+            code: { in: ['tier.business', 'tier.pro', 'tier.plus'] },
             revokedAt: null,
             OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
           },
@@ -78,12 +79,13 @@ export const usersRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.notFound('Пользователь не найден');
     }
 
-    // Определяем уровень подписки
-    let subscriptionTier: 'FREE' | 'PLUS' | 'PRO' = 'FREE';
+    let subscriptionTier: 'FREE' | 'PLUS' | 'PRO' | 'BUSINESS' = 'FREE';
     if (entitlement) {
-      if (entitlement.code.includes('pro') || entitlement.code.includes('PRO')) {
+      if (entitlement.code === 'tier.business') {
+        subscriptionTier = 'BUSINESS';
+      } else if (entitlement.code === 'tier.pro') {
         subscriptionTier = 'PRO';
-      } else {
+      } else if (entitlement.code === 'tier.plus') {
         subscriptionTier = 'PLUS';
       }
     }

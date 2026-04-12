@@ -14,6 +14,8 @@ import { InlineToast } from '@/components/Toast';
 import { AppIcon } from '@/components/AppIcon';
 import { Mascot } from '@/components/Mascot';
 import { Stagger, StaggerItem } from '@/components/FadeIn';
+import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
+import { TIER_LIMITS } from '@randombeast/shared';
 
 // Берём username бота из env
 const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
@@ -323,6 +325,18 @@ export default function CreatorDashboardPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [message, setMessage] = useState<string | null>(null);
+  const [userTier, setUserTier] = useState<'FREE' | 'PLUS' | 'PRO' | 'BUSINESS'>('FREE');
+  const [showSubscription, setShowSubscription] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/users/me/entitlements', { credentials: 'include' })
+      .then(r => r.json())
+      .then((data: { ok?: boolean; data?: { tier?: string } }) => {
+        const tier = data?.data?.tier as typeof userTier;
+        if (tier) setUserTier(tier);
+      })
+      .catch(() => {});
+  }, []);
 
   // Загрузка розыгрышей
   const loadGiveaways = useCallback(async (reset = true) => {
@@ -505,13 +519,42 @@ export default function CreatorDashboardPage() {
 
           {/* Кнопка «Создать розыгрыш» — как в CreatorSection */}
           <StaggerItem>
-            <button
-              onClick={() => router.push('/creator/giveaway/new')}
-              className="w-full bg-tg-button text-tg-button-text rounded-xl py-3 px-4 font-medium mb-6 hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-            >
-              <AppIcon name="icon-create" size={18} />
-              {t('createGiveaway')}
-            </button>
+            {(() => {
+              const activeCount = giveaways.filter(g =>
+                ['ACTIVE', 'SCHEDULED', 'PENDING_CONFIRM'].includes(g.status)
+              ).length;
+              const maxActive = TIER_LIMITS.maxActiveGiveaways[userTier];
+              const limitReached = activeCount >= maxActive;
+
+              return (
+                <>
+                  <button
+                    onClick={() => {
+                      if (limitReached) {
+                        setShowSubscription(true);
+                      } else {
+                        router.push('/creator/giveaway/new');
+                      }
+                    }}
+                    className="w-full bg-tg-button text-tg-button-text rounded-xl py-3 px-4 font-medium mb-2 hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                  >
+                    <AppIcon name="icon-create" size={18} />
+                    {t('createGiveaway')}
+                  </button>
+                  {limitReached && (
+                    <p className="text-xs text-orange-500 text-center mb-4">
+                      <AppIcon name="icon-warning" size={12} className="inline mr-1" />
+                      {`Достигнут лимит активных розыгрышей: ${maxActive} (${userTier})`}
+                    </p>
+                  )}
+                  {!limitReached && (
+                    <p className="text-xs text-tg-hint text-center mb-4">
+                      {`${activeCount} / ${maxActive === Infinity ? '∞' : maxActive}`}
+                    </p>
+                  )}
+                </>
+              );
+            })()}
           </StaggerItem>
 
           {/* Быстрые блоки (Каналы, Посты — 2 колонки, Профиль — на всю ширину) */}
@@ -658,6 +701,11 @@ export default function CreatorDashboardPage() {
           </StaggerItem>
         </Stagger>
       </div>
+
+      <SubscriptionBottomSheet
+        isOpen={showSubscription}
+        onClose={() => setShowSubscription(false)}
+      />
     </main>
   );
 }

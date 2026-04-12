@@ -389,22 +389,22 @@ export const TIER_LIMITS = {
   /** Максимум одновременно активных розыгрышей */
   maxActiveGiveaways: {
     FREE: 3,
-    PLUS: 10,
-    PRO: 30,
+    PLUS: 5,
+    PRO: 10,
     BUSINESS: Infinity,
   },
   /** Максимум каналов у создателя */
   maxChannels: {
-    FREE: 5,
-    PLUS: 20,
-    PRO: 50,
+    FREE: 3,
+    PLUS: 5,
+    PRO: 10,
     BUSINESS: Infinity,
   },
   /** Максимум шаблонов постов */
   maxPostTemplates: {
-    FREE: 10,
-    PLUS: 50,
-    PRO: 200,
+    FREE: 5,
+    PLUS: 10,
+    PRO: 20,
     BUSINESS: Infinity,
   },
   /** Максимум кастомных заданий в одном розыгрыше */
@@ -423,30 +423,30 @@ export const TIER_LIMITS = {
   },
   /** Максимум победителей */
   maxWinners: {
-    FREE: 10,
-    PLUS: 50,
-    PRO: 100,
+    FREE: 5,
+    PLUS: 10,
+    PRO: 20,
     BUSINESS: 200,
   },
   /** Максимум приглашений на участника */
   maxInvites: {
-    FREE: 10,
-    PLUS: 100,
-    PRO: 500,
+    FREE: 3,
+    PLUS: 10,
+    PRO: 20,
     BUSINESS: 10000,
   },
   /** Максимум трекинг-ссылок */
   maxTrackingLinks: {
-    FREE: 3,
-    PLUS: 10,
-    PRO: 50,
+    FREE: 1,
+    PLUS: 3,
+    PRO: 5,
     BUSINESS: Infinity,
   },
   /** Максимум каналов на один розыгрыш */
   maxChannelsPerGiveaway: {
-    FREE: 3,
-    PLUS: 10,
-    PRO: 30,
+    FREE: 1,
+    PLUS: 3,
+    PRO: 5,
     BUSINESS: Infinity,
   },
 } as const;

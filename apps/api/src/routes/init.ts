@@ -2,33 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { prisma } from '@randombeast/database';
 import { ErrorCode, TIER_LIMITS } from '@randombeast/shared';
 import { requireUser } from '../plugins/auth.js';
-
-type TierKey = 'FREE' | 'PLUS' | 'PRO' | 'BUSINESS';
-
-/**
- * Определяем tier пользователя по entitlements
- */
-async function getUserTier(userId: string): Promise<TierKey> {
-  const entitlements = await prisma.entitlement.findMany({
-    where: {
-      userId,
-      revokedAt: null,
-      cancelledAt: null,
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } },
-      ],
-    },
-    select: { code: true },
-  });
-
-  const codes = entitlements.map(e => e.code);
-
-  if (codes.includes('tier.business')) return 'BUSINESS';
-  if (codes.includes('tier.pro')) return 'PRO';
-  if (codes.includes('tier.plus')) return 'PLUS';
-  return 'FREE';
-}
+import { getUserTier } from '../lib/subscription.js';
 
 /**
  * GET /api/v1/init

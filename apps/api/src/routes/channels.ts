@@ -1,9 +1,10 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { prisma, GiveawayStatus, ChannelType } from '@randombeast/database';
-import { ErrorCode } from '@randombeast/shared';
+import { ErrorCode, TIER_LIMITS } from '@randombeast/shared';
 import { requireUser } from '../plugins/auth.js';
 import { config } from '../config.js';
 import { createAuditLog, AuditAction, AuditEntityType } from '../lib/audit.js';
+import { getUserTier } from '../lib/subscription.js';
 import { z } from 'zod';
 
 function serializeChannel(channel: {
@@ -49,6 +50,15 @@ export const channelsRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/channels', async (request, reply) => {
     const user = await requireUser(request, reply);
     if (!user) return;
+
+    const tier = await getUserTier(user.id);
+    const maxChannels = TIER_LIMITS.maxChannels[tier];
+    const currentCount = await prisma.channel.count({ where: { addedByUserId: user.id } });
+    if (currentCount >= maxChannels) {
+      return reply.forbidden(
+        `Достигнут лимит каналов для тарифа ${tier}: ${maxChannels}. Повысьте подписку для увеличения лимита.`
+      );
+    }
 
     const parsed = addChannelSchema.safeParse(request.body);
     if (!parsed.success) {

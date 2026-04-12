@@ -5,82 +5,32 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // Upsert MVP Product: Catalog Monthly Access
-  const catalogProduct = await prisma.product.upsert({
-    where: { code: 'CATALOG_MONTHLY_1000' },
-    update: {
-      title: 'Каталог розыгрышей на 30 дней',
-      price: 100000, // 1000 RUB in kopecks
-      currency: 'RUB',
-      periodDays: 30,
-      type: ProductType.SUBSCRIPTION,
-      entitlementCode: 'catalog.access',
-      isActive: true,
-    },
-    create: {
-      code: 'CATALOG_MONTHLY_1000',
-      title: 'Каталог розыгрышей на 30 дней',
-      description: 'Доступ к каталогу активных розыгрышей на 30 дней',
-      price: 100000, // 1000 RUB in kopecks
-      currency: 'RUB',
-      periodDays: 30,
-      type: ProductType.SUBSCRIPTION,
-      entitlementCode: 'catalog.access',
-      isActive: true,
-    },
+  // Deactivate legacy standalone products (catalog & randomizer now included in tiers)
+  await prisma.product.updateMany({
+    where: { code: { in: ['CATALOG_MONTHLY_1000', 'RANDOMIZER_MONTHLY_500'] } },
+    data: { isActive: false },
   });
+  console.log('✅ Legacy standalone products deactivated (catalog, randomizer)');
 
-  console.log(`✅ Product created/updated: ${catalogProduct.code}`);
-  console.log(`   - Title: ${catalogProduct.title}`);
-  console.log(`   - Price: ${catalogProduct.price / 100} ${catalogProduct.currency}`);
-  console.log(`   - Period: ${catalogProduct.periodDays} days`);
-
-  // Upsert Product: Randomizer Monthly Access
-  const randomizerProduct = await prisma.product.upsert({
-    where: { code: 'RANDOMIZER_MONTHLY_500' },
-    update: {
-      title: 'Рандомайзер на 30 дней',
-      price: 50000, // 500 RUB in kopecks
-      currency: 'RUB',
-      periodDays: 30,
-      type: ProductType.SUBSCRIPTION,
-      entitlementCode: 'randomizer.access',
-      isActive: true,
-    },
-    create: {
-      code: 'RANDOMIZER_MONTHLY_500',
-      title: 'Рандомайзер на 30 дней',
-      description: 'Красивый рандомайзер для объявления победителей с анимацией и эффектами',
-      price: 50000, // 500 RUB in kopecks
-      currency: 'RUB',
-      periodDays: 30,
-      type: ProductType.SUBSCRIPTION,
-      entitlementCode: 'randomizer.access',
-      isActive: true,
-    },
-  });
-
-  console.log(`✅ Product created/updated: ${randomizerProduct.code}`);
-
-  // ── Подписки для создателей ────────────────────────────────────────────────
+  // ── Подписки ────────────────────────────────────────────────────────────────
 
   const subscriptionPlus = await prisma.product.upsert({
     where: { code: 'SUBSCRIPTION_PLUS' },
     update: {
       title: 'RandomBeast PLUS',
-      price: 19000, // 190 RUB в копейках
+      price: 29900, // 299 RUB в копейках
       currency: 'RUB',
       periodDays: 30,
       type: ProductType.SUBSCRIPTION,
       entitlementCode: 'tier.plus',
       isActive: true,
-      starsPrice: 200, // ~190 RUB в Stars (конвертация ~1 Star ≈ 1 RUB)
+      starsPrice: 200,
     },
     create: {
       code: 'SUBSCRIPTION_PLUS',
       title: 'RandomBeast PLUS',
       description: 'Расширенные возможности для создателей и участников на 30 дней',
-      price: 19000,
+      price: 29900,
       currency: 'RUB',
       periodDays: 30,
       type: ProductType.SUBSCRIPTION,
@@ -90,63 +40,63 @@ async function main() {
     },
   });
 
-  console.log(`✅ Product created/updated: ${subscriptionPlus.code} (${subscriptionPlus.price / 100} RUB / ${subscriptionPlus.starsPrice} Stars)`);
+  console.log(`✅ Product: ${subscriptionPlus.code} (${subscriptionPlus.price / 100} RUB / ${subscriptionPlus.starsPrice} Stars)`);
 
   const subscriptionPro = await prisma.product.upsert({
     where: { code: 'SUBSCRIPTION_PRO' },
     update: {
       title: 'RandomBeast PRO',
-      price: 49000, // 490 RUB
+      price: 59900, // 599 RUB
       currency: 'RUB',
       periodDays: 30,
       type: ProductType.SUBSCRIPTION,
       entitlementCode: 'tier.pro',
       isActive: true,
-      starsPrice: 500,
+      starsPrice: 400,
     },
     create: {
       code: 'SUBSCRIPTION_PRO',
       title: 'RandomBeast PRO',
-      description: 'Профессиональные инструменты: расширенная аналитика, liveness check, экспорт CSV на 30 дней',
-      price: 49000,
+      description: 'Профессиональные инструменты: аналитика, CSV экспорт, расширенные лимиты на 30 дней',
+      price: 59900,
       currency: 'RUB',
       periodDays: 30,
       type: ProductType.SUBSCRIPTION,
       entitlementCode: 'tier.pro',
       isActive: true,
-      starsPrice: 500,
+      starsPrice: 400,
     },
   });
 
-  console.log(`✅ Product created/updated: ${subscriptionPro.code} (${subscriptionPro.price / 100} RUB / ${subscriptionPro.starsPrice} Stars)`);
+  console.log(`✅ Product: ${subscriptionPro.code} (${subscriptionPro.price / 100} RUB / ${subscriptionPro.starsPrice} Stars)`);
 
   const subscriptionBusiness = await prisma.product.upsert({
     where: { code: 'SUBSCRIPTION_BUSINESS' },
     update: {
       title: 'RandomBeast BUSINESS',
-      price: 149000, // 1490 RUB
+      price: 149900, // 1499 RUB
       currency: 'RUB',
       periodDays: 30,
       type: ProductType.SUBSCRIPTION,
       entitlementCode: 'tier.business',
       isActive: true,
-      starsPrice: 1500,
+      starsPrice: 1000,
     },
     create: {
       code: 'SUBSCRIPTION_BUSINESS',
       title: 'RandomBeast BUSINESS',
-      description: 'Максимальные возможности: белый лейбл, webhook API, выделенная поддержка на 30 дней',
-      price: 149000,
+      description: 'Максимум: liveness check, кастомные темы, аналитика, рандомайзер на 30 дней',
+      price: 149900,
       currency: 'RUB',
       periodDays: 30,
       type: ProductType.SUBSCRIPTION,
       entitlementCode: 'tier.business',
       isActive: true,
-      starsPrice: 1500,
+      starsPrice: 1000,
     },
   });
 
-  console.log(`✅ Product created/updated: ${subscriptionBusiness.code} (${subscriptionBusiness.price / 100} RUB / ${subscriptionBusiness.starsPrice} Stars)`);
+  console.log(`✅ Product: ${subscriptionBusiness.code} (${subscriptionBusiness.price / 100} RUB / ${subscriptionBusiness.starsPrice} Stars)`);
 
   // ── Dev test data (только в dev/test окружении) ──────────────────────────
 

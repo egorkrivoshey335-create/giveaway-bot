@@ -234,13 +234,14 @@
         },
         "ALL": {
           "label": "Барлығына",
-          "desc": "Барлық қатысушылар үшін міндетті тексеру"
+          "desc": "Математикалық есеп + Cloudflare тексеру. Бірде-бір бот өтпейді."
         }
       },
+      "captchaAllPlusAlert": "«Барлығына» режимі PLUS жазылымынан бастап қол жетімді.\n\nБұл режим күшейтілген қорғауды қамтиды: екі таңбалы сандармен математикалық есеп + Cloudflare Turnstile.",
       "livenessTitle": "Liveness Check",
       "livenessHint": "Қатысушыны камера арқылы тексеру — 100%-ға жақын қорғау",
-      "livenessProAlert": "🔒 Бұл функция PRO жазылымында қол жетімді\n\nLiveness Check экран артында нағыз адам екенін, бот емес екенін тексереді.",
-      "availableInPro": "PRO жазылымында қол жетімді"
+      "livenessProAlert": "🔒 Бұл функция BUSINESS жазылымында қол жетімді\n\nLiveness Check экран артында нағыз адам екенін, бот емес екенін тексереді.",
+      "availableInPro": "BUSINESS жазылымында қол жетімді"
     },
     "extras": {
       "title": "Қосымша билеттер",
@@ -370,10 +371,12 @@
     "captcha": {
       "title": "Тексеру",
       "description": "Жалғастыру үшін есепті шешіңіз",
+      "descriptionEnhanced": "Есепті шешіңіз және Cloudflare тексеруден өтіңіз",
       "placeholder": "Сіздің жауабыңыз",
       "invalidNumber": "Сан енгізіңіз",
       "checkButton": "Тексеру",
-      "wrong": "Қате жауап, қайта көріңіз"
+      "wrong": "Қате жауап, қайта көріңіз",
+      "turnstileRequired": "Cloudflare тексеруден өтіңіз"
     },
     "success": {
       "title": "Сіз қатысып жатырсыз!",
@@ -564,36 +567,52 @@
     "checkCount": "Тексеру {current}/{max}"
   },
   "subscription": {
-    "title": "⭐ RandomBeast Premium",
+    "title": "RandomBeast Premium",
     "subtitle": "Ұтыс ойындарының мүмкіндіктерін кеңейтіңіз",
     "tabs": { "creators": "Жасаушылар үшін", "participants": "Қатысушылар үшін" },
     "tiers": {
-      "plus": { "name": "PLUS", "price": "190 ₽/ай", "starsPrice": "200 ⭐/ай", "badge": "Танымал" },
-      "pro": { "name": "PRO", "price": "490 ₽/ай", "starsPrice": "500 ⭐/ай", "badge": "Кәсіби" },
-      "business": { "name": "BUSINESS", "price": "1490 ₽/ай", "starsPrice": "1500 ⭐/ай", "badge": "Максималды" }
+      "plus": { "name": "PLUS", "price": "299 ₽", "priceNum": "299", "starsPrice": "200 ⭐", "badge": "Танымал" },
+      "pro": { "name": "PRO", "price": "599 ₽", "priceNum": "599", "starsPrice": "400 ⭐", "badge": "Кәсіби" },
+      "business": { "name": "BUSINESS", "price": "1 499 ₽", "priceNum": "1499", "starsPrice": "1 000 ⭐", "badge": "Максималды" }
     },
     "creators": {
-      "analytics": { "title": "📊 Кеңейтілген аналитика", "description": "Трафик көздері, шақыру ағашы, конверсия" },
-      "mascot": { "title": "🐱 Маскот таңдау", "description": "Қатысушыларға арналған әртүрлі кейіпкерлер" },
-      "export": { "title": "📥 Қатысушыларды CSV экспорттау", "description": "Барлық қатысушылар тізімі CSV форматында" },
-      "liveness": { "title": "📸 Liveness Check", "description": "Камера арқылы боттардан қорғау" },
-      "winners": { "title": "🏆 Көбірек жеңімпаздар", "description": "50 (PLUS), 100 (PRO) немесе 200 (BUSINESS) жеңімпазға дейін" },
-      "tasks": { "title": "🎨 Арнайы тапсырмалар", "description": "5 (PRO) немесе 10 (BUSINESS) тапсырмаға дейін" }
+      "activeGiveaways": { "title": "Белсенді ұтыс ойындары", "plus": "5 дейін", "pro": "10 дейін", "business": "Шексіз" },
+      "channels": { "title": "Арналар", "plus": "5 дейін", "pro": "10 дейін", "business": "Шексіз" },
+      "postTemplates": { "title": "Пост үлгілері", "plus": "10 дейін", "pro": "20 дейін", "business": "Шексіз" },
+      "winners": { "title": "Жеңімпаздар", "plus": "10 дейін", "pro": "20 дейін", "business": "200 дейін" },
+      "invites": { "title": "Қатысушыға шақырулар", "plus": "10 дейін", "pro": "20 дейін", "business": "10 000 дейін" },
+      "trackingLinks": { "title": "Бақылау сілтемелері", "description": "Қатысушылардың қайдан келетінін бақылаңыз", "plus": "3 дейін", "pro": "5 дейін", "business": "Шексіз" },
+      "channelsPerGiveaway": { "title": "Ұтыс ойынына арналар", "plus": "3 дейін", "pro": "5 дейін", "business": "Шексіз" },
+      "customTasks": { "title": "Арнайы тапсырмалар", "description": "Қатысушыларға арналған тапсырмалар", "plus": "3 дейін", "pro": "5 дейін", "business": "10 дейін" },
+      "postCharLimit": { "title": "Пост таңбалары", "plus": "2 048 дейін", "pro": "4 096 дейін", "business": "4 096 дейін" },
+      "export": { "title": "CSV экспорт", "description": "Барлық қатысушылар CSV форматында", "plus": "✓", "pro": "✓", "business": "✓" },
+      "mascot": { "title": "Маскот таңдау", "description": "Қатысушыларға арналған кейіпкерлер", "plus": "Бақытты, Фортуна", "pro": "Барлық маскоттар", "business": "Барлық маскоттар" },
+      "analytics": { "title": "Кеңейтілген аналитика", "description": "Трафик, конверсия, антифрод, шақыру ағашы", "plus": "—", "pro": "✓", "business": "✓" },
+      "liveness": { "title": "Liveness Check", "description": "Камера арқылы боттардан қорғау", "plus": "—", "pro": "—", "business": "✓" },
+      "theme": { "title": "Арнайы тема", "description": "Ұтыс ойыны бетінің бірегей дизайны", "plus": "—", "pro": "—", "business": "✓" },
+      "randomizer": { "title": "Рандомайзер", "description": "Анимациямен әдемі жеңімпаз таңдау", "plus": "—", "pro": "—", "business": "✓" }
     },
     "participants": {
-      "bonus": { "title": "🎟️ +100% мүмкіндік", "description": "Барлық ұтыс ойындарында қосымша билет автоматты түрде" },
-      "catalog": { "title": "🗂️ Каталогқа рұқсат", "description": "Барлық арналардың ұтыс ойындары бір жерде" },
-      "noCaptcha": { "title": "🤖 Капчасыз", "description": "Капчасыз ұтыс ойындарына қатысыңыз" },
-      "notifications": { "title": "🔔 Хабарландырулар", "description": "Жаңа ұтыс ойындары туралы бірінші болып біліңіз" }
+      "bonus": { "title": "+100% мүмкіндік", "description": "Барлық ұтыс ойындарында қосымша билет — мүмкіндік екі есе", "plus": "✓", "pro": "✓", "business": "✓" },
+      "catalog": { "title": "Ұтыс ойындары каталогы", "description": "Барлық белсенді ұтыс ойындары бір жерде", "plus": "Толық рұқсат", "pro": "Толық рұқсат", "business": "Толық рұқсат" },
+      "noCaptcha": { "title": "Капчасыз", "description": "Капчасыз жылдам қатысу", "plus": "✓", "pro": "✓", "business": "✓" },
+      "notifications": { "title": "Хабарландырулар", "description": "Жаңа ұтыс ойындары туралы бірінші болып біліңіз", "plus": "✓", "pro": "✓", "business": "✓" }
     },
-    "payBtn": "💳 Төлеу {price}",
-    "payStarsBtn": "⭐ Stars арқылы төлеу {stars}",
+    "freeIncludes": "Тегін: 3 ұтыс ойыны, 3 арна, 5 үлгі, 5 жеңімпаз, 1 бақылау сілтемесі, 1 арна",
+    "payBtn": "Төлеу {price}",
+    "payStarsBtn": "Stars арқылы төлеу {stars}",
     "current": "Ағымдағы жоспар",
     "perMonth": "/ ай",
     "secure": "YooKassa арқылы қауіпсіз төлем",
     "alreadySubscribed": "Сізде бұл жазылым бар",
     "loading": "Төлем жасалуда...",
-    "error": "Төлем жасау қатесі"
+    "error": "Төлем жасау қатесі",
+    "upgradeBtn": "{tier} дейін жоғарылату",
+    "manageBtn": "Жазылымды басқару",
+    "expiresIn": "{days} күнде аяқталады",
+    "expiresAt": "{date} дейін белсенді",
+    "lockedFeature": "{tier} жазылымымен қол жетімді",
+    "unlockWith": "{tier} арқылы ашу"
   },
   "creatorSubscription": {
     "title": "⭐ Жазылымды басқару",

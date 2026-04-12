@@ -13,6 +13,8 @@ import { InlineToast } from '@/components/Toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppIcon } from '@/components/AppIcon';
 import { Mascot } from '@/components/Mascot';
+import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
+import { TIER_LIMITS } from '@randombeast/shared';
 // Типы Telegram WebApp загружаются из @/types/telegram.d.ts
 
 // Берём username бота из env
@@ -190,6 +192,18 @@ export default function ChannelsPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [recheckingId, setRecheckingId] = useState<string | null>(null);
+  const [userTier, setUserTier] = useState<'FREE' | 'PLUS' | 'PRO' | 'BUSINESS'>('FREE');
+  const [showSubscription, setShowSubscription] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/users/me/entitlements', { credentials: 'include' })
+      .then(r => r.json())
+      .then((data: { ok?: boolean; data?: { tier?: string } }) => {
+        const tier = data?.data?.tier as typeof userTier;
+        if (tier) setUserTier(tier);
+      })
+      .catch(() => {});
+  }, []);
 
   // Загрузка каналов
   const loadChannels = useCallback(async () => {
@@ -312,18 +326,42 @@ export default function ChannelsPage() {
         <InlineToast message={message} onClose={() => setMessage(null)} />
 
         {/* Секция добавления */}
-        <div className="bg-tg-secondary rounded-xl p-4 mb-6">
-          <h3 className="text-tg-text font-medium mb-2">{t('addTitle')}</h3>
-          <p className="text-tg-hint text-sm mb-4">
-            {t('addDescription')}
-          </p>
-          <button
-            onClick={openBotAddChannel}
-            className="w-full px-4 py-3 bg-tg-button text-tg-button-text rounded-xl font-medium hover:opacity-90 transition-opacity"
-          >
-            {t('add')}
-          </button>
-        </div>
+        {(() => {
+          const maxChannels = TIER_LIMITS.maxChannels[userTier];
+          const limitReached = channels.length >= maxChannels;
+          return (
+            <div className="bg-tg-secondary rounded-xl p-4 mb-6">
+              <h3 className="text-tg-text font-medium mb-2">{t('addTitle')}</h3>
+              <p className="text-tg-hint text-sm mb-2">
+                {t('addDescription')}
+              </p>
+              <p className="text-xs text-tg-hint mb-4">
+                {`${channels.length} / ${maxChannels === Infinity ? '∞' : maxChannels} (${userTier})`}
+              </p>
+              {limitReached ? (
+                <>
+                  <p className="text-xs text-orange-500 mb-3">
+                    <AppIcon name="icon-warning" size={12} className="inline mr-1" />
+                    {`Достигнут лимит каналов: ${maxChannels}`}
+                  </p>
+                  <button
+                    onClick={() => setShowSubscription(true)}
+                    className="w-full px-4 py-3 bg-tg-button text-tg-button-text rounded-xl font-medium hover:opacity-90 transition-opacity"
+                  >
+                    Повысить подписку
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={openBotAddChannel}
+                  className="w-full px-4 py-3 bg-tg-button text-tg-button-text rounded-xl font-medium hover:opacity-90 transition-opacity"
+                >
+                  {t('add')}
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Ошибка */}
         {error && (
@@ -362,6 +400,11 @@ export default function ChannelsPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <SubscriptionBottomSheet
+        isOpen={showSubscription}
+        onClose={() => setShowSubscription(false)}
+      />
     </div>
   );
 }

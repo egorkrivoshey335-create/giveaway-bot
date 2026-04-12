@@ -658,6 +658,7 @@ export async function joinGiveaway(
   giveawayId: string,
   options?: {
     captchaPassed?: boolean;
+    turnstileToken?: string;
     sourceTag?: string;
     referrerUserId?: string;
   }
@@ -669,6 +670,7 @@ export async function joinGiveaway(
     },
     body: JSON.stringify({
       captchaPassed: options?.captchaPassed || false,
+      turnstileToken: options?.turnstileToken || undefined,
       sourceTag: options?.sourceTag || null,
       referrerUserId: options?.referrerUserId || null,
     }),

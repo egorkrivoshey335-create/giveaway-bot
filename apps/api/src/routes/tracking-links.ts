@@ -4,32 +4,7 @@ import { prisma } from '@randombeast/database';
 import { TIER_LIMITS } from '@randombeast/shared';
 import { requireUser } from '../plugins/auth.js';
 import { config } from '../config.js';
-
-/**
- * Определяем tier пользователя по его entitlements
- * Простой подход: проверяем наличие entitlement с кодом tier.*
- */
-async function getUserTier(userId: string): Promise<'FREE' | 'PLUS' | 'PRO' | 'BUSINESS'> {
-  const entitlements = await prisma.entitlement.findMany({
-    where: {
-      userId,
-      revokedAt: null,
-      cancelledAt: null,
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } },
-      ],
-    },
-    select: { code: true },
-  });
-
-  const codes = entitlements.map(e => e.code);
-
-  if (codes.includes('tier.business')) return 'BUSINESS';
-  if (codes.includes('tier.pro')) return 'PRO';
-  if (codes.includes('tier.plus')) return 'PLUS';
-  return 'FREE';
-}
+import { getUserTier } from '../lib/subscription.js';
 
 export const trackingLinksRoutes: FastifyPluginAsync = async (fastify) => {
   /**

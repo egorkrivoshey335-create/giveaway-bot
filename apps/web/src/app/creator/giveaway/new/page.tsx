@@ -24,8 +24,8 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ValidationMessage, useURLValidation } from '@/components/ui/ValidationMessage';
 import { AppIcon } from '@/components/AppIcon';
 import { hapticNavigation, hapticSuccess, hapticError, hapticToggle, hapticSelect } from '@/lib/haptic';
+import { TIER_LIMITS } from '@randombeast/shared';
 
-// Bot deep link for confirmation
 const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
 
 // Шаги wizard'а
@@ -146,10 +146,8 @@ export default function GiveawayWizardPage() {
 
   const userHasPremium = userTier !== 'FREE';
 
-  // Channel limit by tier
-  const subscriptionChannelLimit = userTier === 'BUSINESS' ? Infinity : userTier === 'PRO' ? 30 : userTier === 'PLUS' ? 10 : 3;
-  // Winner limit by tier
-  const winnerLimit = userTier === 'BUSINESS' ? 200 : userTier === 'PRO' ? 100 : userTier === 'PLUS' ? 50 : 10;
+  const subscriptionChannelLimit = TIER_LIMITS.maxChannelsPerGiveaway[userTier];
+  const winnerLimit = TIER_LIMITS.maxWinners[userTier];
 
   // Helper: валидация URL
   const isValidURL = (url: string): boolean => {
@@ -768,7 +766,7 @@ export default function GiveawayWizardPage() {
                 )}
                 {userTier === 'FREE' && (
                   <p className="text-xs text-tg-hint mt-1">
-                    FREE: 3 · PLUS: 10 · PRO: 30 · BUSINESS: ∞
+                    FREE: 1 · PLUS: 3 · PRO: 5 · BUSINESS: ∞
                   </p>
                 )}
               </div>
@@ -985,11 +983,17 @@ export default function GiveawayWizardPage() {
                     </div>
                   </button>
                   <button
-                    onClick={() => updatePayload({ publishResultsMode: 'RANDOMIZER' })}
+                    onClick={() => {
+                      if (userTier === 'BUSINESS') {
+                        updatePayload({ publishResultsMode: 'RANDOMIZER' });
+                      } else {
+                        alert('Рандомайзер доступен только с подпиской BUSINESS');
+                      }
+                    }}
                     className={`w-full text-left p-3 rounded-lg flex items-center gap-3 ${
                       payload.publishResultsMode === 'RANDOMIZER'
                         ? 'bg-tg-button/10 border border-tg-button'
-                        : 'bg-tg-bg'
+                        : userTier !== 'BUSINESS' ? 'bg-tg-bg opacity-60' : 'bg-tg-bg'
                     }`}
                   >
                     <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
@@ -1000,7 +1004,10 @@ export default function GiveawayWizardPage() {
                       {payload.publishResultsMode === 'RANDOMIZER' ? '●' : ''}
                     </span>
                     <div>
-                      <div className="font-medium"><AppIcon name="icon-winner" size={14} /> {t('resultsStep.randomizer')}</div>
+                      <div className="font-medium flex items-center gap-2">
+                        <AppIcon name="icon-winner" size={14} /> {t('resultsStep.randomizer')}
+                        <span className="text-xs bg-amber-500/20 text-amber-600 px-2 py-0.5 rounded">BUSINESS</span>
+                      </div>
                       <div className="text-xs text-tg-hint">{t('resultsStep.randomizerHint')}</div>
                     </div>
                   </button>
@@ -1155,7 +1162,7 @@ export default function GiveawayWizardPage() {
                 <p className="mb-1"><AppIcon name="icon-winner" size={14} /> {t('winners.randomHint')}</p>
                 <p><AppIcon name="icon-diamond" size={14} /> {t('winners.maxFree', { max: winnerLimit })}</p>
                 {userTier === 'FREE' && (
-                  <p className="mt-1 text-xs">FREE: 10 · PLUS: 50 · PRO: 100 · BUSINESS: 200</p>
+                  <p className="mt-1 text-xs">FREE: 5 · PLUS: 10 · PRO: 20 · BUSINESS: 200</p>
                 )}
               </div>
 
@@ -1267,14 +1274,23 @@ export default function GiveawayWizardPage() {
 
                 <div className="space-y-2">
                   {(['OFF', 'SUSPICIOUS_ONLY', 'ALL'] as const).map((modeValue) => {
-                    const isRecommended = modeValue === 'SUSPICIOUS_ONLY';
+                    const isRecommended = modeValue === 'ALL';
+                    const isLockedForFree = modeValue === 'ALL' && userTier === 'FREE';
                     return (
                       <button
                         key={modeValue}
-                        onClick={() => updatePayload({ captchaMode: modeValue })}
+                        onClick={() => {
+                          if (isLockedForFree) {
+                            alert(t('protection.captchaAllPlusAlert'));
+                            return;
+                          }
+                          updatePayload({ captchaMode: modeValue });
+                        }}
                         className={`w-full text-left p-3 rounded-lg flex items-start gap-3 transition-all ${
                           payload.captchaMode === modeValue
                             ? 'bg-[#f2b6b6]/20 border-2 border-[#f2b6b6]'
+                            : isLockedForFree
+                            ? 'bg-tg-bg border-2 border-transparent opacity-60'
                             : 'bg-tg-bg border-2 border-transparent hover:border-tg-secondary'
                         }`}
                       >
@@ -1285,6 +1301,11 @@ export default function GiveawayWizardPage() {
                             {isRecommended && (
                               <span className="text-xs bg-green-500/20 text-green-600 px-2 py-0.5 rounded">
                                 {t('protection.recommended')}
+                              </span>
+                            )}
+                            {isLockedForFree && (
+                              <span className="text-xs bg-blue-500/20 text-blue-600 px-2 py-0.5 rounded">
+                                PLUS+
                               </span>
                             )}
                           </div>
@@ -1311,8 +1332,8 @@ export default function GiveawayWizardPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{t('protection.livenessTitle')}</span>
-                        <span className="text-xs bg-purple-500/20 text-purple-600 px-2 py-0.5 rounded">
-                          PRO
+                        <span className="text-xs bg-amber-500/20 text-amber-600 px-2 py-0.5 rounded">
+                          BUSINESS
                         </span>
                       </div>
                       <p className="text-xs text-tg-hint mt-0.5">
@@ -1322,7 +1343,6 @@ export default function GiveawayWizardPage() {
                   </div>
                   <button
                     onClick={() => {
-                      // Показываем уведомление что это PRO фича
                       alert(t('protection.livenessProAlert'));
                     }}
                     className="w-12 h-6 rounded-full bg-tg-secondary opacity-50 cursor-not-allowed relative"

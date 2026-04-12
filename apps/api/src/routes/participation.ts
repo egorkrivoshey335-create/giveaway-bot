@@ -6,6 +6,7 @@ import { getUser, requireUser } from '../plugins/auth.js';
 import { config } from '../config.js';
 import { calculateFraudScore, requiresCaptcha } from '../lib/antifraud.js';
 import { createAuditLog, AuditAction, AuditEntityType } from '../lib/audit.js';
+import { getUserTier, isTierAtLeast } from '../lib/subscription.js';
 import crypto from 'crypto';
 import { RATE_LIMITS } from '../config/rate-limits.js';
 
@@ -18,6 +19,7 @@ const checkSubscriptionSchema = z.object({
 const joinGiveawaySchema = z.object({
   captchaPassed: z.boolean().optional().default(false),
   captchaToken: z.string().optional(),
+  turnstileToken: z.string().optional(),
   sourceTag: z.string().optional().nullable(),
   referrerUserId: z.string().uuid().optional().nullable(),
 });
@@ -677,9 +679,13 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       expectedTimezone: undefined, // TODO: определять по IP через GeoIP
     });
 
-    // Проверяем требуется ли капча на основе fraud score
+    // Participant tier (for captcha skip & bonus ticket)
+    const participantTier = await getUserTier(user.id);
+    const participantIsPaid = isTierAtLeast(participantTier, 'PLUS');
+
+    // Paid participants (PLUS+) skip captcha
     const captchaMode = giveaway.condition?.captchaMode || 'SUSPICIOUS_ONLY';
-    const captchaRequired = requiresCaptcha(fraudScore, captchaMode);
+    const captchaRequired = !participantIsPaid && requiresCaptcha(fraudScore, captchaMode);
     
     if (captchaRequired && !body.captchaPassed) {
       return reply.status(400).send({
@@ -688,8 +694,43 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
           ? 'Требуется проверка безопасности. Пройдите капчу.'
           : 'Пройдите проверку капчи',
         code: 'CAPTCHA_REQUIRED',
-        fraudScore: fraudScore >= 61 ? 'HIGH' : 'MEDIUM', // Не раскрываем точный score
+        fraudScore: fraudScore >= 61 ? 'HIGH' : 'MEDIUM',
       });
+    }
+
+    // Turnstile verification required when captchaMode is ALL
+    if (captchaMode === 'ALL' && !participantIsPaid) {
+      const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+      if (turnstileSecret && !body.turnstileToken) {
+        return reply.status(400).send({
+          ok: false,
+          error: 'Пройдите проверку Cloudflare',
+          code: 'TURNSTILE_REQUIRED',
+        });
+      }
+      if (turnstileSecret && body.turnstileToken) {
+        try {
+          const resp = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              secret: turnstileSecret,
+              response: body.turnstileToken,
+              remoteip: request.ip,
+            }),
+          });
+          const data = await resp.json() as { success: boolean };
+          if (!data.success) {
+            return reply.status(400).send({
+              ok: false,
+              error: 'Проверка Cloudflare не пройдена',
+              code: 'TURNSTILE_FAILED',
+            });
+          }
+        } catch (err) {
+          fastify.log.warn('Turnstile verify error:', err);
+        }
+      }
     }
 
     // Обработка реферера
@@ -736,13 +777,15 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
     // Liveness check: если требуется — участие создаётся со статусом PENDING
     const livenessEnabled = giveaway.condition?.livenessEnabled ?? false;
 
-    // 🔒 ЗАДАЧА 7.11: Создаём участие с displayName и fraudScore
+    // Paid participants (PLUS+) get a bonus ticket (+100% chance = 2 base tickets)
+    const baseTickets = participantIsPaid ? 2 : 1;
+
     const participation = await prisma.participation.create({
       data: {
         giveawayId: id,
         userId: user.id,
         status: ParticipationStatus.JOINED,
-        ticketsBase: 1,
+        ticketsBase: baseTickets,
         ticketsExtra: 0,
         sourceTag: body.sourceTag || null,
         referrerUserId: validReferrerUserId,
@@ -902,9 +945,9 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
     
-    // Генерируем простой пример
-    const a = Math.floor(Math.random() * 10) + 1;
-    const b = Math.floor(Math.random() * 10) + 1;
+    // Two-digit math: 10-99 range, + or -
+    const a = Math.floor(Math.random() * 90) + 10;
+    const b = Math.floor(Math.random() * 90) + 10;
     const operators = ['+', '-'] as const;
     const operator = operators[Math.floor(Math.random() * operators.length)];
     
@@ -915,7 +958,6 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       answer = a + b;
       question = `${a} + ${b} = ?`;
     } else {
-      // Убедимся что результат положительный
       const max = Math.max(a, b);
       const min = Math.min(a, b);
       answer = max - min;

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { BottomSheet } from './ui/BottomSheet';
 import { getGiveawayStats, type GiveawayStats } from '@/lib/api';
+import { SubscriptionBottomSheet } from './SubscriptionBottomSheet';
 
 interface StatsBottomSheetProps {
   isOpen: boolean;
@@ -21,9 +22,19 @@ export function StatsBottomSheet({
 
   const [stats, setStats] = useState<GiveawayStats | null>(null);
   const [loading, setLoading] = useState(false);
-  // TODO: TASKS-6-payments — проверка подписки через entitlements
-  // Временно: показываем все статистику без проверки подписки
-  const [hasAccess, setHasAccess] = useState(true); // Заглушка
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
+  const [showSubscription, setShowSubscription] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    fetch('/api/users/me/entitlements', { credentials: 'include' })
+      .then(r => r.json())
+      .then((data: { ok?: boolean; data?: { tier?: string } }) => {
+        const tier = data?.data?.tier || 'FREE';
+        setHasAccess(tier === 'PRO' || tier === 'BUSINESS');
+      })
+      .catch(() => setHasAccess(false));
+  }, [isOpen]);
 
   const loadStats = useCallback(async () => {
     setLoading(true);
@@ -46,9 +57,14 @@ export function StatsBottomSheet({
   }, [isOpen, hasAccess, loadStats]);
 
   return (
+    <>
     <BottomSheet isOpen={isOpen} onClose={onClose} title={t('stats.title')}>
-      {/* TODO: TASKS-6-payments — если нет подписки, показать блюр + предложение */}
-      {!hasAccess ? (
+      {hasAccess === null ? (
+        <div className="py-8 text-center">
+          <div className="inline-block w-12 h-12 border-4 border-tg-button border-t-transparent rounded-full animate-spin mb-4" />
+          <p className="text-tg-hint">{tCommon('loading')}</p>
+        </div>
+      ) : !hasAccess ? (
         <div className="py-8 text-center animate-fadeIn">
           <div className="text-4xl mb-4 animate-bounce">📊</div>
           <div className="text-lg font-medium mb-2">
@@ -58,10 +74,7 @@ export function StatsBottomSheet({
             {t('stats.plusDescription')}
           </p>
           <button
-            onClick={() => {
-              // TODO: TASKS-6-payments — открыть страницу подписки
-              console.log('Open subscription page');
-            }}
+            onClick={() => setShowSubscription(true)}
             className="bg-tg-button text-tg-button-text rounded-lg px-6 py-3 font-medium transition-all hover:scale-105 active:scale-95"
           >
             {t('stats.upgradeButton')}
@@ -176,5 +189,10 @@ export function StatsBottomSheet({
         </div>
       )}
     </BottomSheet>
+    <SubscriptionBottomSheet
+      isOpen={showSubscription}
+      onClose={() => setShowSubscription(false)}
+    />
+    </>
   );
 }

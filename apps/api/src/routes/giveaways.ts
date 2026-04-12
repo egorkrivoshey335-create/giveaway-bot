@@ -2,11 +2,12 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { prisma, GiveawayStatus, GiveawayType, LanguageCode, PublishResultsMode, CaptchaMode } from '@randombeast/database';
 import type { GiveawayDraftPayload } from '@randombeast/shared';
-import { ErrorCode, generateShortCode } from '@randombeast/shared';
+import { ErrorCode, generateShortCode, TIER_LIMITS } from '@randombeast/shared';
 import { requireUser, getUser } from '../plugins/auth.js';
 import { createAuditLog, AuditAction, AuditEntityType } from '../lib/audit.js';
 import { getCache, setCache } from '../lib/redis.js';
 import { notifyCancelToAll } from '../scheduler/giveaway-lifecycle.js';
+import { getUserTier, isTierAtLeast } from '../lib/subscription.js';
 
 // UUID validation regex
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -177,6 +178,68 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const validatedPayload = validation.data;
+
+      // Tier-based limit checks
+      const tier = await getUserTier(user.id);
+
+      const maxWinners = TIER_LIMITS.maxWinners[tier];
+      if (validatedPayload.winnersCount > maxWinners) {
+        return reply.forbidden(
+          `Лимит победителей для тарифа ${tier}: ${maxWinners}. Текущее значение: ${validatedPayload.winnersCount}.`
+        );
+      }
+
+      const activeGiveawaysCount = await prisma.giveaway.count({
+        where: {
+          ownerUserId: user.id,
+          status: { in: [GiveawayStatus.ACTIVE, GiveawayStatus.SCHEDULED, GiveawayStatus.PENDING_CONFIRM] },
+          isSandbox: false,
+        },
+      });
+      const maxActive = TIER_LIMITS.maxActiveGiveaways[tier];
+      if (activeGiveawaysCount >= maxActive) {
+        return reply.forbidden(
+          `Лимит активных розыгрышей для тарифа ${tier}: ${maxActive}. Повысьте подписку.`
+        );
+      }
+
+      const subscriptionChannels = (validatedPayload as Record<string, unknown>).subscriptionChannelIds;
+      if (Array.isArray(subscriptionChannels)) {
+        const maxChPerGiveaway = TIER_LIMITS.maxChannelsPerGiveaway[tier];
+        if (subscriptionChannels.length > maxChPerGiveaway) {
+          return reply.forbidden(
+            `Лимит каналов на розыгрыш для тарифа ${tier}: ${maxChPerGiveaway}.`
+          );
+        }
+      }
+
+      const customTasks = (validatedPayload as Record<string, unknown>).customTasks;
+      if (Array.isArray(customTasks)) {
+        const maxTasks = TIER_LIMITS.maxCustomTasks[tier];
+        if (customTasks.length > maxTasks) {
+          return reply.forbidden(
+            `Лимит кастомных заданий для тарифа ${tier}: ${maxTasks}.`
+          );
+        }
+      }
+
+      if (validatedPayload.livenessEnabled && tier !== 'BUSINESS') {
+        return reply.forbidden(
+          'Liveness Check доступен только для BUSINESS подписки.'
+        );
+      }
+
+      if (validatedPayload.publishResultsMode === 'RANDOMIZER' && tier !== 'BUSINESS') {
+        return reply.forbidden(
+          'Рандомайзер доступен только для BUSINESS подписки.'
+        );
+      }
+
+      if (validatedPayload.captchaMode === 'ALL' && !isTierAtLeast(tier, 'PLUS')) {
+        return reply.forbidden(
+          'Режим капчи «Для всех» доступен с подпиской PLUS и выше.'
+        );
+      }
 
       // Map string values to Prisma enums
       const giveawayTypeMap: Record<string, GiveawayType> = {
@@ -456,9 +519,13 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
     const user = await requireUser(request, reply);
     if (!user) return;
 
+    const statsTier = await getUserTier(user.id);
+    if (!isTierAtLeast(statsTier, 'PRO')) {
+      return reply.forbidden('Расширенная аналитика доступна с подпиской PRO и выше.');
+    }
+
     const { id } = request.params;
 
-    // 🔒 Проверяем кеш (60 секунд)
     const cacheKey = `stats:giveaway:${id}`;
     const cached = await getCache(cacheKey);
     if (cached) {
@@ -611,6 +678,77 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
     await setCache(cacheKey, stats, 60);
 
     return reply.success(stats);
+  });
+
+  /**
+   * GET /giveaways/:id/participants/export
+   * CSV export of participants (PLUS+ required)
+   */
+  fastify.get<{ Params: { id: string } }>('/giveaways/:id/participants/export', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+
+    const exportTier = await getUserTier(user.id);
+    if (exportTier === 'FREE') {
+      return reply.forbidden('CSV-экспорт участников доступен с подпиской PLUS и выше.');
+    }
+
+    const { id } = request.params;
+
+    const giveaway = await prisma.giveaway.findFirst({
+      where: { id, ownerUserId: user.id },
+      select: { id: true, title: true },
+    });
+
+    if (!giveaway) {
+      return reply.notFound('Розыгрыш не найден или нет доступа');
+    }
+
+    const participants = await prisma.participation.findMany({
+      where: { giveawayId: id },
+      include: {
+        user: {
+          select: {
+            telegramUserId: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: { joinedAt: 'asc' },
+    });
+
+    const BOM = '\uFEFF';
+    const header = 'telegram_id,username,first_name,last_name,joined_at,tickets_base,tickets_extra,status,fraud_score\n';
+    const rows = participants.map(p => {
+      const u = p.user;
+      const escape = (v: string | null) => {
+        if (!v) return '';
+        if (v.includes(',') || v.includes('"') || v.includes('\n')) {
+          return `"${v.replace(/"/g, '""')}"`;
+        }
+        return v;
+      };
+      return [
+        u.telegramUserId.toString(),
+        escape(u.username),
+        escape(u.firstName),
+        escape(u.lastName),
+        p.joinedAt.toISOString(),
+        p.ticketsBase,
+        p.ticketsExtra,
+        p.status,
+        p.fraudScore ?? '',
+      ].join(',');
+    }).join('\n');
+
+    const csv = BOM + header + rows;
+    const filename = `participants_${giveaway.title?.replace(/[^a-zA-Z0-9а-яА-Я_-]/g, '_') || id}.csv`;
+
+    reply.header('Content-Type', 'text/csv; charset=utf-8');
+    reply.header('Content-Disposition', `attachment; filename="${filename}"`);
+    return reply.send(csv);
   });
 
   /**
@@ -1232,6 +1370,16 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
 
     const data = parsed.data;
 
+    if (data.livenessEnabled || data.captchaMode === 'ALL') {
+      const editTier = await getUserTier(user.id);
+      if (data.livenessEnabled && editTier !== 'BUSINESS') {
+        return reply.forbidden('Liveness Check доступен только для BUSINESS подписки.');
+      }
+      if (data.captchaMode === 'ALL' && !isTierAtLeast(editTier, 'PLUS')) {
+        return reply.forbidden('Режим капчи «Для всех» доступен с подпиской PLUS и выше.');
+      }
+    }
+
     // Для ACTIVE розыгрышей — только ограниченный набор полей
     const activeOnlyFields = ['endAt', 'captchaMode', 'livenessEnabled'] as const;
     if (giveaway.status === GiveawayStatus.ACTIVE) {
@@ -1600,17 +1748,17 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
     });
     if (!giveaway) return reply.notFound('Giveaway not found');
 
-    // Проверяем наличие активной PRO/BUSINESS подписки
     const now = new Date();
     const entitlement = await prisma.entitlement.findFirst({
       where: {
         userId: user.id,
-        code: { in: ['PRO', 'BUSINESS'] },
+        code: 'tier.business',
+        revokedAt: null,
         OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
       },
     });
     if (!entitlement) {
-      return reply.forbidden('Theme customization requires PRO or BUSINESS subscription');
+      return reply.forbidden('Theme customization requires BUSINESS subscription');
     }
 
     const body = request.body as {
