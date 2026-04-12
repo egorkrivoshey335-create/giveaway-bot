@@ -11,6 +11,7 @@ import { NetworkErrorHandler } from '@/components/NetworkErrorHandler';
 import { SWRProvider } from '@/components/SWRProvider';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { TelegramNavigation } from '@/components/TelegramNavigation';
+import { FloatingIcons } from '@/components/FloatingIcons';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
@@ -46,6 +47,7 @@ export default async function RootLayout({
         <LoadingScreen />
         <FullscreenInit />
         <TelegramNavigation />
+        <FloatingIcons count={10} opacity={0.06} />
         <ErrorBoundary>
           <NextIntlClientProvider locale={locale} messages={messages}>
             <SWRProvider>

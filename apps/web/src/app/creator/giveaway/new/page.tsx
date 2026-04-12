@@ -1239,7 +1239,7 @@ export default function GiveawayWizardPage() {
                             : 'bg-tg-bg border-2 border-transparent hover:border-tg-secondary'
                         }`}
                       >
-                        <span className="text-2xl">{modeValue === 'OFF' ? <AppIcon name="icon-cancelled" size={14} /> : modeValue === 'SUSPICIOUS_ONLY' ? <AppIcon name="icon-warning" size={14} /> : <AppIcon name="icon-success" size={14} />}</span>
+                        <span className="text-2xl">{modeValue === 'OFF' ? <AppIcon name="icon-cancelled" size={14} /> : modeValue === 'SUSPICIOUS_ONLY' ? <AppIcon name="icon-view" size={16} /> : <AppIcon name="icon-success" size={14} />}</span>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{t(`protection.captcha.${modeValue}.label`)}</span>
@@ -1442,7 +1442,7 @@ export default function GiveawayWizardPage() {
               <div className="bg-tg-bg rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl"><AppIcon name="icon-view" size={14} /></span>
+                    <span className="text-2xl"><AppIcon name="icon-story" size={18} /></span>
                     <div>
                       <span className="font-medium">{t('extras.stories')}</span>
                     </div>
@@ -1537,7 +1537,7 @@ export default function GiveawayWizardPage() {
                 >
                   <div className="flex flex-col items-center gap-2">
                     <Mascot type="mascot-free-default" size={80} loop={false} autoplay={false} />
-                    <span className="text-xs"><AppIcon name="icon-giveaway" size={16} /> {t('mascot.free')}</span>
+                    <span className={`text-xs ${payload.mascotId === 'mascot-free-default' ? 'text-tg-button-text' : ''}`}><AppIcon name="icon-giveaway" size={16} /> Талисман</span>
                   </div>
                 </button>
 
@@ -1561,8 +1561,8 @@ export default function GiveawayWizardPage() {
                     >
                       <div className="flex flex-col items-center gap-2">
                         <Mascot type={mascotId} size={80} loop={false} autoplay={false} />
-                        <span className="text-xs">
-                          {isLocked ? <AppIcon name="icon-lock" size={14} /> : <AppIcon name="icon-star" size={14} />} {['Магнит призов', 'Бог рандома', 'Фортуна', 'Удачливый', 'Звёздный'][num - 1]}
+                        <span className={`text-xs ${payload.mascotId === mascotId ? 'text-tg-button-text' : ''}`}>
+                          {isLocked ? <AppIcon name="icon-lock" size={14} /> : <AppIcon name="icon-star" size={14} />} {['Везунчик', 'Фортуна', 'Шанс', 'Джекпот', 'Триумф'][num - 1]}
                         </span>
                       </div>
                       {isLocked && (
@@ -1764,7 +1764,7 @@ export default function GiveawayWizardPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-tg-hint">{t('review.postTemplate')}:</span>
-                  <span>{payload.postTemplateId ? t('review.selected') : t('review.notSelected')}</span>
+                  <span>{payload.postTemplateId ? <><AppIcon name="icon-success" size={14} /> {t('review.selected')}</> : <><AppIcon name="icon-cancelled" size={14} /> {t('review.notSelected')}</>}</span>
                 </div>
                 {payload.prizeDescription && (
                   <div className="flex justify-between">
@@ -1840,7 +1840,7 @@ export default function GiveawayWizardPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-tg-hint">Liveness Check:</span>
-                  <span>{payload.livenessEnabled ? t('review.enabled') : t('review.disabled')}</span>
+                  <span>{payload.livenessEnabled ? <><AppIcon name="icon-success" size={14} /> {t('review.enabled')}</> : <><AppIcon name="icon-cancelled" size={14} /> {t('review.disabled')}</>}</span>
                 </div>
               </div>
 
@@ -1855,7 +1855,7 @@ export default function GiveawayWizardPage() {
                   <span>
                     {payload.inviteEnabled 
                       ? <><AppIcon name="icon-success" size={14} /> {t('review.upToFriends', { count: payload.inviteMax || 10 })}</> 
-                      : t('review.disabled')}
+                      : <><AppIcon name="icon-cancelled" size={14} /> {t('review.disabled')}</>}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -1863,7 +1863,7 @@ export default function GiveawayWizardPage() {
                   <span>
                     {payload.boostEnabled 
                       ? <><AppIcon name="icon-success" size={14} /> {t('review.channelsCount', { count: (payload.boostChannelIds || []).length })}</> 
-                      : t('review.disabled')}
+                      : <><AppIcon name="icon-cancelled" size={14} /> {t('review.disabled')}</>}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -1871,7 +1871,7 @@ export default function GiveawayWizardPage() {
                   <span>
                     {payload.storiesEnabled 
                       ? <><AppIcon name="icon-success" size={14} /> {t('review.enabledManual')}</> 
-                      : t('review.disabled')}
+                      : <><AppIcon name="icon-cancelled" size={14} /> {t('review.disabled')}</>}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -1906,10 +1906,10 @@ export default function GiveawayWizardPage() {
                   </div>
                   <div className="mt-1 text-xs">
                     {payload.mascotId === 'mascot-free-default'
-                      ? t('mascot.free')
+                      ? 'Талисман'
                       : (() => {
                           const num = parseInt(payload.mascotId.replace('mascot-paid-', ''), 10);
-                          return ['Магнит призов', 'Бог рандома', 'Фортуна', 'Удачливый', 'Звёздный'][num - 1] || payload.mascotId;
+                          return ['Везунчик', 'Фортуна', 'Шанс', 'Джекпот', 'Триумф'][num - 1] || payload.mascotId;
                         })()
                     }
                   </div>
@@ -1927,7 +1927,7 @@ export default function GiveawayWizardPage() {
               {/* Validation warnings */}
               {(!payload.type || !payload.title || !payload.buttonText || !payload.postTemplateId || (payload.publishChannelIds || []).length === 0) && (
                 <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-sm text-yellow-600">
-                  <AppIcon name="icon-warning" size={14} /> {t('review.fillRequired')}:
+                  <AppIcon name="icon-info" size={16} /> {t('review.fillRequired')}:
                   <ul className="list-disc list-inside mt-1">
                     {!payload.type && <li>{t('review.required.type')}</li>}
                     {!payload.title && <li>{t('review.required.title')}</li>}

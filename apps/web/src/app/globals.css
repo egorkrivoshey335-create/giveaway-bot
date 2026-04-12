@@ -88,6 +88,12 @@ button:active, [role="button"]:active {
   will-change: transform, opacity;
 }
 
+/* Shimmer effect for catalog button */
+@keyframes shimmer {
+  0%, 100% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+}
+
 /* Отключаем анимацию для accessibility */
 @media (prefers-reduced-motion: reduce) {
   .floating-icon {

@@ -149,7 +149,10 @@ export function CreatorSection() {
     <div>
       {/* Заголовок */}
       <div className="mb-4">
-        <h2 className="text-xl font-bold">{t('title')}</h2>
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <AppIcon name="icon-giveaway" size={22} />
+          {t('title')}
+        </h2>
         <p className="text-tg-hint text-sm">{t('subtitle')}</p>
       </div>
 
@@ -157,8 +160,9 @@ export function CreatorSection() {
         <StaggerItem>
           <button
             onClick={() => router.push('/creator/giveaway/new')}
-            className="w-full bg-tg-button text-tg-button-text rounded-xl py-3 px-4 font-medium mb-6 hover:opacity-90 transition-opacity"
+            className="w-full bg-tg-button text-tg-button-text rounded-xl py-3 px-4 font-medium mb-6 hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
           >
+            <AppIcon name="icon-create" size={18} />
             {t('createButton')}
           </button>
         </StaggerItem>
@@ -166,7 +170,10 @@ export function CreatorSection() {
         <StaggerItem>
           <motion.div layout className="bg-tg-secondary rounded-xl p-4 mb-6" transition={{ layout: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } }}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">{t('channels')}</h3>
+              <h3 className="font-semibold flex items-center gap-2">
+                <AppIcon name="icon-channel" size={18} />
+                {t('channels')}
+              </h3>
               <button
                 onClick={loadChannels}
                 className="text-tg-button text-sm"
@@ -242,7 +249,10 @@ export function CreatorSection() {
         <StaggerItem>
           <motion.div layout className="bg-tg-secondary rounded-xl p-4 mb-6" transition={{ layout: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } }}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">{t('posts')}</h3>
+              <h3 className="font-semibold flex items-center gap-2">
+                <AppIcon name="icon-edit" size={18} />
+                {t('posts')}
+              </h3>
               <button
                 onClick={loadPostTemplates}
                 className="text-tg-button text-sm"
@@ -282,11 +292,11 @@ export function CreatorSection() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           {post.mediaType === 'NONE' ? (
-                            <AppIcon name="icon-edit" size={14} />
+                            <AppIcon name="icon-edit" size={20} />
                           ) : post.mediaType === 'PHOTO' ? (
-                            <AppIcon name="icon-image" size={14} />
+                            <AppIcon name="icon-image" size={20} />
                           ) : (
-                            <AppIcon name="icon-camera" size={14} />
+                            <AppIcon name="icon-camera" size={20} />
                           )}
                           <span className={`text-xs px-2 py-0.5 rounded ${
                             post.mediaType === 'NONE'
@@ -348,6 +358,7 @@ export function CreatorSection() {
             onClick={() => router.push('/creator')}
             className="w-full bg-tg-secondary text-tg-text rounded-xl py-3 px-4 font-medium hover:bg-tg-secondary/80 transition-colors flex items-center justify-center gap-2"
           >
+            <AppIcon name="icon-chart" size={18} />
             <span>{t('openDashboard')}</span>
             <AppIcon name="icon-back" size={16} className="rotate-180" />
           </button>

@@ -71,7 +71,9 @@ export function DateTimePicker({ value, onChange, min, placeholder = 'Выбер
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = ''; };
+      return () => {
+        setTimeout(() => { document.body.style.overflow = ''; }, 350);
+      };
     }
   }, [isOpen]);
 

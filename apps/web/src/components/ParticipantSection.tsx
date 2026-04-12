@@ -205,17 +205,22 @@ export function ParticipantSection() {
     <div>
       {/* Заголовок */}
       <div className="mb-4">
-        <h2 className="text-xl font-bold">{t('title')}</h2>
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <AppIcon name="icon-ticket" size={22} />
+          {t('title')}
+        </h2>
         <p className="text-tg-hint text-sm">{t('subtitle')}</p>
       </div>
 
       {/* Кнопка каталога */}
       <button
         onClick={() => router.push('/catalog')}
-        className="w-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 text-tg-text rounded-xl py-3 px-4 mb-6 font-medium hover:from-purple-500/30 hover:to-pink-500/30 transition-all flex items-center justify-center gap-2"
+        className="relative w-full bg-gradient-to-r from-tg-button/90 to-tg-button text-tg-button-text rounded-2xl py-4 px-5 mb-6 font-semibold shadow-lg shadow-tg-button/25 hover:shadow-xl hover:shadow-tg-button/35 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 overflow-hidden"
       >
-        <span>{t('catalogButton')}</span>
-        <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint shrink-0" />
+        <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 animate-[shimmer_3s_ease-in-out_infinite]" />
+        <AppIcon name="icon-giveaway" size={20} className="relative z-10" />
+        <span className="relative z-10">{t('catalogButton')}</span>
+        <AppIcon name="icon-back" size={16} className="rotate-180 relative z-10 opacity-70" />
       </button>
 
       {/* Фильтры — сетка 2x2 */}
