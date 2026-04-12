@@ -5,10 +5,6 @@
       "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
-    "@randombeast/api#build": {
-      "dependsOn": ["^build"],
-      "outputs": []
-    },
     "dev": {
       "cache": false,
       "persistent": true
