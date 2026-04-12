@@ -8,7 +8,7 @@
  */
 
 import { z } from 'zod';
-import { GIVEAWAY_LIMITS, POST_LIMITS, PATTERNS } from './constants';
+import { GIVEAWAY_LIMITS, POST_LIMITS, PATTERNS } from './constants.js';
 
 // ============================================================================
 // Primitive Schemas
