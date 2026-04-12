@@ -578,7 +578,7 @@ export default function GiveawayWizardPage() {
                     }`}
                   >
                     <div className="flex-shrink-0">
-                      <Mascot type={typeMascots[typeValue]} size={70} loop={payload.type === typeValue} autoplay={payload.type === typeValue} />
+                      <Mascot type={typeMascots[typeValue]} size={50} loop autoplay />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium">{t(`types.${typeValue}.label`)}</div>
@@ -775,7 +775,7 @@ export default function GiveawayWizardPage() {
 
               {channels.length === 0 ? (
                 <p className="text-center text-tg-hint py-8">
-                  <AppIcon name="icon-channel" size={16} /> {t('subscriptions.noChannels')}
+                  <AppIcon name="icon-channel" size={14} /> {t('subscriptions.noChannels')}
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -840,7 +840,7 @@ export default function GiveawayWizardPage() {
               </p>
               {channels.length === 0 ? (
                 <p className="text-center text-tg-hint py-8">
-                  <AppIcon name="icon-channel" size={16} /> {t('publish.noChannels')}
+                  <AppIcon name="icon-channel" size={14} /> {t('publish.noChannels')}
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -1087,7 +1087,7 @@ export default function GiveawayWizardPage() {
               </div>
 
               <p className="text-xs text-tg-hint text-center">
-                <AppIcon name="icon-calendar" size={16} /> {t('dates.timezoneHint')}
+                <AppIcon name="icon-calendar" size={14} /> {t('dates.timezoneHint')}
               </p>
             </motion.div>
           )}
@@ -1234,7 +1234,7 @@ export default function GiveawayWizardPage() {
               {/* Блок Капча */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <AppIcon name="icon-verify" size={18} />
+                  <AppIcon name="icon-verify" size={14} />
                   <div>
                     <h3 className="font-semibold">{t('protection.botProtection')}</h3>
                     <p className="text-xs text-tg-hint">{t('protection.defaultHint')}</p>
@@ -1254,7 +1254,7 @@ export default function GiveawayWizardPage() {
                             : 'bg-tg-bg border-2 border-transparent hover:border-tg-secondary'
                         }`}
                       >
-                        <span className="flex-shrink-0 mt-0.5">{modeValue === 'OFF' ? <AppIcon name="icon-cancelled" size={18} /> : modeValue === 'SUSPICIOUS_ONLY' ? <AppIcon name="icon-group" size={18} /> : <AppIcon name="icon-success" size={18} />}</span>
+                        <span className="flex-shrink-0 mt-0.5">{modeValue === 'OFF' ? <AppIcon name="icon-cancelled" size={14} /> : modeValue === 'SUSPICIOUS_ONLY' ? <AppIcon name="icon-group" size={14} /> : <AppIcon name="icon-success" size={14} />}</span>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{t(`protection.captcha.${modeValue}.label`)}</span>
@@ -1283,7 +1283,7 @@ export default function GiveawayWizardPage() {
               <div className="border-t border-tg-bg pt-6">
                 <div className="flex items-center justify-between p-4 bg-tg-bg rounded-lg">
                   <div className="flex items-start gap-3">
-                    <AppIcon name="icon-view" size={18} />
+                    <AppIcon name="icon-view" size={14} />
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{t('protection.livenessTitle')}</span>
@@ -1332,7 +1332,7 @@ export default function GiveawayWizardPage() {
               <div className="bg-tg-bg rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <AppIcon name="icon-group" size={18} />
+                    <AppIcon name="icon-group" size={14} />
                     <div>
                       <span className="font-medium">{t('extras.inviteFriends')}</span>
                     </div>
@@ -1379,7 +1379,7 @@ export default function GiveawayWizardPage() {
               <div className="bg-tg-bg rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <AppIcon name="icon-boost" size={18} />
+                    <AppIcon name="icon-boost" size={14} />
                     <div>
                       <span className="font-medium">{t('extras.channelBoosts')}</span>
                     </div>
@@ -1457,7 +1457,7 @@ export default function GiveawayWizardPage() {
               <div className="bg-tg-bg rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <AppIcon name="icon-story" size={18} />
+                    <AppIcon name="icon-story" size={14} />
                     <div>
                       <span className="font-medium">{t('extras.stories')}</span>
                     </div>
@@ -1495,7 +1495,7 @@ export default function GiveawayWizardPage() {
               <div className="bg-tg-secondary rounded-xl p-4 relative overflow-hidden">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <AppIcon name="icon-channel" size={18} />
+                    <AppIcon name="icon-channel" size={14} />
                     <span className="font-medium">{t('extras.catalogPromotion')}</span>
                     <span className="text-xs bg-yellow-500/20 text-yellow-600 px-2 py-0.5 rounded-full">
                       PRO
@@ -1552,7 +1552,7 @@ export default function GiveawayWizardPage() {
                 >
                   <div className="flex flex-col items-center gap-2">
                     <Mascot type="mascot-free-default" size={80} loop={false} autoplay={false} />
-                    <span className={`text-xs ${payload.mascotId === 'mascot-free-default' ? 'text-tg-button-text' : ''}`}><AppIcon name="icon-giveaway" size={16} /> Талисман</span>
+                    <span className={`text-xs ${payload.mascotId === 'mascot-free-default' ? 'text-tg-button-text' : ''}`}><AppIcon name="icon-giveaway" size={14} /> Талисман</span>
                   </div>
                 </button>
 
@@ -1942,7 +1942,7 @@ export default function GiveawayWizardPage() {
               {/* Validation warnings */}
               {(!payload.type || !payload.title || !payload.buttonText || !payload.postTemplateId || (payload.publishChannelIds || []).length === 0) && (
                 <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-sm text-yellow-600">
-                  <AppIcon name="icon-info" size={16} /> {t('review.fillRequired')}:
+                  <AppIcon name="icon-info" size={14} /> {t('review.fillRequired')}:
                   <ul className="list-disc list-inside mt-1">
                     {!payload.type && <li>{t('review.required.type')}</li>}
                     {!payload.title && <li>{t('review.required.title')}</li>}

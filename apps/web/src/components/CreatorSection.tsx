@@ -195,7 +195,7 @@ export function CreatorSection() {
                   <span className="text-tg-hint text-sm">{tCommon('loading')}</span>
                 </motion.div>
               ) : channels.length === 0 ? (
-                <motion.div key="channels-empty" {...contentMotion} className="text-center py-4">
+                <motion.div key="channels-empty" {...contentMotion} className="flex flex-col items-center text-center py-4">
                   <Mascot type="state-empty" size={80} loop autoplay />
                   <p className="text-tg-hint text-sm mb-3 mt-2">{t('noChannels')}</p>
                   <p className="text-tg-hint text-xs">{tChannels('addDescription')}</p>
@@ -284,7 +284,7 @@ export function CreatorSection() {
                   <span className="text-tg-hint text-sm">{tCommon('loading')}</span>
                 </motion.div>
               ) : postTemplates.length === 0 ? (
-                <motion.div key="posts-empty" {...contentMotion} className="text-center py-4">
+                <motion.div key="posts-empty" {...contentMotion} className="flex flex-col items-center text-center py-4">
                   <Mascot type="state-empty" size={80} loop autoplay />
                   <p className="text-tg-hint text-sm mb-3 mt-2">{t('noPosts')}</p>
                 </motion.div>
