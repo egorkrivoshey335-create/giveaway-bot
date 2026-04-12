@@ -172,8 +172,9 @@ function TierCard({
       <div className="text-xs text-tg-hint mt-0.5">
         {t(`tiers.${tier.key}.price`)}
       </div>
-      <div className="text-[10px] text-tg-hint mt-0.5 opacity-70">
-        {t(`tiers.${tier.key}.starsPrice`)}
+      <div className="text-[10px] text-tg-hint mt-0.5 opacity-70 flex items-center justify-center gap-0.5">
+        {t(`tiers.${tier.key}.starsPrice`).replace('⭐', '')}
+        <img src="/icons/brand/icon-star.webp" alt="stars" className="w-3 h-3 inline-block" />
       </div>
       {isCurrent && (
         <div className="mt-1 text-xs text-green-600 font-medium">{t('current')}</div>
@@ -306,8 +307,9 @@ export function SubscriptionBottomSheet({
                 <div className={`text-lg font-bold ${selectedTierConfig.color}`}>
                   {t(`tiers.${selectedTier}.name`)}
                 </div>
-                <div className="text-xs text-tg-hint">
-                  {t(`tiers.${selectedTier}.starsPrice`)}
+                <div className="text-xs text-tg-hint flex items-center gap-0.5">
+                  {t(`tiers.${selectedTier}.starsPrice`).replace('⭐', '')}
+                  <img src="/icons/brand/icon-star.webp" alt="stars" className="w-3.5 h-3.5 inline-block" />
                 </div>
               </div>
             </div>
