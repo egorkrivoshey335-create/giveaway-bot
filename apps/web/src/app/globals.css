@@ -88,8 +88,12 @@ button:active, [role="button"]:active {
   will-change: transform, opacity;
 }
 
-/* Shimmer effect for catalog button */
+/* Shimmer effect for buttons */
 @keyframes shimmer {
+  0%, 100% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+}
+@keyframes shimmer-delayed {
   0%, 100% { transform: translateX(-100%); }
   50% { transform: translateX(100%); }
 }

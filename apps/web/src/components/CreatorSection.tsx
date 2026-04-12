@@ -208,7 +208,7 @@ export function CreatorSection() {
             onClick={() => setShowSubscription(true)}
             className="relative w-full rounded-xl py-3 px-4 font-medium mb-6 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white overflow-hidden"
           >
-            <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer_3s_ease-in-out_infinite]" />
+            <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer-delayed_5s_ease-in-out_2.5s_infinite]" />
             <AppIcon name="icon-diamond" size={18} className="relative z-10 drop-shadow-sm" />
             <span className="relative z-10">
               {userTier === 'FREE'

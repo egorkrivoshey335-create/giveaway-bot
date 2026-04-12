@@ -256,7 +256,7 @@ export function ParticipantSection() {
         onClick={() => router.push('/catalog')}
         className="catalog-btn relative w-full rounded-2xl py-4 px-5 mb-3 font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2.5 overflow-hidden"
       >
-        <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer_3s_ease-in-out_infinite]" />
+        <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer_5s_ease-in-out_infinite]" />
         <AppIcon name="icon-giveaway" size={22} className="relative z-10 drop-shadow-sm" />
         <span className="relative z-10 text-[15px]">{t('catalogButton')}</span>
         <AppIcon name="icon-back" size={14} className="rotate-180 relative z-10 opacity-60" />
@@ -267,7 +267,7 @@ export function ParticipantSection() {
         onClick={() => setShowSubscription(true)}
         className="relative w-full rounded-2xl py-4 px-5 mb-6 font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2.5 bg-gradient-to-r from-purple-500 to-blue-500 text-white overflow-hidden"
       >
-        <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer_3s_ease-in-out_infinite]" />
+        <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer-delayed_5s_ease-in-out_2.5s_infinite]" />
         <AppIcon name="icon-diamond" size={20} className="relative z-10 drop-shadow-sm" />
         <span className="relative z-10 text-[15px]">
           {userTier === 'FREE'
