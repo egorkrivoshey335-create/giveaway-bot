@@ -728,7 +728,7 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
             });
           }
         } catch (err) {
-          fastify.log.warn('Turnstile verify error:', err);
+          fastify.log.warn('Turnstile verify error: %s', String(err));
         }
       }
     }
