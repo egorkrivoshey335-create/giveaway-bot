@@ -265,10 +265,11 @@ export function ParticipantSection() {
       {/* Кнопка подписки */}
       <button
         onClick={() => setShowSubscription(true)}
-        className="w-full rounded-2xl py-4 px-5 mb-6 font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2.5 bg-gradient-to-r from-purple-500 to-blue-500 text-white"
+        className="relative w-full rounded-2xl py-4 px-5 mb-6 font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2.5 bg-gradient-to-r from-purple-500 to-blue-500 text-white overflow-hidden"
       >
-        <AppIcon name="icon-diamond" size={20} className="drop-shadow-sm" />
-        <span className="text-[15px]">
+        <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer_3s_ease-in-out_infinite]" />
+        <AppIcon name="icon-diamond" size={20} className="relative z-10 drop-shadow-sm" />
+        <span className="relative z-10 text-[15px]">
           {userTier === 'FREE'
             ? tSub('upgradeBtn', { tier: 'PLUS' })
             : userTier === 'PLUS'
@@ -278,7 +279,7 @@ export function ParticipantSection() {
             : tSub('manageBtn')}
         </span>
         {tierExpiry && userTier !== 'FREE' && (
-          <span className="text-xs opacity-80 ml-1">
+          <span className="relative z-10 text-xs opacity-80 ml-1">
             · {(() => {
               const days = Math.ceil((new Date(tierExpiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
               return days > 0 ? tSub('expiresIn', { days }) : '';
