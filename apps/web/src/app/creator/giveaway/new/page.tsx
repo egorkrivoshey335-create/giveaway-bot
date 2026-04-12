@@ -1006,7 +1006,7 @@ export default function GiveawayWizardPage() {
             >
               {/* Mascot */}
               <div className="flex justify-center mb-4">
-                <Mascot type="wizard-calendar" size={160} loop={true} autoplay={true} />
+                <Mascot type="wizard-calendar" size={200} loop={true} autoplay={true} />
               </div>
 
               {/* Тумблер "Начать сразу" */}
@@ -1310,7 +1310,7 @@ export default function GiveawayWizardPage() {
             >
               {/* Mascot */}
               <div className="flex justify-center mb-4">
-                <Mascot type="wizard-invite" size={160} loop={true} autoplay={true} />
+                <Mascot type="wizard-invite" size={200} loop={true} autoplay={true} />
               </div>
 
               {/* Блок: Приглашение друзей */}
@@ -1517,7 +1517,7 @@ export default function GiveawayWizardPage() {
             >
               {/* Mascot */}
               <div className="flex justify-center mb-4">
-                <Mascot type="wizard-mascot" size={160} loop={true} autoplay={true} />
+                <Mascot type="wizard-mascot" size={200} loop={true} autoplay={true} />
               </div>
 
               <p className="text-sm text-tg-hint mb-4 text-center">
@@ -1737,7 +1737,7 @@ export default function GiveawayWizardPage() {
             >
               {/* Mascot */}
               <div className="flex justify-center mb-4">
-                <Mascot type="wizard-review" size={160} loop={true} autoplay={true} />
+                <Mascot type="wizard-review" size={200} loop={true} autoplay={true} />
               </div>
 
               {/* Основное + кнопка Edit */}

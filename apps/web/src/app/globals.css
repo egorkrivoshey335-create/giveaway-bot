@@ -94,6 +94,35 @@ button:active, [role="button"]:active {
   50% { transform: translateX(100%); }
 }
 
+/* Catalog button — яркая кнопка с пульсирующим свечением */
+.catalog-btn {
+  background: linear-gradient(135deg, #d97777 0%, #e89999 50%, #d97777 100%);
+  color: #ffffff;
+  box-shadow:
+    0 4px 15px rgba(217, 119, 119, 0.4),
+    0 0 20px rgba(217, 119, 119, 0.15);
+  animation: catalogPulse 2.5s ease-in-out infinite;
+}
+
+.catalog-btn:hover {
+  box-shadow:
+    0 6px 25px rgba(217, 119, 119, 0.5),
+    0 0 30px rgba(217, 119, 119, 0.25);
+}
+
+@keyframes catalogPulse {
+  0%, 100% {
+    box-shadow:
+      0 4px 15px rgba(217, 119, 119, 0.4),
+      0 0 20px rgba(217, 119, 119, 0.15);
+  }
+  50% {
+    box-shadow:
+      0 4px 20px rgba(217, 119, 119, 0.55),
+      0 0 35px rgba(217, 119, 119, 0.3);
+  }
+}
+
 /* Отключаем анимацию для accessibility */
 @media (prefers-reduced-motion: reduce) {
   .floating-icon {
