@@ -297,9 +297,9 @@ export function CreatorSection() {
                           {post.mediaType === 'NONE' ? (
                             <AppIcon name="icon-edit" size={20} />
                           ) : post.mediaType === 'PHOTO' ? (
-                            <AppIcon name="icon-image" size={20} />
-                          ) : (
                             <AppIcon name="icon-camera" size={20} />
+                          ) : (
+                            <AppIcon name="icon-view" size={20} />
                           )}
                           <span className={`text-xs px-2 py-0.5 rounded ${
                             post.mediaType === 'NONE'

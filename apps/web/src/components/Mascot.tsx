@@ -1,7 +1,9 @@
 'use client';
 
 import Lottie from 'lottie-react';
-import { CSSProperties, useEffect, useState } from 'react';
+import { CSSProperties, useEffect, useRef, useState } from 'react';
+
+const animationCache = new Map<string, unknown>();
 
 export interface MascotProps {
   /**
@@ -156,32 +158,59 @@ export function Mascot({
   style = {},
   onComplete,
 }: MascotProps) {
-  const [animationData, setAnimationData] = useState<unknown | null>(null);
+  const [animationData, setAnimationData] = useState<unknown | null>(() => {
+    const path = MASCOT_PATHS[type] || type;
+    return animationCache.get(path) || null;
+  });
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    const path = MASCOT_PATHS[type] || type; // Поддержка кастомных путей
-    
+    mountedRef.current = true;
+    const path = MASCOT_PATHS[type] || type;
+
+    if (animationCache.has(path)) {
+      setAnimationData(animationCache.get(path)!);
+      setError(null);
+      return;
+    }
+
     fetch(path)
       .then((res) => {
-        if (!res.ok) {
-          throw new Error(`Failed to load mascot: ${path}`);
-        }
+        if (!res.ok) throw new Error(`Failed to load mascot: ${path}`);
         return res.json();
       })
       .then((data) => {
-        setAnimationData(data);
-        setError(null);
+        animationCache.set(path, data);
+        if (mountedRef.current) {
+          setAnimationData(data);
+          setError(null);
+        }
       })
       .catch((err) => {
         console.error('Mascot load error:', err);
-        setError(err.message);
-        setAnimationData(null);
+        if (mountedRef.current) {
+          setError(err.message);
+          setAnimationData(null);
+        }
       });
+
+    return () => { mountedRef.current = false; };
   }, [type]);
 
-  // Fallback: если Lottie не загрузился, показываем emoji
-  if (error || !animationData) {
+  // Still loading — transparent placeholder to prevent layout shift
+  if (!animationData && !error) {
+    const sizeValue = typeof size === 'number' ? `${size}px` : size;
+    return (
+      <div
+        className={className}
+        style={{ width: sizeValue, height: sizeValue, ...style }}
+      />
+    );
+  }
+
+  // Error fallback: show emoji
+  if (error) {
     const fallbackEmoji: Record<string, string> = {
       // Wizard
       'wizard-type': '📋',

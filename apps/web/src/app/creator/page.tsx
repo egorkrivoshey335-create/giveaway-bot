@@ -514,20 +514,9 @@ export default function CreatorDashboardPage() {
             </button>
           </StaggerItem>
 
-          {/* Быстрые блоки 2×2 (Профиль, Каналы, Посты) */}
+          {/* Быстрые блоки (Каналы, Посты — 2 колонки, Профиль — на всю ширину) */}
           <StaggerItem>
             <div className="grid grid-cols-2 gap-3 mb-6">
-              <button
-                onClick={() => router.push('/creator/profile')}
-                className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <AppIcon name="icon-participant" variant="brand" size={28} />
-                  <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint" />
-                </div>
-                <div className="text-sm font-semibold">{t('profile')}</div>
-              </button>
-
               <button
                 onClick={() => router.push('/creator/channels')}
                 className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left"
@@ -549,13 +538,24 @@ export default function CreatorDashboardPage() {
                     window.open(link, '_blank');
                   }
                 }}
-                className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left col-span-2"
+                className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left"
               >
                 <div className="flex items-center justify-between mb-2">
                   <AppIcon name="icon-edit" variant="brand" size={28} />
                   <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint" />
                 </div>
                 <div className="text-sm font-semibold">{t('blocks.posts.title')}</div>
+              </button>
+
+              <button
+                onClick={() => router.push('/creator/profile')}
+                className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left col-span-2"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <AppIcon name="icon-participant" variant="brand" size={28} />
+                  <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint" />
+                </div>
+                <div className="text-sm font-semibold">{t('profile')}</div>
               </button>
             </div>
           </StaggerItem>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 
 export interface FloatingIcon {
   id: number;
@@ -73,40 +73,31 @@ function generateRandomIcon(id: number): FloatingIcon {
  * <FloatingIcons count={12} enabled={!reducedMotion} opacity={0.07} />
  * ```
  */
-export function FloatingIcons({
+export const FloatingIcons = memo(function FloatingIcons({
   count = 12,
   enabled = true,
   opacity = 0.07,
 }: FloatingIconsProps) {
-  const [icons, setIcons] = useState<FloatingIcon[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  const icons = useMemo(
+    () => Array.from({ length: count }, (_, i) => generateRandomIcon(i)),
+    [count]
+  );
 
   useEffect(() => {
     setMounted(true);
-    
-    // Генерируем иконки только один раз при монтировании
-    const generatedIcons = Array.from({ length: count }, (_, i) => generateRandomIcon(i));
-    setIcons(generatedIcons);
-  }, [count]);
 
-  // Проверяем prefers-reduced-motion
-  useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    
-    const handleChange = () => {
-      if (mediaQuery.matches) {
-        // Пользователь предпочитает меньше анимаций - скрываем иконки
-        setIcons([]);
-      }
-    };
+    setReducedMotion(mediaQuery.matches);
 
-    handleChange(); // Проверяем сразу
+    const handleChange = () => setReducedMotion(mediaQuery.matches);
     mediaQuery.addEventListener('change', handleChange);
-    
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  if (!enabled || !mounted || icons.length === 0) {
+  if (!enabled || !mounted || reducedMotion) {
     return null;
   }
 
@@ -147,7 +138,7 @@ export function FloatingIcons({
       ))}
     </div>
   );
-}
+});
 
 /**
  * useFloatingIconsPreference — хук для управления настройкой парящих иконок

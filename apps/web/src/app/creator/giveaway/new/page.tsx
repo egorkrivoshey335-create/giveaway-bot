@@ -643,7 +643,7 @@ export default function GiveawayWizardPage() {
                         const selectedPost = postTemplates.find(p => p.id === payload.postTemplateId);
                         return selectedPost ? (
                           <>
-                            {selectedPost.mediaType !== 'NONE' ? (selectedPost.mediaType === 'PHOTO' ? <><AppIcon name="icon-image" size={14} />{' '}</> : <><AppIcon name="icon-camera" size={14} />{' '}</>) : <><AppIcon name="icon-edit" size={14} />{' '}</>}
+                            {selectedPost.mediaType !== 'NONE' ? (selectedPost.mediaType === 'PHOTO' ? <><AppIcon name="icon-camera" size={14} />{' '}</> : <><AppIcon name="icon-view" size={14} />{' '}</>) : <><AppIcon name="icon-edit" size={14} />{' '}</>}
                             {selectedPost.text.slice(0, 50)}...
                           </>
                         ) : t('basics.selectTemplate');
@@ -1113,10 +1113,22 @@ export default function GiveawayWizardPage() {
                   type="number"
                   min={1}
                   max={winnerLimit}
-                  value={payload.winnersCount || 1}
+                  value={payload.winnersCount ?? ''}
                   onChange={(e) => {
-                    const val = parseInt(e.target.value) || 1;
-                    updatePayload({ winnersCount: Math.min(Math.max(1, val), winnerLimit) });
+                    const raw = e.target.value;
+                    if (raw === '') {
+                      updatePayload({ winnersCount: undefined as unknown as number });
+                      return;
+                    }
+                    const val = parseInt(raw);
+                    if (!isNaN(val)) {
+                      updatePayload({ winnersCount: Math.min(Math.max(1, val), winnerLimit) });
+                    }
+                  }}
+                  onBlur={() => {
+                    if (!payload.winnersCount || payload.winnersCount < 1) {
+                      updatePayload({ winnersCount: 1 });
+                    }
                   }}
                   className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text text-center text-2xl font-bold"
                 />
@@ -1154,10 +1166,22 @@ export default function GiveawayWizardPage() {
                   type="number"
                   min={0}
                   max={10000}
-                  value={payload.minParticipants || 0}
+                  value={payload.minParticipants ?? ''}
                   onChange={(e) => {
-                    const val = parseInt(e.target.value) || 0;
-                    updatePayload({ minParticipants: Math.max(0, val) });
+                    const raw = e.target.value;
+                    if (raw === '') {
+                      updatePayload({ minParticipants: undefined as unknown as number });
+                      return;
+                    }
+                    const val = parseInt(raw);
+                    if (!isNaN(val)) {
+                      updatePayload({ minParticipants: Math.max(0, val) });
+                    }
+                  }}
+                  onBlur={() => {
+                    if (payload.minParticipants == null) {
+                      updatePayload({ minParticipants: 0 });
+                    }
                   }}
                   placeholder="0"
                   className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text text-center"
