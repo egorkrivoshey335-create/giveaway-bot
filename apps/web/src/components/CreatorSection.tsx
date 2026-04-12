@@ -17,6 +17,7 @@ import {
 } from '@/lib/api';
 import { Stagger, StaggerItem } from '@/components/FadeIn';
 import { AppIcon } from '@/components/AppIcon';
+import { Mascot } from '@/components/Mascot';
 
 // Undo state для постов
 interface UndoState {
@@ -195,7 +196,8 @@ export function CreatorSection() {
                 </motion.div>
               ) : channels.length === 0 ? (
                 <motion.div key="channels-empty" {...contentMotion} className="text-center py-4">
-                  <p className="text-tg-hint text-sm mb-3">{t('noChannels')}</p>
+                  <Mascot type="state-empty" size={80} loop autoplay />
+                  <p className="text-tg-hint text-sm mb-3 mt-2">{t('noChannels')}</p>
                   <p className="text-tg-hint text-xs">{tChannels('addDescription')}</p>
                 </motion.div>
               ) : (
@@ -283,7 +285,8 @@ export function CreatorSection() {
                 </motion.div>
               ) : postTemplates.length === 0 ? (
                 <motion.div key="posts-empty" {...contentMotion} className="text-center py-4">
-                  <p className="text-tg-hint text-sm mb-3">{t('noPosts')}</p>
+                  <Mascot type="state-empty" size={80} loop autoplay />
+                  <p className="text-tg-hint text-sm mb-3 mt-2">{t('noPosts')}</p>
                 </motion.div>
               ) : (
                 <motion.div key="posts-list" {...contentMotion} className="space-y-3">

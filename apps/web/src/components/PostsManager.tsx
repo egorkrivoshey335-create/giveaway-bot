@@ -8,6 +8,7 @@ import { EmptyState } from './ui/EmptyState';
 import { InlineToast } from './Toast';
 import { getPostTemplates, deletePostTemplate, PostTemplate } from '@/lib/api';
 import { hapticSuccess, hapticError, hapticSelect, hapticDelete } from '@/lib/haptic';
+import { Mascot } from '@/components/Mascot';
 
 // Bot username из env
 const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
@@ -210,9 +211,9 @@ export function PostsManager({
         maxHeight="80vh"
       >
         {loading ? (
-          <div className="py-12 text-center">
-            <div className="animate-spin w-8 h-8 border-2 border-tg-button border-t-transparent rounded-full mx-auto mb-3" />
-            <p className="text-tg-hint text-sm">{tCommon('loading')}</p>
+          <div className="py-8 text-center">
+            <Mascot type="state-loading" size={100} loop autoplay />
+            <p className="text-tg-hint text-sm mt-2">{tCommon('loading')}</p>
           </div>
         ) : posts.length === 0 ? (
           <EmptyState

@@ -5,6 +5,7 @@ import { Button } from './ui/Button';
 import { Toggle } from './ui/Toggle';
 import { Card } from './ui/Card';
 import { AppIcon } from './AppIcon';
+import { Mascot } from './Mascot';
 
 export interface ThemeSettings {
   // Цвета
@@ -152,7 +153,9 @@ export function ThemeCustomizer({
   if (!isPremium) {
     return (
       <Card className="p-6 text-center">
-        <AppIcon name="lock" variant="lucide" size={48} className="mx-auto mb-4 text-brand-300" />
+        <div className="flex justify-center mb-2">
+          <Mascot type="state-locked" size={120} loop={false} autoplay />
+        </div>
         <h3 className="text-lg font-semibold mb-2">Кастомизация темы</h3>
         <p className="text-tg-hint mb-4">
           Настройка темы доступна для пользователей с подпиской PRO или Business

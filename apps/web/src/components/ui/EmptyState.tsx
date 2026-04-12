@@ -2,9 +2,11 @@
 
 import { Button } from './Button';
 import { AppIcon } from '@/components/AppIcon';
+import { Mascot } from '@/components/Mascot';
 
 export interface EmptyStateProps {
   icon?: string;
+  mascot?: 'state-empty' | 'state-error' | 'state-loading' | 'state-locked' | 'state-success';
   title: string;
   description?: string;
   action?: {
@@ -14,33 +16,18 @@ export interface EmptyStateProps {
   className?: string;
 }
 
-/**
- * EmptyState — пустое состояние списка
- * 
- * @example
- * ```tsx
- * <EmptyState
- *   icon="icon-giveaway"
- *   title="Нет розыгрышей"
- *   description="Вы ещё не создали ни одного розыгрыша"
- *   action={{
- *     label: 'Создать розыгрыш',
- *     onClick: () => router.push('/creator/giveaway/new'),
- *   }}
- * />
- * ```
- */
 export function EmptyState({
   icon = 'icon-info',
+  mascot = 'state-empty',
   title,
   description,
   action,
   className = '',
 }: EmptyStateProps) {
   return (
-    <div className={`flex flex-col items-center justify-center text-center py-12 px-4 ${className}`}>
-      <div className="mb-4 opacity-50">
-        <AppIcon name={icon} size={56} />
+    <div className={`flex flex-col items-center justify-center text-center py-8 px-4 ${className}`}>
+      <div className="mb-2">
+        <Mascot type={mascot} size={120} loop autoplay />
       </div>
       
       <h3 className="text-lg font-semibold text-tg-text mb-2">

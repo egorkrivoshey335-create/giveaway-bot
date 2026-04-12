@@ -13,6 +13,7 @@ import {
 } from '@/lib/api';
 import { InlineToast } from '@/components/Toast';
 import { AppIcon } from '@/components/AppIcon';
+import { Mascot } from '@/components/Mascot';
 
 // Берём username бота из env
 const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
@@ -641,9 +642,9 @@ export default function CreatorDashboardPage() {
                 )}
               </>
             ) : (
-              <div className="text-center py-12 bg-tg-secondary rounded-xl">
-                <div className="flex justify-center mb-4">
-                  <AppIcon name="icon-giveaway" variant="brand" size={64} />
+              <div className="text-center py-8 bg-tg-secondary rounded-xl">
+                <div className="flex justify-center mb-2">
+                  <Mascot type="state-empty" size={120} loop autoplay />
                 </div>
                 <h2 className="text-xl font-semibold mb-2">
                   {statusFilter === 'all' ? t('empty.title') : t('empty.titleFiltered')}

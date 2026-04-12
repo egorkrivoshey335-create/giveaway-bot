@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { getCatalog, CatalogGiveaway } from '@/lib/api';
 import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
 import { AppIcon } from '@/components/AppIcon';
+import { Mascot } from '@/components/Mascot';
 import { AnimatePresence, motion } from 'framer-motion';
 
 // Тип для функции перевода (упрощённый для передачи как пропс)
@@ -175,7 +176,7 @@ function PaywallFullOverlay({
       {/* Блок с информацией о подписке */}
       <div className="bg-tg-bg p-4">
         <div className="bg-tg-secondary rounded-xl p-6 text-center">
-          <div className="flex justify-center mb-3"><AppIcon name="icon-lock" size={40} /></div>
+          <div className="flex justify-center mb-2"><Mascot type="state-locked" size={100} loop={false} autoplay /></div>
           <h3 className="text-xl font-bold mb-2">{t('giveawaysCount', { count: total })}</h3>
           <p className="text-tg-hint text-sm mb-4">
             {t('paywall.description')}
@@ -377,8 +378,8 @@ export default function CatalogPage() {
             layout
             transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
           >
-            <div className="text-center py-12 bg-tg-secondary rounded-xl">
-              <div className="flex justify-center mb-4"><AppIcon name="icon-giveaway" size={56} /></div>
+            <div className="text-center py-8 bg-tg-secondary rounded-xl">
+              <div className="flex justify-center mb-2"><Mascot type="state-empty" size={120} loop autoplay /></div>
               <h2 className="text-xl font-semibold mb-2">{t('empty')}</h2>
               <p className="text-tg-hint mb-6">{t('emptySubtitle')}</p>
 

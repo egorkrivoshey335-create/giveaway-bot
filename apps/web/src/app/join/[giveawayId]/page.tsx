@@ -638,7 +638,9 @@ export default function JoinGiveawayPage() {
     return (
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
-          <div className="text-6xl mb-4"><AppIcon name="icon-error" size={14} /></div>
+          <div className="flex justify-center mb-2">
+            <Mascot type="state-error" size={120} loop={false} autoplay />
+          </div>
           <h1 className="text-xl font-bold mb-2">{t('error.title')}</h1>
           <p className="text-tg-hint mb-6">{error}</p>
           <button
@@ -657,7 +659,9 @@ export default function JoinGiveawayPage() {
     return (
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
-          <div className="text-6xl mb-4">🏁</div>
+          <div className="flex justify-center mb-2">
+            <Mascot type="state-empty" size={120} loop={false} autoplay />
+          </div>
           <h1 className="text-xl font-bold mb-2">{t('finished.title')}</h1>
           <p className="text-tg-hint mb-6">
             {giveaway?.title}
@@ -919,7 +923,9 @@ export default function JoinGiveawayPage() {
       <main className="min-h-screen p-4">
         <div className="max-w-md mx-auto">
           <div className="text-center mb-6">
-            <div className="text-5xl mb-3">🤖</div>
+            <div className="flex justify-center mb-2">
+              <Mascot type="state-captcha" size={120} loop autoplay />
+            </div>
             <h1 className="text-xl font-bold">{t('captcha.title')}</h1>
             <p className="text-tg-hint mt-2">{t('captcha.description')}</p>
           </div>

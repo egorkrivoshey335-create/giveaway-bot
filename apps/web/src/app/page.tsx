@@ -9,6 +9,7 @@ import { ParticipantSection } from '@/components/ParticipantSection';
 import { CreatorSection } from '@/components/CreatorSection';
 import { useTelegramLocale, syncLocaleFromDb } from '@/hooks/useLocale';
 import { AppIcon } from '@/components/AppIcon';
+import { Mascot } from '@/components/Mascot';
 import { FadeIn } from '@/components/FadeIn';
 import {
   authenticateWithTelegram,
@@ -332,7 +333,10 @@ export default function HomePage() {
           {authStatus === 'error' && (
             <FadeIn key="error" delay={0.1}>
               <div className="bg-tg-secondary rounded-xl p-6">
-                <h2 className="text-lg font-semibold mb-2 text-red-500">❌ {tCommon('error')}</h2>
+                <div className="flex justify-center mb-2">
+                  <Mascot type="state-error" size={100} loop={false} autoplay />
+                </div>
+                <h2 className="text-lg font-semibold mb-2 text-red-500">{tCommon('error')}</h2>
                 <p className="text-tg-hint text-sm mb-4">{error || t('errors.connectionError')}</p>
                 {(hasTelegram || process.env.NODE_ENV === 'development') && (
                   <button 

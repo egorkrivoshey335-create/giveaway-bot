@@ -12,6 +12,7 @@ import {
 import { InlineToast } from '@/components/Toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppIcon } from '@/components/AppIcon';
+import { Mascot } from '@/components/Mascot';
 // Типы Telegram WebApp загружаются из @/types/telegram.d.ts
 
 // Берём username бота из env
@@ -40,8 +41,8 @@ function formatDate(dateStr: string): string {
 // Компонент пустого состояния
 function EmptyState({ onAddChannel, t }: { onAddChannel: () => void; t: ReturnType<typeof useTranslations<'channels'>> }) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-      <div className="flex justify-center mb-4"><AppIcon name="icon-channel" size={56} /></div>
+    <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+      <div className="flex justify-center mb-2"><Mascot type="state-empty" size={120} loop autoplay /></div>
       <h3 className="text-xl font-semibold text-tg-text mb-2">
         {t('empty.title')}
       </h3>

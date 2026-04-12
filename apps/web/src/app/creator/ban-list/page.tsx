@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getBanList, deleteBanEntry, BanEntry } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppIcon } from '@/components/AppIcon';
+import { Mascot } from '@/components/Mascot';
 
 /**
  * Страница бан-листа создателя
@@ -87,8 +88,8 @@ export default function BanListPage() {
               layout
               transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
             >
-              <div className="animate-spin w-8 h-8 border-2 border-tg-button border-t-transparent rounded-full mx-auto mb-3" />
-              <p className="text-tg-hint text-sm">Загрузка...</p>
+              <Mascot type="state-loading" size={100} loop autoplay />
+              <p className="text-tg-hint text-sm mt-2">Загрузка...</p>
             </motion.div>
           ) : entries.length === 0 ? (
             <motion.div
@@ -100,8 +101,8 @@ export default function BanListPage() {
               layout
               transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
             >
-              <span className="text-5xl block mb-3"><AppIcon name="icon-success" size={14} /></span>
-              <p className="font-semibold mb-1">Бан-лист пуст</p>
+              <Mascot type="state-empty" size={120} loop autoplay />
+              <p className="font-semibold mb-1 mt-2">Бан-лист пуст</p>
               <p className="text-tg-hint text-sm">Заблокированных пользователей нет</p>
             </motion.div>
           ) : (

@@ -444,7 +444,9 @@ export default function GiveawayWizardPage() {
     return (
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
-          <div className="text-6xl mb-4"><AppIcon name="icon-giveaway" size={16} /></div>
+          <div className="flex justify-center mb-2">
+            <Mascot type="state-success" size={150} loop={false} autoplay />
+          </div>
           <h1 className="text-2xl font-bold mb-2">{t('success.title')}</h1>
           <p className="text-tg-hint mb-6">
             {t('success.description')}

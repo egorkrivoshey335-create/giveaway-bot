@@ -2,6 +2,7 @@
 
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { Button } from './ui/Button';
+import { Mascot } from './Mascot';
 
 interface Props {
   children: ReactNode;
@@ -80,8 +81,8 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="min-h-screen flex items-center justify-center p-4 bg-tg-bg">
           <div className="max-w-md w-full text-center">
             {/* Маскот */}
-            <div className="text-8xl mb-6 animate-bounce">
-              😔
+            <div className="mb-4 flex justify-center">
+              <Mascot type="state-error" size={150} loop={false} autoplay />
             </div>
 
             {/* Заголовок */}

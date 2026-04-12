@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getMyParticipations, MyParticipation } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppIcon } from '@/components/AppIcon';
+import { Mascot } from '@/components/Mascot';
 
 type FilterStatus = 'all' | 'active' | 'finished' | 'won';
 
@@ -163,8 +164,8 @@ export default function ParticipationHistoryPage() {
               layout
               transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
             >
-              <span className="text-5xl block mb-3"><AppIcon name="icon-ticket" size={16} /></span>
-              <p className="font-semibold mb-1">Здесь пусто</p>
+              <Mascot type="state-empty" size={120} loop autoplay />
+              <p className="font-semibold mb-1 mt-2">Здесь пусто</p>
               <p className="text-tg-hint text-sm">
                 {filter === 'all'
                   ? 'Вы ещё не участвовали ни в одном розыгрыше'

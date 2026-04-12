@@ -10,6 +10,7 @@ import {
   ParticipationFilterStatus,
 } from '@/lib/api';
 import { AppIcon } from '@/components/AppIcon';
+import { Mascot } from '@/components/Mascot';
 
 // Форматирование оставшегося времени
 function formatTimeLeft(endAt: string): string {
@@ -129,7 +130,9 @@ function EmptyState({ filter }: { filter: ParticipationFilterStatus }) {
 
   return (
     <div className="text-center py-12 bg-tg-secondary rounded-xl">
-      <div className="mb-4 flex justify-center">{filterIcons[filter]}</div>
+      <div className="mb-2 flex justify-center">
+        <Mascot type="state-empty" size={120} loop autoplay />
+      </div>
       <h2 className="text-xl font-semibold mb-2">{t(`${filter}.title`)}</h2>
       <p className="text-tg-hint">{t(`${filter}.subtitle`)}</p>
     </div>
@@ -257,14 +260,14 @@ export function ParticipantSection() {
           transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
         >
           {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin w-8 h-8 border-2 border-tg-button border-t-transparent rounded-full mx-auto mb-3" />
-              <p className="text-tg-hint">{tCommon('loading')}</p>
+            <div className="text-center py-8">
+              <Mascot type="state-loading" size={100} loop autoplay />
+              <p className="text-tg-hint mt-2">{tCommon('loading')}</p>
             </div>
           ) : error ? (
-            <div className="text-center py-12 bg-tg-secondary rounded-xl">
-              <div className="mb-4 flex justify-center">
-                <AppIcon name="icon-error" size={14} className="text-tg-hint" />
+            <div className="text-center py-8 bg-tg-secondary rounded-xl">
+              <div className="mb-2 flex justify-center">
+                <Mascot type="state-error" size={100} loop={false} autoplay />
               </div>
               <p className="text-tg-hint mb-4">{error}</p>
               <button
