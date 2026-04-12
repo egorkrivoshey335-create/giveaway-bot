@@ -175,8 +175,9 @@ function PaywallFullOverlay({
       
       {/* Блок с информацией о подписке */}
       <div className="bg-tg-bg p-4">
-        <div className="bg-tg-secondary rounded-xl p-6 text-center">
-          <div className="flex justify-center mb-2"><Mascot type="state-locked" size={100} loop={false} autoplay /></div>
+        <div className="bg-tg-secondary rounded-xl p-6 flex flex-col items-center text-center">
+          <Mascot type="state-locked" size={100} loop={false} autoplay />
+          <div className="h-2" />
           <h3 className="text-xl font-bold mb-2">{t('giveawaysCount', { count: total })}</h3>
           <p className="text-tg-hint text-sm mb-4">
             {t('paywall.description')}
@@ -378,8 +379,9 @@ export default function CatalogPage() {
             layout
             transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
           >
-            <div className="text-center py-8 bg-tg-secondary rounded-xl">
-              <div className="flex justify-center mb-2"><Mascot type="state-empty" size={120} loop autoplay /></div>
+            <div className="flex flex-col items-center text-center py-8 bg-tg-secondary rounded-xl">
+              <Mascot type="state-empty" size={120} loop autoplay />
+              <div className="h-2" />
               <h2 className="text-xl font-semibold mb-2">{t('empty')}</h2>
               <p className="text-tg-hint mb-6">{t('emptySubtitle')}</p>
 

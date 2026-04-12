@@ -158,7 +158,7 @@ export default function FaqPage() {
                           {item.q}
                         </span>
                         <span className="flex-shrink-0 mt-0.5">
-                          <AppIcon name="icon-back" size={16} className={`text-tg-hint transition-transform duration-200 ${isOpen ? '-rotate-90' : 'rotate-90'}`} />
+                          <AppIcon name="icon-back" size={16} className={`text-tg-hint transition-transform duration-200 ${isOpen ? 'rotate-90' : '-rotate-90'}`} />
                         </span>
                       </button>
 

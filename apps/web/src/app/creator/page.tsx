@@ -451,9 +451,9 @@ export default function CreatorDashboardPage() {
   if (loading) {
     return (
       <main className="min-h-screen p-4">
-        <div className="max-w-4xl mx-auto text-center py-12">
-          <div className="flex justify-center mb-4"><AppIcon name="icon-pending" size={40} /></div>
-          <p className="text-tg-hint">{tCommon('loading')}</p>
+        <div className="max-w-4xl mx-auto flex flex-col items-center text-center py-12">
+          <Mascot type="state-loading" size={100} loop autoplay />
+          <p className="text-tg-hint mt-2">{tCommon('loading')}</p>
         </div>
       </main>
     );
@@ -462,9 +462,9 @@ export default function CreatorDashboardPage() {
   if (error) {
     return (
       <main className="min-h-screen p-4">
-        <div className="max-w-4xl mx-auto text-center py-12">
-          <div className="flex justify-center mb-4"><AppIcon name="icon-error" size={40} /></div>
-          <p className="text-tg-hint mb-4">{error}</p>
+        <div className="max-w-4xl mx-auto flex flex-col items-center text-center py-12">
+          <Mascot type="state-error" size={100} loop={false} autoplay />
+          <p className="text-tg-hint mb-4 mt-2">{error}</p>
           <button
             onClick={() => window.location.reload()}
             className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2"
@@ -489,97 +489,52 @@ export default function CreatorDashboardPage() {
           <AppIcon name="icon-back" size={16} />
           Назад
         </motion.button>
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">{t('title')}</h1>
-          <div className="flex items-center gap-2">
-            {/* Кнопка профиля */}
-            <button
-              onClick={() => router.push('/creator/profile')}
-              className="bg-tg-secondary text-tg-text rounded-full p-2 font-medium flex items-center justify-center hover:bg-tg-secondary/80 transition-colors"
-              title={t('profile')}
-            >
-              <AppIcon name="icon-participant" variant="brand" size={24} />
-            </button>
-
-            <button
-              onClick={() => router.push('/creator/channels')}
-              className="bg-tg-secondary text-tg-text rounded-lg px-3 py-2 font-medium flex items-center gap-2 hover:bg-tg-secondary/80 transition-colors"
-              title={t('channels')}
-            >
-              <AppIcon name="icon-channel" variant="brand" size={18} />
-              <span className="hidden sm:inline">{t('channelsShort')}</span>
-            </button>
-            <button
-              onClick={async () => {
-                const res = await createSandboxGiveaway();
-                if (res.ok && res.id) {
-                  setMessage('Sandbox создан');
-                  router.push(`/creator/giveaway/${res.id}`);
-                } else {
-                  setMessage(res.error || 'Ошибка создания sandbox');
-                  setTimeout(() => setMessage(null), 3000);
-                }
-              }}
-              className="bg-tg-secondary text-tg-hint rounded-lg px-3 py-2 font-medium flex items-center gap-2 hover:bg-tg-secondary/80 transition-colors"
-              title="Создать тестовый (sandbox) розыгрыш"
-            >
-              <AppIcon name="icon-sandbox" size={16} />
-              <span className="hidden sm:inline">Тест</span>
-            </button>
-            <button
-              onClick={() => router.push('/creator/giveaway/new')}
-              className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2 font-medium flex items-center gap-2"
-            >
-              <AppIcon name="icon-create" variant="brand" size={18} />
-              <span>{t('create')}</span>
-            </button>
-          </div>
+        {/* Header — как в Участнике */}
+        <div className="mb-4">
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            <AppIcon name="icon-giveaway" size={22} />
+            {t('title')}
+          </h1>
+          <p className="text-tg-hint text-sm">{t('subtitle')}</p>
         </div>
 
-        {/* Сообщение */}
-        <InlineToast message={message} onClose={() => setMessage(null)} />
+        {/* Кнопка «Создать розыгрыш» — акцентная */}
+        <button
+          onClick={() => router.push('/creator/giveaway/new')}
+          className="catalog-btn relative w-full rounded-2xl py-4 px-5 mb-6 font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2.5 overflow-hidden"
+        >
+          <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer_3s_ease-in-out_infinite]" />
+          <AppIcon name="icon-create" size={22} className="relative z-10 drop-shadow-sm" />
+          <span className="relative z-10 text-[15px]">{t('create')}</span>
+          <AppIcon name="icon-back" size={14} className="rotate-180 relative z-10 opacity-60" />
+        </button>
 
-        {/* Фильтры */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {filters.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setStatusFilter(f.key)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 ${
-                statusFilter === f.key
-                  ? 'bg-tg-button text-tg-button-text'
-                  : 'bg-tg-secondary text-tg-text hover:bg-tg-secondary/80'
-              }`}
-            >
-              {f.icon && <AppIcon name={f.icon} variant="brand" size={14} className="mr-1 inline-block" />}
-              {f.label}
-              {counts[f.key] !== undefined && (
-                <span className="ml-1 opacity-70">({counts[f.key]})</span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* Быстрые блоки: Каналы и Посты */}
+        {/* Быстрые блоки 2×2 */}
         <div className="grid grid-cols-2 gap-3 mb-6">
-          {/* Блок каналов */}
+          <button
+            onClick={() => router.push('/creator/profile')}
+            className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <AppIcon name="icon-participant" variant="brand" size={28} />
+              <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint" />
+            </div>
+            <div className="text-sm font-semibold">{t('profile')}</div>
+          </button>
+
           <button
             onClick={() => router.push('/creator/channels')}
             className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left"
           >
             <div className="flex items-center justify-between mb-2">
-              <AppIcon name="icon-channel" variant="brand" size={32} />
-              <AppIcon name="icon-back" size={20} className="rotate-180 text-tg-hint" />
+              <AppIcon name="icon-channel" variant="brand" size={28} />
+              <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint" />
             </div>
-            <div className="text-lg font-semibold mb-1">{t('blocks.channels.title')}</div>
-            <div className="text-sm text-tg-hint">{t('blocks.channels.subtitle')}</div>
+            <div className="text-sm font-semibold">{t('channelsShort')}</div>
           </button>
 
-          {/* Блок постов */}
           <button
             onClick={() => {
-              // TODO: TASKS-4.4 - открыть управление постами
               const tg = window.Telegram?.WebApp;
               const link = `https://t.me/${BOT_USERNAME}?start=posts`;
               if (tg) {
@@ -591,12 +546,55 @@ export default function CreatorDashboardPage() {
             className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left"
           >
             <div className="flex items-center justify-between mb-2">
-              <AppIcon name="icon-edit" variant="brand" size={32} />
-              <AppIcon name="icon-back" size={20} className="rotate-180 text-tg-hint" />
+              <AppIcon name="icon-edit" variant="brand" size={28} />
+              <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint" />
             </div>
-            <div className="text-lg font-semibold mb-1">{t('blocks.posts.title')}</div>
-            <div className="text-sm text-tg-hint">{t('blocks.posts.subtitle')}</div>
+            <div className="text-sm font-semibold">{t('blocks.posts.title')}</div>
           </button>
+
+          <button
+            onClick={async () => {
+              const res = await createSandboxGiveaway();
+              if (res.ok && res.id) {
+                setMessage('Sandbox создан');
+                router.push(`/creator/giveaway/${res.id}`);
+              } else {
+                setMessage(res.error || 'Ошибка создания sandbox');
+                setTimeout(() => setMessage(null), 3000);
+              }
+            }}
+            className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <AppIcon name="icon-sandbox" variant="brand" size={28} />
+              <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint" />
+            </div>
+            <div className="text-sm font-semibold">Тест</div>
+          </button>
+        </div>
+
+        {/* Сообщение */}
+        <InlineToast message={message} onClose={() => setMessage(null)} />
+
+        {/* Фильтры — сетка 2×2 */}
+        <div className="grid grid-cols-2 gap-2 mb-6">
+          {filters.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setStatusFilter(f.key)}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                statusFilter === f.key
+                  ? 'bg-tg-button text-tg-button-text'
+                  : 'bg-tg-secondary text-tg-text hover:bg-tg-secondary/80'
+              }`}
+            >
+              {f.icon && <span className="mr-1 inline-flex items-center align-middle"><AppIcon name={f.icon} variant="brand" size={18} /></span>}
+              {f.label}
+              {counts[f.key] !== undefined && (
+                <span className="ml-1 opacity-70">({counts[f.key]})</span>
+              )}
+            </button>
+          ))}
         </div>
 
         {/* Список розыгрышей */}
@@ -642,8 +640,8 @@ export default function CreatorDashboardPage() {
                 )}
               </>
             ) : (
-              <div className="text-center py-8 bg-tg-secondary rounded-xl">
-                <div className="flex justify-center mb-2">
+              <div className="flex flex-col items-center text-center py-8 bg-tg-secondary rounded-xl">
+                <div className="mb-2">
                   <Mascot type="state-empty" size={120} loop autoplay />
                 </div>
                 <h2 className="text-xl font-semibold mb-2">

@@ -493,6 +493,7 @@
   },
   "dashboard": {
     "title": "My Giveaways",
+    "subtitle": "Giveaways you have created",
     "channels": "Manage Channels",
     "channelsShort": "Channels",
     "profile": "Profile",

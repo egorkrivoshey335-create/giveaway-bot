@@ -81,7 +81,7 @@ export default function BanListPage() {
           {loading ? (
             <motion.div
               key="loading"
-              className="text-center py-12"
+              className="flex flex-col items-center text-center py-12"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
@@ -94,7 +94,7 @@ export default function BanListPage() {
           ) : entries.length === 0 ? (
             <motion.div
               key="empty"
-              className="text-center py-16"
+              className="flex flex-col items-center text-center py-16"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}

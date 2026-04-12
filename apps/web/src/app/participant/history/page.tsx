@@ -157,7 +157,7 @@ export default function ParticipationHistoryPage() {
           ) : participations.length === 0 ? (
             <motion.div
               key={`empty-${filter}`}
-              className="text-center py-16"
+              className="flex flex-col items-center text-center py-16"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}

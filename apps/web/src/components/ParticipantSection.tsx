@@ -129,8 +129,8 @@ function EmptyState({ filter }: { filter: ParticipationFilterStatus }) {
   };
 
   return (
-    <div className="text-center py-12 bg-tg-secondary rounded-xl">
-      <div className="mb-2 flex justify-center">
+    <div className="flex flex-col items-center text-center py-12 bg-tg-secondary rounded-xl">
+      <div className="mb-2">
         <Mascot type="state-empty" size={120} loop autoplay />
       </div>
       <h2 className="text-xl font-semibold mb-2">{t(`${filter}.title`)}</h2>
@@ -260,13 +260,13 @@ export function ParticipantSection() {
           transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
         >
           {loading ? (
-            <div className="text-center py-8">
+            <div className="flex flex-col items-center text-center py-8">
               <Mascot type="state-loading" size={100} loop autoplay />
               <p className="text-tg-hint mt-2">{tCommon('loading')}</p>
             </div>
           ) : error ? (
-            <div className="text-center py-8 bg-tg-secondary rounded-xl">
-              <div className="mb-2 flex justify-center">
+            <div className="flex flex-col items-center text-center py-8 bg-tg-secondary rounded-xl">
+              <div className="mb-2">
                 <Mascot type="state-error" size={100} loop={false} autoplay />
               </div>
               <p className="text-tg-hint mb-4">{error}</p>

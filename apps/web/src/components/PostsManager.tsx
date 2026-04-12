@@ -211,7 +211,7 @@ export function PostsManager({
         maxHeight="80vh"
       >
         {loading ? (
-          <div className="py-8 text-center">
+          <div className="flex flex-col items-center py-8 text-center">
             <Mascot type="state-loading" size={100} loop autoplay />
             <p className="text-tg-hint text-sm mt-2">{tCommon('loading')}</p>
           </div>
