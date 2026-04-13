@@ -228,7 +228,7 @@ export default function GiveawayWizardPage() {
             captchaMode: 'SUSPICIOUS_ONLY',
             livenessEnabled: false,
             inviteEnabled: false,
-            inviteMax: 10,
+            inviteMax: 3,
             boostEnabled: false,
             boostChannelIds: [],
             storiesEnabled: false,
@@ -280,7 +280,7 @@ export default function GiveawayWizardPage() {
           captchaMode: 'SUSPICIOUS_ONLY',
           livenessEnabled: false,
           inviteEnabled: false,
-          inviteMax: 10,
+          inviteMax: 3,
           boostEnabled: false,
           boostChannelIds: [],
           storiesEnabled: false,
@@ -318,7 +318,7 @@ export default function GiveawayWizardPage() {
           captchaMode: 'SUSPICIOUS_ONLY',
           livenessEnabled: false,
           inviteEnabled: false,
-          inviteMax: 10,
+          inviteMax: 3,
           boostEnabled: false,
           boostChannelIds: [],
           storiesEnabled: false,
@@ -856,17 +856,33 @@ export default function GiveawayWizardPage() {
                 <Mascot type="wizard-publish" size={160} loop={true} autoplay={true} />
               </div>
 
-              <p className="text-sm text-tg-hint mb-2">
+              <p className="text-sm text-tg-hint mb-4">
                 <AppIcon name="icon-channel" size={14} /> {t('publish.description')}
               </p>
-              {userTier === 'FREE' && (
-                <div className="flex flex-wrap gap-1 mb-4">
-                  <span className="text-[10px] bg-gray-500/20 text-gray-500 px-1.5 py-0.5 rounded">FREE: 1</span>
-                  <span className="text-[10px] bg-blue-500/20 text-blue-600 px-1.5 py-0.5 rounded">PLUS: 3</span>
-                  <span className="text-[10px] bg-purple-500/20 text-purple-600 px-1.5 py-0.5 rounded">PRO: 5</span>
-                  <span className="text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded">BUSINESS: ∞</span>
+
+              {/* Publish channel limit banner */}
+              <div className="mb-4 bg-tg-bg rounded-lg p-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-tg-hint"><AppIcon name="icon-diamond" size={14} /> {t('publish.channelLimit')}:</span>
+                  <span className="font-medium text-tg-button">
+                    {(payload.publishChannelIds || []).length} / {subscriptionChannelLimit === Infinity ? '∞' : subscriptionChannelLimit}
+                  </span>
                 </div>
-              )}
+                {(payload.publishChannelIds || []).length >= subscriptionChannelLimit && subscriptionChannelLimit !== Infinity && (
+                  <p className="text-xs text-yellow-600 mt-1">
+                    <AppIcon name="icon-warning" size={14} /> {t('publish.limitReached')}
+                  </p>
+                )}
+                {userTier === 'FREE' && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    <span className="text-[10px] bg-gray-500/20 text-gray-500 px-1.5 py-0.5 rounded">FREE: 1</span>
+                    <span className="text-[10px] bg-blue-500/20 text-blue-600 px-1.5 py-0.5 rounded">PLUS: 3</span>
+                    <span className="text-[10px] bg-purple-500/20 text-purple-600 px-1.5 py-0.5 rounded">PRO: 5</span>
+                    <span className="text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded">BUSINESS: ∞</span>
+                  </div>
+                )}
+              </div>
+
               {channels.length === 0 ? (
                 <p className="text-center text-tg-hint py-8">
                   <AppIcon name="icon-channel" size={14} /> {t('publish.noChannels')}
@@ -1029,7 +1045,7 @@ export default function GiveawayWizardPage() {
                       if (userTier === 'BUSINESS') {
                         updatePayload({ publishResultsMode: 'RANDOMIZER' });
                       } else {
-                        alert('Рандомайзер доступен только с подпиской BUSINESS');
+                        setShowSubscription(true);
                       }
                     }}
                     className={`w-full text-left p-3 rounded-lg flex items-center gap-3 ${
@@ -1362,7 +1378,7 @@ export default function GiveawayWizardPage() {
                         key={modeValue}
                         onClick={() => {
                           if (isLockedForFree) {
-                            alert(t('protection.captchaAllPlusAlert'));
+                            setShowSubscription(true);
                             return;
                           }
                           updatePayload({ captchaMode: modeValue });
@@ -1423,9 +1439,7 @@ export default function GiveawayWizardPage() {
                     </div>
                   </div>
                   <button
-                    onClick={() => {
-                      alert(t('protection.livenessProAlert'));
-                    }}
+                    onClick={() => setShowSubscription(true)}
                     className="w-12 h-6 rounded-full bg-tg-secondary opacity-50 cursor-not-allowed relative"
                   >
                     <span className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full" />
@@ -1677,8 +1691,13 @@ export default function GiveawayWizardPage() {
                     </span>
                   </div>
                   <button
-                    disabled={!userHasPremium}
-                    onClick={() => updatePayload({ catalogEnabled: !payload.catalogEnabled })}
+                    onClick={() => {
+                      if (!userHasPremium) {
+                        setShowSubscription(true);
+                        return;
+                      }
+                      updatePayload({ catalogEnabled: !payload.catalogEnabled });
+                    }}
                     className={`w-12 h-6 rounded-full transition-colors relative ${
                       !userHasPremium ? 'bg-tg-secondary border border-tg-hint opacity-50 cursor-not-allowed' :
                       payload.catalogEnabled ? 'bg-tg-button' : 'bg-tg-secondary'
@@ -1794,6 +1813,26 @@ export default function GiveawayWizardPage() {
                   </div>
                 </div>
               )}
+
+              {/* Mascot availability by tier */}
+              <div className="bg-tg-bg rounded-lg p-3 text-sm space-y-1.5">
+                <div className="flex items-start gap-2">
+                  <span className="text-[10px] bg-gray-500/20 text-gray-500 px-1.5 py-0.5 rounded shrink-0 mt-0.5">FREE</span>
+                  <span className="text-xs text-tg-hint">Талисман</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-[10px] bg-blue-500/20 text-blue-600 px-1.5 py-0.5 rounded shrink-0 mt-0.5">PLUS</span>
+                  <span className="text-xs text-tg-hint">Талисман, Везунчик, Фортуна</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-[10px] bg-purple-500/20 text-purple-600 px-1.5 py-0.5 rounded shrink-0 mt-0.5">PRO</span>
+                  <span className="text-xs text-tg-hint">{t('mascot.allMascots')}</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded shrink-0 mt-0.5">BUSINESS</span>
+                  <span className="text-xs text-tg-hint">{t('mascot.allMascots')}</span>
+                </div>
+              </div>
 
               {/* Upgrade button for mascot */}
               {!userHasPremium && (

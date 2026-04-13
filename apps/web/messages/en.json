@@ -184,9 +184,11 @@
       "subscribers": "subscribers"
     },
     "publish": {
-      "description": "Select channels for publishing the giveaway (minimum 1):",
+      "description": "Select channels for publishing the giveaway:",
       "noChannels": "No channels. Add a channel in bot → My Channels",
-      "noBotAdmin": "No channels where bot is an administrator"
+      "noBotAdmin": "No channels where bot is an administrator",
+      "channelLimit": "Channel limit",
+      "limitReached": "Subscription limit reached"
     },
     "resultsStep": {
       "description": "Select channels for publishing results:",
@@ -271,7 +273,8 @@
       "description": "Choose an animated mascot for your giveaway",
       "free": "Free",
       "preview": "This is how the mascot will animate in the giveaway",
-      "premiumHint": "More mascots available in premium subscription"
+      "premiumHint": "More mascots available in premium subscription",
+      "allMascots": "All mascots"
     },
     "customTasks": {
       "description": "Create your own unique tasks for participants",
@@ -605,7 +608,7 @@
       "noCaptcha": { "title": "No captcha", "description": "Instant participation without captcha", "plus": "✓", "pro": "✓", "business": "✓" },
       "notifications": { "title": "Notifications", "description": "Be first to know about new giveaways", "plus": "✓", "pro": "✓", "business": "✓" }
     },
-    "freeIncludes": "Free: 3 giveaways, 3 channels, 5 templates, 5 winners, 1 tracking link, 1 channel per giveaway",
+    "freeIncludes": "Free: 3 giveaways, 3 channels, 5 templates, 5 winners, 3 invites, 1 task, 1 channel per giveaway, 1 boost channel, min. participants up to 1,000",
     "payBtn": "Pay {price}",
     "payStarsBtn": "Pay with Stars {stars}",
     "current": "Current plan",
