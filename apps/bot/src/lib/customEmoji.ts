@@ -50,6 +50,7 @@ export const EMOJI_MAP: Record<string, string> = {
   lang_ru:   process.env.EMOJI_LANG_RU || '',
   lang_en:   process.env.EMOJI_LANG_EN || '',
   lang_kk:   process.env.EMOJI_LANG_KK || '',
+  lang:      process.env.EMOJI_LANG || '',
   notif:     process.env.EMOJI_NOTIF || '',
   notif_milestone: process.env.EMOJI_NOTIF_MILESTONE || '',
   notif_daily:     process.env.EMOJI_NOTIF_DAILY || '',
