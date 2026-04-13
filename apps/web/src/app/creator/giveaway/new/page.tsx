@@ -1815,22 +1815,22 @@ export default function GiveawayWizardPage() {
               )}
 
               {/* Mascot availability by tier */}
-              <div className="bg-tg-bg rounded-lg p-3 text-sm space-y-1.5">
-                <div className="flex items-start gap-2">
-                  <span className="text-[10px] bg-gray-500/20 text-gray-500 px-1.5 py-0.5 rounded shrink-0 mt-0.5">FREE</span>
-                  <span className="text-xs text-tg-hint">Талисман</span>
+              <div className="bg-tg-bg rounded-lg p-3 text-sm space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] bg-gray-500/20 text-gray-500 px-1.5 py-0.5 rounded shrink-0">FREE</span>
+                  <span className="text-xs text-tg-hint">— Талисман</span>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-[10px] bg-blue-500/20 text-blue-600 px-1.5 py-0.5 rounded shrink-0 mt-0.5">PLUS</span>
-                  <span className="text-xs text-tg-hint">Талисман, Везунчик, Фортуна</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] bg-blue-500/20 text-blue-600 px-1.5 py-0.5 rounded shrink-0">PLUS</span>
+                  <span className="text-xs text-tg-hint">— Талисман, Везунчик, Фортуна</span>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-[10px] bg-purple-500/20 text-purple-600 px-1.5 py-0.5 rounded shrink-0 mt-0.5">PRO</span>
-                  <span className="text-xs text-tg-hint">{t('mascot.allMascots')}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] bg-purple-500/20 text-purple-600 px-1.5 py-0.5 rounded shrink-0">PRO</span>
+                  <span className="text-xs text-tg-hint">— {t('mascot.allMascots')}</span>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded shrink-0 mt-0.5">BUSINESS</span>
-                  <span className="text-xs text-tg-hint">{t('mascot.allMascots')}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded shrink-0">BUSINESS</span>
+                  <span className="text-xs text-tg-hint">— {t('mascot.allMascots')}</span>
                 </div>
               </div>
 
