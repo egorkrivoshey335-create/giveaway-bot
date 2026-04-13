@@ -124,9 +124,11 @@ export function inlineKeyboard(...rows: StyledButton[][]): any {
 
 // ── Reply-keyboard button builders ──────────────────────────────────────────
 
-export function replyBtn(text: string, style?: ButtonStyle): any {
+export function replyBtn(text: string, emojiName?: string, style?: ButtonStyle): any {
+  const eid = emojiName ? getEmojiId(emojiName) : undefined;
   const b: any = { text };
   if (style) b.style = style;
+  if (eid) b.icon_custom_emoji_id = eid;
   return b;
 }
 

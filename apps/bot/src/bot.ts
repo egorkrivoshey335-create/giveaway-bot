@@ -382,11 +382,11 @@ bot.hears(MENU.SETTINGS, async (ctx) => {
   const settingsMessage = getSettingsWithNotificationsMessage(locale, notificationMode);
 
   const kb = inlineKeyboard(
-    [btn('🇷🇺 Русский', 'lang_ru', undefined, 'danger'), btn('🇬🇧 English', 'lang_en', undefined, 'danger'), btn('🇰🇿 Қазақша', 'lang_kk', undefined, 'danger')],
-    [btn(locale === 'ru' ? '📢 Уведомления:' : locale === 'en' ? '📢 Notifications:' : '📢 Хабарландырулар:', 'notif_section', undefined, 'danger')],
-    [btn(`${notificationMode === 'MILESTONE' ? '✅ ' : ''}🎯 Milestone`, 'notif_MILESTONE', undefined, 'danger'),
-     btn(`${notificationMode === 'DAILY' ? '✅ ' : ''}📅 Daily`, 'notif_DAILY', undefined, 'danger'),
-     btn(`${notificationMode === 'OFF' ? '✅ ' : ''}🔕 Off`, 'notif_OFF', undefined, 'danger')],
+    [btn('🇷🇺 Русский', 'lang_ru', undefined, 'primary'), btn('🇬🇧 English', 'lang_en', undefined, 'primary'), btn('🇰🇿 Қазақша', 'lang_kk', undefined, 'primary')],
+    [btn(locale === 'ru' ? '📢 Уведомления:' : locale === 'en' ? '📢 Notifications:' : '📢 Хабарландырулар:', 'notif_section', undefined, 'primary')],
+    [btn(`${notificationMode === 'MILESTONE' ? '✅ ' : ''}🎯 Milestone`, 'notif_MILESTONE', undefined, 'primary'),
+     btn(`${notificationMode === 'DAILY' ? '✅ ' : ''}📅 Daily`, 'notif_DAILY', undefined, 'primary'),
+     btn(`${notificationMode === 'OFF' ? '✅ ' : ''}🔕 Off`, 'notif_OFF', undefined, 'primary')],
   );
 
   await ctx.reply(settingsMessage, {
@@ -505,11 +505,11 @@ bot.callbackQuery(/^notif_(MILESTONE|DAILY|OFF)$/, async (ctx) => {
 
     const settingsMessage = getSettingsWithNotificationsMessage(locale, mode);
     const kb = inlineKeyboard(
-      [btn('🇷🇺 Русский', 'lang_ru', undefined, 'danger'), btn('🇬🇧 English', 'lang_en', undefined, 'danger'), btn('🇰🇿 Қазақша', 'lang_kk', undefined, 'danger')],
-      [btn(locale === 'ru' ? '📢 Уведомления:' : locale === 'en' ? '📢 Notifications:' : '📢 Хабарландырулар:', 'notif_section', undefined, 'danger')],
-      [btn(`${mode === 'MILESTONE' ? '✅ ' : ''}🎯 Milestone`, 'notif_MILESTONE', undefined, 'danger'),
-       btn(`${mode === 'DAILY' ? '✅ ' : ''}📅 Daily`, 'notif_DAILY', undefined, 'danger'),
-       btn(`${mode === 'OFF' ? '✅ ' : ''}🔕 Off`, 'notif_OFF', undefined, 'danger')],
+      [btn('🇷🇺 Русский', 'lang_ru', undefined, 'primary'), btn('🇬🇧 English', 'lang_en', undefined, 'primary'), btn('🇰🇿 Қазақша', 'lang_kk', undefined, 'primary')],
+      [btn(locale === 'ru' ? '📢 Уведомления:' : locale === 'en' ? '📢 Notifications:' : '📢 Хабарландырулар:', 'notif_section', undefined, 'primary')],
+      [btn(`${mode === 'MILESTONE' ? '✅ ' : ''}🎯 Milestone`, 'notif_MILESTONE', undefined, 'primary'),
+       btn(`${mode === 'DAILY' ? '✅ ' : ''}📅 Daily`, 'notif_DAILY', undefined, 'primary'),
+       btn(`${mode === 'OFF' ? '✅ ' : ''}🔕 Off`, 'notif_OFF', undefined, 'primary')],
     );
 
     try {
