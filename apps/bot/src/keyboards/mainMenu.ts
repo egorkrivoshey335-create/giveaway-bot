@@ -1,6 +1,9 @@
-import { Keyboard, InlineKeyboard } from 'grammy';
 import { config } from '../config.js';
 import { t, Locale } from '../i18n/index.js';
+import {
+  btn, webAppBtn, inlineKeyboard,
+  replyBtn, replyKb,
+} from '../lib/customEmoji.js';
 
 /**
  * Menu button labels (для matching в bot.hears)
@@ -18,87 +21,84 @@ export const MENU: Record<string, string[]> = {
 };
 
 /**
- * Creates the main reply keyboard menu
+ * Creates the main reply keyboard menu (styled pink / blue)
  */
-export function createMainMenuKeyboard(locale: Locale = 'ru'): Keyboard {
-  return new Keyboard()
-    .text(t(locale, 'menu.openApp')).text(t(locale, 'menu.createGiveaway')).row()
-    .text(t(locale, 'menu.myChannels')).text(t(locale, 'menu.posts')).row()
-    .text(t(locale, 'menu.settings')).text(t(locale, 'menu.support'))
-    .resized()
-    .persistent();
+export function createMainMenuKeyboard(locale: Locale = 'ru'): any {
+  return replyKb([
+    [replyBtn(t(locale, 'menu.openApp'), 'danger'), replyBtn(t(locale, 'menu.createGiveaway'), 'danger')],
+    [replyBtn(t(locale, 'menu.myChannels'), 'danger'), replyBtn(t(locale, 'menu.posts'), 'danger')],
+    [replyBtn(t(locale, 'menu.settings')), replyBtn(t(locale, 'menu.support'))],
+  ]);
 }
 
 /**
  * Creates a submenu keyboard with Back and To Menu buttons
  */
-export function createSubMenuKeyboard(locale: Locale = 'ru'): Keyboard {
-  return new Keyboard()
-    .text(t(locale, 'menu.back')).text(t(locale, 'menu.toMenu'))
-    .resized();
+export function createSubMenuKeyboard(locale: Locale = 'ru'): any {
+  return replyKb([
+    [replyBtn(t(locale, 'menu.back'), 'primary'), replyBtn(t(locale, 'menu.toMenu'), 'primary')],
+  ]);
 }
 
 /**
  * Creates inline keyboard for WebApp button
  */
-export function createWebAppInlineKeyboard(locale: Locale = 'ru'): InlineKeyboard {
-  return new InlineKeyboard().webApp(t(locale, 'buttons.openApp'), config.webappUrl);
+export function createWebAppInlineKeyboard(locale: Locale = 'ru'): any {
+  return inlineKeyboard(
+    [webAppBtn(t(locale, 'buttons.openApp'), config.webappUrl, 'app', 'danger')],
+  );
 }
 
 /**
  * Creates inline keyboard for creating giveaway
  */
-export function createGiveawayMethodKeyboard(locale: Locale = 'ru'): InlineKeyboard {
-  const inAppText = t(locale, 'wizard.inApp');
-  const inBotText = t(locale, 'wizard.inBotSoon');
-  
-  return new InlineKeyboard()
-    .webApp(inAppText, config.webappUrl).row()
-    .text(inBotText, 'create_in_bot');
+export function createGiveawayMethodKeyboard(locale: Locale = 'ru'): any {
+  return inlineKeyboard(
+    [webAppBtn(t(locale, 'wizard.inApp'), config.webappUrl, 'create', 'danger')],
+    [btn(t(locale, 'wizard.inBotSoon'), 'create_in_bot')],
+  );
 }
 
 /**
  * Creates inline keyboard for continuing draft
  */
-export function createContinueDraftKeyboard(draftId: string, locale: Locale = 'ru'): InlineKeyboard {
+export function createContinueDraftKeyboard(draftId: string, locale: Locale = 'ru'): any {
   const webappUrlWithDraft = `${config.webappUrl}?startapp=draft_${draftId}`;
-  const text = t(locale, 'menu.continueDraft');
-  return new InlineKeyboard()
-    .webApp(text, webappUrlWithDraft);
+  return inlineKeyboard(
+    [webAppBtn(t(locale, 'menu.continueDraft'), webappUrlWithDraft, 'create', 'danger')],
+  );
 }
 
 /**
  * Creates inline keyboard for language selection
  */
-export function createLanguageKeyboard(): InlineKeyboard {
-  return new InlineKeyboard()
-    .text('🇷🇺 Русский', 'lang_ru')
-    .text('🇬🇧 English', 'lang_en')
-    .text('🇰🇿 Қазақша', 'lang_kk');
+export function createLanguageKeyboard(): any {
+  return inlineKeyboard(
+    [btn('🇷🇺 Русский', 'lang_ru'), btn('🇬🇧 English', 'lang_en'), btn('🇰🇿 Қазақша', 'lang_kk')],
+  );
 }
 
 /**
  * Creates inline keyboard for notification mode selection
  */
-export function createNotificationKeyboard(currentMode: string, locale: Locale = 'ru'): InlineKeyboard {
+export function createNotificationKeyboard(currentMode: string, locale: Locale = 'ru'): any {
   const modes = [
     { id: 'MILESTONE', label: '🎯 Milestone', desc: { ru: 'Вехи (10/50/100/500)', en: 'Milestones (10/50/100/500)', kk: 'Белестер (10/50/100/500)' } },
     { id: 'DAILY', label: '📅 Daily', desc: { ru: 'Ежедневная сводка', en: 'Daily summary', kk: 'Күнделікті жиынтық' } },
     { id: 'OFF', label: '🔕 Off', desc: { ru: 'Выключить', en: 'Disabled', kk: 'Өшіру' } },
   ];
 
-  const kb = new InlineKeyboard();
-  for (const mode of modes) {
+  const rows = modes.map(mode => {
     const isActive = currentMode === mode.id;
     const label = `${isActive ? '✅ ' : ''}${mode.label} — ${mode.desc[locale]}`;
-    kb.text(label, `notif_${mode.id}`).row();
-  }
-  return kb;
+    return [btn(label, `notif_${mode.id}`)];
+  });
+
+  return inlineKeyboard(...rows);
 }
 
-/**
- * Settings message with notification mode section
- */
+// ── Message helpers (unchanged) ─────────────────────────────────────────────
+
 export function getSettingsWithNotificationsMessage(locale: Locale, notificationMode: string): string {
   const modeLabels: Record<string, Record<string, string>> = {
     MILESTONE: { ru: 'Вехи (10/50/100/500)', en: 'Milestones (10/50/100/500)', kk: 'Белестер (10/50/100/500)' },
@@ -117,58 +117,34 @@ export function getSettingsWithNotificationsMessage(locale: Locale, notification
   }
 }
 
-/**
- * Welcome message for /start command
- */
 export function getWelcomeMessage(firstName: string, locale: Locale = 'ru'): string {
   return t(locale, 'welcome', { firstName });
 }
 
-/**
- * Message for "Open app" menu item
- */
 export function getOpenAppMessage(locale: Locale = 'ru'): string {
   return t(locale, 'screens.openApp', { webappUrl: config.webappUrl });
 }
 
-/**
- * Message for "Create giveaway" menu item
- */
 export function getCreateGiveawayMessage(locale: Locale = 'ru'): string {
   return t(locale, 'screens.createGiveaway');
 }
 
-/**
- * Message for "Settings" menu item
- */
 export function getSettingsMessage(locale: Locale = 'ru'): string {
   return t(locale, 'settings.title') + '\n\n' + t(locale, 'menu.selectLanguage');
 }
 
-/**
- * Message for "Support" menu item
- */
 export function getSupportMessage(locale: Locale = 'ru'): string {
   return t(locale, 'screens.support', { supportBot: config.supportBot });
 }
 
-/**
- * Main menu message
- */
 export function getMainMenuMessage(locale: Locale = 'ru'): string {
   return t(locale, 'mainMenu');
 }
 
-/**
- * Back to menu message
- */
 export function getBackToMenuMessage(locale: Locale = 'ru'): string {
   return t(locale, 'backToMenu');
 }
 
-/**
- * Create in bot soon message
- */
 export function getCreateInBotSoonMessage(locale: Locale = 'ru'): string {
   return t(locale, 'screens.createInBotSoon');
 }

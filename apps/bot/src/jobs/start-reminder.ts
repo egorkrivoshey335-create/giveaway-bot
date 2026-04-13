@@ -12,6 +12,7 @@ import { Worker, Job } from 'bullmq';
 import { bot } from '../bot.js';
 import { config } from '../config.js';
 import { createLogger } from '../lib/logger.js';
+import { webAppBtn, inlineKeyboard } from '../lib/customEmoji.js';
 
 const log = createLogger('job:start-reminder');
 
@@ -46,14 +47,9 @@ export const startReminderWorker = new Worker<StartReminderData>(
 
 Убедитесь, что вы выполнили все условия участия, чтобы ваши шансы были максимальными!`;
 
-    const keyboard = {
-      inline_keyboard: [[
-        {
-          text: '🎁 Открыть розыгрыш',
-          web_app: { url: `${config.webappUrl}?startapp=join_${giveawayId}` },
-        },
-      ]],
-    };
+    const keyboard = inlineKeyboard(
+      [webAppBtn('🎁 Открыть розыгрыш', `${config.webappUrl}?startapp=join_${giveawayId}`, 'join', 'danger')],
+    );
 
     let sentCount = 0;
     let failedCount = 0;

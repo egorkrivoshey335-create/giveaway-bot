@@ -13,6 +13,7 @@ import { Worker, Job } from 'bullmq';
 import { bot } from '../bot.js';
 import { config } from '../config.js';
 import { createLogger } from '../lib/logger.js';
+import { webAppBtn, inlineKeyboard } from '../lib/customEmoji.js';
 
 const log = createLogger('job:subscription');
 
@@ -88,14 +89,9 @@ export const subscriptionExpireWorker = new Worker<SubscriptionExpireData>(
 
       await bot.api.sendMessage(telegramUserId, message, {
         parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [[
-            {
-              text: '💳 Обновить подписку',
-              web_app: { url: `${config.webappUrl}/subscription` },
-            },
-          ]],
-        },
+        reply_markup: inlineKeyboard(
+          [webAppBtn('💳 Обновить подписку', `${config.webappUrl}/subscription`, 'subscribe', 'danger')],
+        ),
       });
 
       log.info({ userId }, 'Subscription expired, user notified');
@@ -163,14 +159,9 @@ ${autoRenewText}`;
 
       await bot.api.sendMessage(telegramUserId, message, {
         parse_mode: 'HTML',
-        reply_markup: autoRenew ? undefined : {
-          inline_keyboard: [[
-            {
-              text: '💳 Продлить подписку',
-              web_app: { url: `${config.webappUrl}/subscription` },
-            },
-          ]],
-        },
+        reply_markup: autoRenew ? undefined : inlineKeyboard(
+          [webAppBtn('💳 Продлить подписку', `${config.webappUrl}/subscription`, 'subscribe', 'danger')],
+        ),
       });
 
       log.info({ userId }, 'Expiry warning sent');
@@ -243,14 +234,9 @@ export const subscriptionAutoRenewWorker = new Worker<SubscriptionAutoRenewData>
 
         await bot.api.sendMessage(telegramUserId, failMessage, {
           parse_mode: 'HTML',
-          reply_markup: {
-            inline_keyboard: [[
-              {
-                text: '💳 Продлить вручную',
-                web_app: { url: `${config.webappUrl}/subscription` },
-              },
-            ]],
-          },
+          reply_markup: inlineKeyboard(
+            [webAppBtn('💳 Продлить вручную', `${config.webappUrl}/subscription`, 'subscribe', 'danger')],
+          ),
         }).catch(() => {});
 
         return { success: false, reason: result.error };

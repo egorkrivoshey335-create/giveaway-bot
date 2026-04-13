@@ -10,6 +10,7 @@ import { Worker, Job } from 'bullmq';
 import { bot } from '../bot.js';
 import { config } from '../config.js';
 import { createLogger } from '../lib/logger.js';
+import { webAppBtn, inlineKeyboard } from '../lib/customEmoji.js';
 
 const log = createLogger('job:giveaway-end');
 
@@ -43,16 +44,9 @@ export const giveawayEndWorker = new Worker<GiveawayEndData>(
 
       await bot.api.sendMessage(creatorTelegramId, message, {
         parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [[
-            {
-              text: '🎯 Выбрать победителей',
-              web_app: {
-                url: `${config.webappUrl}?startapp=nav_creator_giveaway_${giveawayId}`,
-              },
-            },
-          ]],
-        },
+        reply_markup: inlineKeyboard(
+          [webAppBtn('🎯 Выбрать победителей', `${config.webappUrl}?startapp=nav_creator_giveaway_${giveawayId}`, 'winners', 'danger')],
+        ),
       });
 
       log.info({ giveawayId }, 'Notification sent successfully');

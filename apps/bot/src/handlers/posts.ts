@@ -1,11 +1,11 @@
 import type { Context } from 'grammy';
-import { InlineKeyboard } from 'grammy';
 import { POST_LIMITS } from '@randombeast/shared';
 import { config } from '../config.js';
 import { apiService } from '../services/api.js';
 import { createMainMenuKeyboard } from '../keyboards/mainMenu.js';
 import { t, getUserLocale, type Locale } from '../i18n/index.js';
 import { createLogger } from '../lib/logger.js';
+import { btn, webAppBtn, inlineKeyboard } from '../lib/customEmoji.js';
 
 const log = createLogger('handlers:posts');
 
@@ -82,49 +82,49 @@ export function getRecentTemplate(userId: number): RecentTemplate | null {
 /**
  * Create inline keyboard for posts management
  */
-export function createPostsKeyboard(locale: Locale = 'ru'): InlineKeyboard {
+export function createPostsKeyboard(locale: Locale = 'ru'): any {
   const createPost = t(locale, 'posts.createPostBtn');
   const back = t(locale, 'posts.backBtn');
   const toMenu = t(locale, 'posts.toMenuBtn');
-  
-  return new InlineKeyboard()
-    .text(createPost, 'create_post')
-    .row()
-    .text(back, 'back_to_menu')
-    .text(toMenu, 'go_to_menu');
+
+  return inlineKeyboard(
+    [btn(createPost, 'create_post', 'posts', 'danger')],
+    [btn(back, 'back_to_menu', 'back', 'primary'), btn(toMenu, 'go_to_menu', 'home', 'primary')],
+  );
 }
 
 /**
  * Create keyboard for cancel action during post creation
  */
-export function createPostCancelKeyboard(locale: Locale = 'ru'): InlineKeyboard {
+export function createPostCancelKeyboard(locale: Locale = 'ru'): any {
   const cancel = t(locale, 'posts.cancelBtn');
-  return new InlineKeyboard()
-    .text(cancel, 'cancel_post_creation');
+  return inlineKeyboard(
+    [btn(cancel, 'cancel_post_creation', 'cancel', 'primary')],
+  );
 }
 
 /**
  * Create keyboard after successful post creation
  */
-export function createPostCreatedKeyboard(templateId: string, locale: Locale = 'ru'): InlineKeyboard {
+export function createPostCreatedKeyboard(templateId: string, locale: Locale = 'ru'): any {
   const openApp = t(locale, 'posts.openAppBtn');
   const createMore = t(locale, 'posts.createMoreBtn');
   const deleteBtn = t(locale, 'posts.deleteBtn');
-  
-  return new InlineKeyboard()
-    .webApp(openApp, config.webappUrl)
-    .row()
-    .text(createMore, 'create_post')
-    .text(deleteBtn, `delete_template:${templateId}`);
+
+  return inlineKeyboard(
+    [webAppBtn(openApp, config.webappUrl, 'app', 'danger')],
+    [btn(createMore, 'create_post', 'posts', 'danger'), btn(deleteBtn, `delete_template:${templateId}`, 'delete')],
+  );
 }
 
 /**
  * Create undo keyboard
  */
-export function createUndoKeyboard(templateId: string, locale: Locale = 'ru'): InlineKeyboard {
+export function createUndoKeyboard(templateId: string, locale: Locale = 'ru'): any {
   const undo = t(locale, 'posts.undoBtn');
-  return new InlineKeyboard()
-    .text(undo, `undo_delete:${templateId}`);
+  return inlineKeyboard(
+    [btn(undo, `undo_delete:${templateId}`, 'undo', 'danger')],
+  );
 }
 
 /**

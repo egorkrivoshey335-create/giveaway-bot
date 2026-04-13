@@ -6,9 +6,9 @@
 
 import type { Context } from 'grammy';
 import type { InlineQueryResult } from 'grammy/types';
-import { InlineKeyboard } from 'grammy';
 import { config } from '../config.js';
 import { createLogger } from '../lib/logger.js';
+import { webAppBtn, inlineKeyboard } from '../lib/customEmoji.js';
 
 const log = createLogger('inline-mode');
 
@@ -63,9 +63,8 @@ export async function handleInlineQuery(ctx: Context) {
 
       const messageText = `🎁 <b>${giveaway.title}</b>\n\n${participantsText}\n${endsText}\n\nНажмите кнопку ниже, чтобы участвовать!`;
 
-      const keyboard = new InlineKeyboard().webApp(
-        '🎁 Участвовать',
-        `${config.webappUrl}?startapp=g_${giveaway.shortCode || giveaway.id}`
+      const keyboard = inlineKeyboard(
+        [webAppBtn('🎁 Участвовать', `${config.webappUrl}?startapp=g_${giveaway.shortCode || giveaway.id}`, 'join', 'danger')],
       );
 
       return {
@@ -94,9 +93,8 @@ export async function handleInlineQuery(ctx: Context) {
         input_message_content: {
           message_text: '❌ Розыгрыши не найдены.\n\nПопробуйте изменить запрос или создайте свой розыгрыш в приложении!',
         },
-        reply_markup: new InlineKeyboard().webApp(
-          '🎁 Создать розыгрыш',
-          `${config.webappUrl}?startapp=nav_creator`
+        reply_markup: inlineKeyboard(
+          [webAppBtn('🎁 Создать розыгрыш', `${config.webappUrl}?startapp=nav_creator`, 'create', 'danger')],
         ),
       });
     }

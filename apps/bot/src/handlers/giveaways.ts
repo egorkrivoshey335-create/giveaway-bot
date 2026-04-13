@@ -1,4 +1,4 @@
-import { Bot, InlineKeyboard, Context } from 'grammy';
+import { Bot, Context } from 'grammy';
 import { config } from '../config.js';
 import { apiService } from '../services/api.js';
 import { createLogger } from '../lib/logger.js';
@@ -6,7 +6,8 @@ import { createLogger } from '../lib/logger.js';
 const log = createLogger('handlers:giveaways');
 import { buildMiniAppLink } from '@randombeast/shared';
 import { getUserLocale, t, type Locale } from '../i18n/index.js';
-import { addNavigationButtons } from '../lib/navigation.js';
+import { navigationRow } from '../lib/navigation.js';
+import { btn, urlBtn, webAppBtn, inlineKeyboard, safeReply, safeEditMessageText } from '../lib/customEmoji.js';
 
 // Helper functions for type/captcha labels
 function getTypeLabel(locale: Locale, type: string): string {
@@ -149,15 +150,15 @@ ${formatChannels(channels?.results || [])}`;
   await ctx.reply(infoMessage, { parse_mode: 'HTML' });
 
   // Send confirmation prompt with buttons + navigation
-  const confirmKeyboard = new InlineKeyboard()
-    .text(t(locale, 'giveawayConfirm.acceptBtn'), `giveaway_accept:${giveawayId}`)
-    .text(t(locale, 'giveawayConfirm.rejectBtn'), `giveaway_reject:${giveawayId}`);
+  const confirmKb = inlineKeyboard(
+    [btn(t(locale, 'giveawayConfirm.acceptBtn'), `giveaway_accept:${giveawayId}`, 'confirm', 'danger'),
+     btn(t(locale, 'giveawayConfirm.rejectBtn'), `giveaway_reject:${giveawayId}`, 'reject', 'primary')],
+    navigationRow(locale, { back: false }),
+  );
 
-  addNavigationButtons(confirmKeyboard, locale, { back: false });
-
-  await ctx.reply(t(locale, 'giveawayConfirm.confirmMsg'), {
+  await safeReply(ctx, t(locale, 'giveawayConfirm.confirmMsg'), {
     parse_mode: 'HTML',
-    reply_markup: confirmKeyboard,
+    reply_markup: confirmKb,
   });
 }
 
@@ -219,13 +220,12 @@ export function registerGiveawayHandlers(bot: Bot): void {
       return;
     }
 
-    // Кнопка участия (используем URL для каналов, web_app там не работает)
-    // Прямой Mini App link: https://t.me/BeastRandomBot/participate?startapp=join_<id>
     const buttonText = giveaway.buttonText || t(locale, 'giveawayConfirm.buttonTextDefault');
     const joinUrl = buildMiniAppLink(`join_${giveawayId}`);
-    
-    const postKeyboard = new InlineKeyboard()
-      .url(buttonText, joinUrl);
+
+    const postKb = inlineKeyboard(
+      [urlBtn(buttonText, joinUrl, 'join', 'danger')],
+    );
 
     // Publish to all channels
     const publishedMessages: Array<{ channelId: string; telegramMessageId: number }> = [];
@@ -241,20 +241,20 @@ export function registerGiveawayHandlers(bot: Bot): void {
         if (postTemplate.mediaType === 'PHOTO' && postTemplate.telegramFileId) {
           const sent = await ctx.api.sendPhoto(chatId, postTemplate.telegramFileId, {
             caption: postTemplate.text,
-            reply_markup: postKeyboard,
+            reply_markup: postKb,
             parse_mode: 'HTML',
           });
           messageId = sent.message_id;
         } else if (postTemplate.mediaType === 'VIDEO' && postTemplate.telegramFileId) {
           const sent = await ctx.api.sendVideo(chatId, postTemplate.telegramFileId, {
             caption: postTemplate.text,
-            reply_markup: postKeyboard,
+            reply_markup: postKb,
             parse_mode: 'HTML',
           });
           messageId = sent.message_id;
         } else {
           const sent = await ctx.api.sendMessage(chatId, postTemplate.text, {
-            reply_markup: postKeyboard,
+            reply_markup: postKb,
             parse_mode: 'HTML',
           });
           messageId = sent.message_id;
@@ -295,13 +295,14 @@ export function registerGiveawayHandlers(bot: Bot): void {
       successText += `\n\n⚠️ ${t(locale, 'giveawayConfirm.errorsLabel')}\n${errors.join('\n')}`;
     }
 
-    const openAppKeyboard = new InlineKeyboard()
-      .webApp(t(locale, 'giveawayConfirm.openApp'), config.webappUrl);
-    addNavigationButtons(openAppKeyboard, locale, { back: false });
+    const openAppKb = inlineKeyboard(
+      [webAppBtn(t(locale, 'giveawayConfirm.openApp'), config.webappUrl, 'app', 'danger')],
+      navigationRow(locale, { back: false }),
+    );
 
-    await ctx.editMessageText(successText, {
+    await safeEditMessageText(ctx, successText, {
       parse_mode: 'HTML',
-      reply_markup: openAppKeyboard,
+      reply_markup: openAppKb,
     });
   });
 
@@ -339,13 +340,14 @@ export function registerGiveawayHandlers(bot: Bot): void {
 
     await ctx.answerCallbackQuery();
 
-    const openAppKeyboard = new InlineKeyboard()
-      .webApp(t(locale, 'giveawayConfirm.editInApp'), `${config.webappUrl}?startapp=edit_${giveawayId}`);
-    addNavigationButtons(openAppKeyboard, locale, { back: false });
+    const editAppKb = inlineKeyboard(
+      [webAppBtn(t(locale, 'giveawayConfirm.editInApp'), `${config.webappUrl}?startapp=edit_${giveawayId}`, 'app', 'danger')],
+      navigationRow(locale, { back: false }),
+    );
 
-    await ctx.editMessageText(t(locale, 'giveawayConfirm.publicationCancelled'), {
+    await safeEditMessageText(ctx, t(locale, 'giveawayConfirm.publicationCancelled'), {
       parse_mode: 'HTML',
-      reply_markup: openAppKeyboard,
+      reply_markup: editAppKb,
     });
   });
 }

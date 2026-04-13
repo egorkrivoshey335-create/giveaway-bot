@@ -17,11 +17,18 @@ const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS || '')
   .filter(id => !isNaN(id));
 
 /**
+ * Check if a Telegram user ID is an admin
+ */
+export function isAdminUser(userId: number): boolean {
+  return ADMIN_USER_IDS.includes(userId);
+}
+
+/**
  * Middleware для проверки админских прав
  */
 export function isAdmin(ctx: Context): boolean {
   const userId = ctx.from?.id;
-  return userId ? ADMIN_USER_IDS.includes(userId) : false;
+  return userId ? isAdminUser(userId) : false;
 }
 
 /**

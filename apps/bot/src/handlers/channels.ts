@@ -1,6 +1,5 @@
 import type { Context } from 'grammy';
 import type { Chat, ChatMember } from 'grammy/types';
-import { InlineKeyboard } from 'grammy';
 import { createLogger } from '../lib/logger.js';
 
 const log = createLogger('handlers:channels');
@@ -8,6 +7,7 @@ import { config } from '../config.js';
 import { apiService } from '../services/api.js';
 import { createMainMenuKeyboard } from '../keyboards/mainMenu.js';
 import { t, getUserLocale, Locale } from '../i18n/index.js';
+import { btn, webAppBtn, inlineKeyboard } from '../lib/customEmoji.js';
 
 // Simple in-memory state for channel addition flow
 // In production, use conversations plugin or persistent sessions
@@ -52,18 +52,16 @@ export function clearUserAddingChannel(userId: number) {
 /**
  * Create inline keyboard for channel management
  */
-export function createChannelManagementKeyboard(locale: Locale = 'ru'): InlineKeyboard {
+export function createChannelManagementKeyboard(locale: Locale = 'ru'): any {
   const addChannel = t(locale, 'channels.addChannelBtn');
   const addGroup = t(locale, 'channels.addGroupBtn');
   const back = t(locale, 'menu.back');
   const toMenu = t(locale, 'menu.toMenu');
-  
-  return new InlineKeyboard()
-    .text(addChannel, 'add_channel')
-    .text(addGroup, 'add_group')
-    .row()
-    .text(back, 'back_to_menu')
-    .text(toMenu, 'go_to_menu');
+
+  return inlineKeyboard(
+    [btn(addChannel, 'add_channel', 'add', 'danger'), btn(addGroup, 'add_group', 'add', 'danger')],
+    [btn(back, 'back_to_menu', 'back', 'primary'), btn(toMenu, 'go_to_menu', 'home', 'primary')],
+  );
 }
 
 /**
@@ -358,10 +356,10 @@ export async function handleChannelAddition(ctx: Context, targetType: 'CHANNEL' 
         useMsg,
       {
         parse_mode: 'HTML',
-        reply_markup: new InlineKeyboard()
-          .webApp(openApp, config.webappUrl)
-          .row()
-          .text(addMore, actualType === 'CHANNEL' ? 'add_channel' : 'add_group'),
+        reply_markup: inlineKeyboard(
+          [webAppBtn(openApp, config.webappUrl, 'app', 'danger')],
+          [btn(addMore, actualType === 'CHANNEL' ? 'add_channel' : 'add_group', 'add', 'danger')],
+        ),
       }
     );
   } catch (error) {

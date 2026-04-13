@@ -1,4 +1,4 @@
-import { Bot, InlineKeyboard } from 'grammy';
+import { Bot } from 'grammy';
 import { config, isUserAllowed } from './config.js';
 import { createLogger } from './lib/logger.js';
 import {
@@ -8,7 +8,6 @@ import {
   createWebAppInlineKeyboard,
   createGiveawayMethodKeyboard,
   createLanguageKeyboard,
-  createNotificationKeyboard,
   getSettingsWithNotificationsMessage,
   getWelcomeMessage,
   getOpenAppMessage,
@@ -49,10 +48,15 @@ import {
   handleAdminBroadcast,
   handleAdminApprove,
   handleAdminReject,
+  isAdminUser,
 } from './handlers/admin.js';
 import { handleInlineQuery } from './handlers/inline.js';
 import { registerPaymentHandlers } from './handlers/payments.js';
 import { NAV_CALLBACKS } from './lib/navigation.js';
+import {
+  btn, webAppBtn, inlineKeyboard, safeReply,
+  EMOJI_MAP, isEnabled as isEmojiEnabled, enable as enableEmoji, disable as disableEmoji,
+} from './lib/customEmoji.js';
 
 const log = createLogger('bot');
 const DEFAULT_INTERNAL_REQUEST_TIMEOUT_MS = 8000;
@@ -93,19 +97,16 @@ export const bot = new Bot(config.botToken, {
 bot.use(async (ctx, next) => {
   const userId = ctx.from?.id;
   
-  // Если нет userId — пропускаем (callback queries и т.д.)
   if (!userId) {
     return next();
   }
   
-  // Проверяем whitelist
   if (!isUserAllowed(userId)) {
-    // Отправляем сообщение о режиме разработки
     const locale = getUserLocale(userId);
     const maintenanceMessage = t(locale, 'maintenance.message', { supportBot: config.supportBot });
     
     await ctx.reply(maintenanceMessage, { parse_mode: 'HTML' });
-    return; // Не продолжаем обработку
+    return;
   }
   
   return next();
@@ -122,8 +123,8 @@ function pushMenu(userId: number, menu: string) {
 
 function popMenu(userId: number): string {
   const stack = userMenuStack.get(userId) || [];
-  stack.pop(); // Remove current
-  return stack.pop() || 'main'; // Return previous or main
+  stack.pop();
+  return stack.pop() || 'main';
 }
 
 function clearMenuStack(userId: number) {
@@ -135,53 +136,42 @@ function clearAllUserStates(userId: number) {
   clearUserPostState(userId);
 }
 
-// Handle /start command
+// ── /start command ──────────────────────────────────────────────────────────
+
 bot.command('start', async (ctx) => {
   const userId = ctx.from?.id;
   const locale = userId ? getUserLocale(userId) : 'ru';
   const firstName = ctx.from?.first_name || t(locale, 'bot.friendFallback');
 
-  // Check for deep link parameters
   const startParam = ctx.match;
   
   if (startParam && typeof startParam === 'string') {
-    // Handle confirm_<giveawayId>
     if (startParam.startsWith('confirm_')) {
       const giveawayId = startParam.replace('confirm_', '');
       await handleConfirmStart(ctx, giveawayId);
       return;
     }
     
-    // Handle join_<giveawayId> - show webApp button for participation
     if (startParam.startsWith('join_')) {
       const giveawayId = startParam.replace('join_', '');
       const webAppUrl = `${config.webappUrl}?startapp=join_${giveawayId}`;
       
       const buttonText = t(locale, 'bot.joinGiveawayBtn');
       const messageText = t(locale, 'bot.joinGiveawayMsg');
-      
-      const keyboard = new InlineKeyboard()
-        .webApp(buttonText, webAppUrl);
-      
-      await ctx.reply(messageText, {
+
+      await safeReply(ctx, messageText, {
         parse_mode: 'HTML',
-        reply_markup: keyboard,
+        reply_markup: inlineKeyboard(
+          [webAppBtn(buttonText, webAppUrl, 'join', 'danger')],
+        ),
       });
       return;
     }
 
-    // Handle add_channel - открыть меню добавления канала
     if (startParam === 'add_channel') {
       const addChannel = t(locale, 'bot.addChannel');
       const addGroup = t(locale, 'bot.addGroup');
       const openApp = t(locale, 'bot.openAppBtn');
-      
-      const keyboard = new InlineKeyboard()
-        .text(addChannel, 'menu_add_channel')
-        .row()
-        .text(addGroup, 'menu_add_group')
-        .row()
-        .webApp(openApp, config.webappUrl + '/creator/channels');
       
       const message = locale === 'ru' 
         ? '📣 <b>Добавление канала</b>\n\nВыберите тип:\n• <b>Канал</b> — для публикации розыгрышей и проверки подписки\n• <b>Группа</b> — для проверки подписки участников\n\n⚠️ Бот должен быть админом канала/группы с правами на публикацию.'
@@ -189,15 +179,18 @@ bot.command('start', async (ctx) => {
         ? '📣 <b>Add Channel</b>\n\nChoose type:\n• <b>Channel</b> — for publishing giveaways and checking subscriptions\n• <b>Group</b> — for checking participant subscriptions\n\n⚠️ Bot must be an admin with posting permissions.'
         : '📣 <b>Арна қосу</b>\n\nТүрін таңдаңыз:\n• <b>Арна</b> — ұтыс ойындарын жариялау және жазылымды тексеру үшін\n• <b>Топ</b> — қатысушылардың жазылымын тексеру үшін\n\n⚠️ Бот жариялау құқықтары бар админ болуы керек.';
       
-      await ctx.reply(message, {
+      await safeReply(ctx, message, {
         parse_mode: 'HTML',
-        reply_markup: keyboard,
+        reply_markup: inlineKeyboard(
+          [btn(addChannel, 'menu_add_channel', 'add', 'danger')],
+          [btn(addGroup, 'menu_add_group', 'add', 'danger')],
+          [webAppBtn(openApp, config.webappUrl + '/creator/channels', 'app', 'danger')],
+        ),
       });
       return;
     }
   }
 
-  // Default welcome message
   const keyboard = createMainMenuKeyboard(locale);
 
   if (ctx.from) {
@@ -206,7 +199,6 @@ bot.command('start', async (ctx) => {
     clearAllUserStates(ctx.from.id);
   }
 
-  // Устанавливаем Menu Button на языке пользователя (не блокируем ответ)
   void ctx.api
     .setChatMenuButton({
       chat_id: userId,
@@ -216,9 +208,7 @@ bot.command('start', async (ctx) => {
         web_app: { url: config.webappUrl },
       },
     })
-    .catch(() => {
-      // Не критично
-    });
+    .catch(() => {});
 
   await ctx.reply(getWelcomeMessage(firstName, locale), {
     reply_markup: keyboard,
@@ -226,7 +216,8 @@ bot.command('start', async (ctx) => {
   });
 });
 
-// Handle /help command
+// ── /help command ───────────────────────────────────────────────────────────
+
 bot.command('help', async (ctx) => {
   const userId = ctx.from?.id;
   const locale = userId ? getUserLocale(userId) : 'ru';
@@ -243,7 +234,8 @@ bot.command('help', async (ctx) => {
   });
 });
 
-// Handle /cancel command
+// ── /cancel command ─────────────────────────────────────────────────────────
+
 bot.command('cancel', async (ctx) => {
   const userId = ctx.from?.id;
   const locale = userId ? getUserLocale(userId) : 'ru';
@@ -252,14 +244,57 @@ bot.command('cancel', async (ctx) => {
     clearAllUserStates(userId);
   }
   
-  const cancelText = t(locale, 'bot.operationCancelled');
-  
-  await ctx.reply(cancelText, {
+  await ctx.reply(t(locale, 'bot.operationCancelled'), {
     reply_markup: createMainMenuKeyboard(locale),
   });
 });
 
-// Handle "Open app" button
+// ── Custom emoji admin commands ─────────────────────────────────────────────
+
+bot.command('emoji_id', async (ctx) => {
+  if (!ctx.from?.id || !isAdminUser(ctx.from.id)) return;
+  await ctx.reply(
+    '🎨 <b>Извлечение ID кастомных эмодзи</b>\n\n' +
+    'Отправьте мне сообщение с кастомным эмодзи,\n' +
+    'и я покажу его <code>custom_emoji_id</code>.\n\n' +
+    'Потом вставьте его в <code>.env</code>:\n' +
+    '<code>EMOJI_JOIN=полученный_id</code>\n\n' +
+    '💎 Кастомные эмодзи есть в панели эмодзи (раздел Premium).',
+    { parse_mode: 'HTML' },
+  );
+});
+
+bot.command('emoji_status', async (ctx) => {
+  if (!ctx.from?.id || !isAdminUser(ctx.from.id)) return;
+  const status = isEmojiEnabled() ? '✅ Включены' : '🔴 Отключены';
+  const configured = Object.entries(EMOJI_MAP)
+    .filter(([, v]) => v)
+    .map(([k, v]) => `  <code>${k}</code>: <code>${v}</code>`)
+    .join('\n');
+
+  await ctx.reply(
+    `🎨 <b>Статус кастомных эмодзи:</b> ${status}\n\n` +
+    (configured ? `<b>Настроенные:</b>\n${configured}` : '<i>Нет настроенных эмодзи</i>') +
+    '\n\n<b>Доступные ключи:</b>\n' +
+    Object.keys(EMOJI_MAP).map(k => `<code>EMOJI_${k.toUpperCase()}</code>`).join(', '),
+    { parse_mode: 'HTML' },
+  );
+});
+
+bot.command('emoji_enable', async (ctx) => {
+  if (!ctx.from?.id || !isAdminUser(ctx.from.id)) return;
+  enableEmoji();
+  await ctx.reply('✅ Кастомные эмодзи включены.');
+});
+
+bot.command('emoji_disable', async (ctx) => {
+  if (!ctx.from?.id || !isAdminUser(ctx.from.id)) return;
+  disableEmoji('Admin command');
+  await ctx.reply('🔴 Кастомные эмодзи отключены.');
+});
+
+// ── Menu button handlers ────────────────────────────────────────────────────
+
 bot.hears(MENU.OPEN_APP, async (ctx) => {
   const userId = ctx.from?.id;
   const locale = userId ? getUserLocale(userId) : 'ru';
@@ -269,13 +304,12 @@ bot.hears(MENU.OPEN_APP, async (ctx) => {
     clearAllUserStates(ctx.from.id);
   }
 
-  await ctx.reply(getOpenAppMessage(locale), {
+  await safeReply(ctx, getOpenAppMessage(locale), {
     reply_markup: createWebAppInlineKeyboard(locale),
     parse_mode: 'HTML',
   });
 });
 
-// Handle "Create giveaway" button
 bot.hears(MENU.CREATE_GIVEAWAY, async (ctx) => {
   const userId = ctx.from?.id;
   const locale = userId ? getUserLocale(userId) : 'ru';
@@ -285,13 +319,12 @@ bot.hears(MENU.CREATE_GIVEAWAY, async (ctx) => {
     clearAllUserStates(ctx.from.id);
   }
 
-  await ctx.reply(getCreateGiveawayMessage(locale), {
+  await safeReply(ctx, getCreateGiveawayMessage(locale), {
     reply_markup: createGiveawayMethodKeyboard(locale),
     parse_mode: 'HTML',
   });
 });
 
-// Handle "My channels" button
 bot.hears(MENU.MY_CHANNELS, async (ctx) => {
   const userId = ctx.from?.id;
   const locale = userId ? getUserLocale(userId) : 'ru';
@@ -301,13 +334,12 @@ bot.hears(MENU.MY_CHANNELS, async (ctx) => {
     clearAllUserStates(ctx.from.id);
   }
 
-  await ctx.reply(getChannelsMessage(locale), {
+  await safeReply(ctx, getChannelsMessage(locale), {
     reply_markup: createChannelManagementKeyboard(locale),
     parse_mode: 'HTML',
   });
 });
 
-// Handle "My posts" button
 bot.hears(MENU.MY_POSTS, async (ctx) => {
   const userId = ctx.from?.id;
   const locale = userId ? getUserLocale(userId) : 'ru';
@@ -317,13 +349,12 @@ bot.hears(MENU.MY_POSTS, async (ctx) => {
     clearAllUserStates(ctx.from.id);
   }
 
-  await ctx.reply(getPostsMessage(locale), {
+  await safeReply(ctx, getPostsMessage(locale), {
     reply_markup: createPostsKeyboard(locale),
     parse_mode: 'HTML',
   });
 });
 
-// Handle "Settings" button
 bot.hears(MENU.SETTINGS, async (ctx) => {
   if (ctx.from) {
     pushMenu(ctx.from.id, 'settings');
@@ -332,7 +363,6 @@ bot.hears(MENU.SETTINGS, async (ctx) => {
 
   const locale = ctx.from?.id ? getUserLocale(ctx.from.id) : 'ru';
 
-  // Получаем текущий режим уведомлений из API
   let notificationMode = 'MILESTONE';
   try {
     const userId = ctx.from?.id;
@@ -346,24 +376,18 @@ bot.hears(MENU.SETTINGS, async (ctx) => {
       }
     }
   } catch {
-    // Не критично — используем дефолт
+    // fallback to default
   }
 
   const settingsMessage = getSettingsWithNotificationsMessage(locale, notificationMode);
 
-  // Объединяем клавиатуру: язык + уведомления
-  const kb = new InlineKeyboard()
-    // Языки
-    .text('🇷🇺 Русский', 'lang_ru')
-    .text('🇬🇧 English', 'lang_en')
-    .text('🇰🇿 Қазақша', 'lang_kk')
-    .row()
-    // Разделитель + уведомления
-    .text(locale === 'ru' ? '📢 Уведомления:' : locale === 'en' ? '📢 Notifications:' : '📢 Хабарландырулар:', 'notif_section')
-    .row()
-    .text(`${notificationMode === 'MILESTONE' ? '✅ ' : ''}🎯 Milestone`, 'notif_MILESTONE')
-    .text(`${notificationMode === 'DAILY' ? '✅ ' : ''}📅 Daily`, 'notif_DAILY')
-    .text(`${notificationMode === 'OFF' ? '✅ ' : ''}🔕 Off`, 'notif_OFF');
+  const kb = inlineKeyboard(
+    [btn('🇷🇺 Русский', 'lang_ru'), btn('🇬🇧 English', 'lang_en'), btn('🇰🇿 Қазақша', 'lang_kk')],
+    [btn(locale === 'ru' ? '📢 Уведомления:' : locale === 'en' ? '📢 Notifications:' : '📢 Хабарландырулар:', 'notif_section')],
+    [btn(`${notificationMode === 'MILESTONE' ? '✅ ' : ''}🎯 Milestone`, 'notif_MILESTONE'),
+     btn(`${notificationMode === 'DAILY' ? '✅ ' : ''}📅 Daily`, 'notif_DAILY'),
+     btn(`${notificationMode === 'OFF' ? '✅ ' : ''}🔕 Off`, 'notif_OFF')],
+  );
 
   await ctx.reply(settingsMessage, {
     reply_markup: kb,
@@ -371,7 +395,6 @@ bot.hears(MENU.SETTINGS, async (ctx) => {
   });
 });
 
-// Handle "Support" button
 bot.hears(MENU.SUPPORT, async (ctx) => {
   const userId = ctx.from?.id;
   const locale = userId ? getUserLocale(userId) : 'ru';
@@ -387,24 +410,20 @@ bot.hears(MENU.SUPPORT, async (ctx) => {
   });
 });
 
-// Handle "Back" button
 bot.hears(MENU.BACK, async (ctx) => {
   const userId = ctx.from?.id;
   if (!userId) return;
   
   const locale = getUserLocale(userId);
-
   popMenu(userId);
   clearAllUserStates(userId);
 
-  // Go back to main menu for simplicity
   await ctx.reply(getBackToMenuMessage(locale), {
     reply_markup: createMainMenuKeyboard(locale),
     parse_mode: 'HTML',
   });
 });
 
-// Handle "To menu" button
 bot.hears(MENU.TO_MENU, async (ctx) => {
   const userId = ctx.from?.id;
   const locale = userId ? getUserLocale(userId) : 'ru';
@@ -421,7 +440,8 @@ bot.hears(MENU.TO_MENU, async (ctx) => {
   });
 });
 
-// Handle navigation: Back button (nav_back) → go to main menu
+// ── Inline callback handlers ────────────────────────────────────────────────
+
 bot.callbackQuery(NAV_CALLBACKS.BACK, async (ctx) => {
   const userId = ctx.from?.id;
   const locale = userId ? getUserLocale(userId) : 'ru';
@@ -432,7 +452,6 @@ bot.callbackQuery(NAV_CALLBACKS.BACK, async (ctx) => {
   });
 });
 
-// Handle navigation: Main Menu (nav_main_menu)
 bot.callbackQuery(NAV_CALLBACKS.MAIN_MENU, async (ctx) => {
   const userId = ctx.from?.id;
   const locale = userId ? getUserLocale(userId) : 'ru';
@@ -443,12 +462,10 @@ bot.callbackQuery(NAV_CALLBACKS.MAIN_MENU, async (ctx) => {
   });
 });
 
-// Handle notification section button (no-op)
 bot.callbackQuery('notif_section', async (ctx) => {
   await ctx.answerCallbackQuery();
 });
 
-// Handle notification mode selection
 bot.callbackQuery(/^notif_(MILESTONE|DAILY|OFF)$/, async (ctx) => {
   const mode = ctx.callbackQuery.data.replace('notif_', '') as 'MILESTONE' | 'DAILY' | 'OFF';
   const userId = ctx.from?.id;
@@ -460,7 +477,6 @@ bot.callbackQuery(/^notif_(MILESTONE|DAILY|OFF)$/, async (ctx) => {
   }
 
   try {
-    // Обновляем режим уведомлений через API
     const res = await fetchWithTimeout(`${config.apiUrl}/internal/users/${userId}/notification-mode`, {
       method: 'PATCH',
       headers: {
@@ -487,18 +503,14 @@ bot.callbackQuery(/^notif_(MILESTONE|DAILY|OFF)$/, async (ctx) => {
 
     await ctx.answerCallbackQuery({ text: confirmText });
 
-    // Обновляем сообщение с новым состоянием
     const settingsMessage = getSettingsWithNotificationsMessage(locale, mode);
-    const kb = new InlineKeyboard()
-      .text('🇷🇺 Русский', 'lang_ru')
-      .text('🇬🇧 English', 'lang_en')
-      .text('🇰🇿 Қазақша', 'lang_kk')
-      .row()
-      .text(locale === 'ru' ? '📢 Уведомления:' : locale === 'en' ? '📢 Notifications:' : '📢 Хабарландырулар:', 'notif_section')
-      .row()
-      .text(`${mode === 'MILESTONE' ? '✅ ' : ''}🎯 Milestone`, 'notif_MILESTONE')
-      .text(`${mode === 'DAILY' ? '✅ ' : ''}📅 Daily`, 'notif_DAILY')
-      .text(`${mode === 'OFF' ? '✅ ' : ''}🔕 Off`, 'notif_OFF');
+    const kb = inlineKeyboard(
+      [btn('🇷🇺 Русский', 'lang_ru'), btn('🇬🇧 English', 'lang_en'), btn('🇰🇿 Қазақша', 'lang_kk')],
+      [btn(locale === 'ru' ? '📢 Уведомления:' : locale === 'en' ? '📢 Notifications:' : '📢 Хабарландырулар:', 'notif_section')],
+      [btn(`${mode === 'MILESTONE' ? '✅ ' : ''}🎯 Milestone`, 'notif_MILESTONE'),
+       btn(`${mode === 'DAILY' ? '✅ ' : ''}📅 Daily`, 'notif_DAILY'),
+       btn(`${mode === 'OFF' ? '✅ ' : ''}🔕 Off`, 'notif_OFF')],
+    );
 
     try {
       await ctx.editMessageText(settingsMessage, {
@@ -506,7 +518,7 @@ bot.callbackQuery(/^notif_(MILESTONE|DAILY|OFF)$/, async (ctx) => {
         parse_mode: 'HTML',
       });
     } catch {
-      // Игнорируем если сообщение не изменилось
+      // message not changed
     }
   } catch (error) {
     log.error({ error, userId, mode }, 'Failed to update notification mode');
@@ -517,7 +529,6 @@ bot.callbackQuery(/^notif_(MILESTONE|DAILY|OFF)$/, async (ctx) => {
   }
 });
 
-// Handle inline button "Create in bot" (stub)
 bot.callbackQuery('create_in_bot', async (ctx) => {
   const userId = ctx.from?.id;
   const locale = userId ? getUserLocale(userId) : 'ru';
@@ -528,7 +539,6 @@ bot.callbackQuery('create_in_bot', async (ctx) => {
   });
 });
 
-// Handle language selection callbacks
 bot.callbackQuery(/^lang_/, async (ctx) => {
   const lang = ctx.callbackQuery.data.replace('lang_', '') as Locale;
   const userId = ctx.from?.id;
@@ -538,28 +548,21 @@ bot.callbackQuery(/^lang_/, async (ctx) => {
     return;
   }
 
-  // Сохраняем язык в БД
   const success = await updateUserLocale(userId, lang);
   
   if (success) {
-    // Показываем уведомление на выбранном языке
     const message = t(lang, 'settings.languageChanged', { language: localeNames[lang] });
-    await ctx.answerCallbackQuery({
-      text: message,
-      show_alert: false,
-    });
+    await ctx.answerCallbackQuery({ text: message, show_alert: false });
 
-    // Обновляем сообщение с настройками на новом языке
     try {
       await ctx.editMessageText(getSettingsMessage(lang), {
         reply_markup: createLanguageKeyboard(),
         parse_mode: 'HTML',
       });
     } catch {
-      // Игнорируем ошибку если сообщение не изменилось
+      // message not changed
     }
 
-    // Обновляем Menu Button (синяя кнопка «Открыть» / «Open» / «Ашу»)
     void ctx.api
       .setChatMenuButton({
         chat_id: userId,
@@ -569,11 +572,8 @@ bot.callbackQuery(/^lang_/, async (ctx) => {
           web_app: { url: config.webappUrl },
         },
       })
-      .catch(() => {
-        // Игнорируем — не критично
-      });
+      .catch(() => {});
 
-    // Отправляем новое сообщение с обновлённой клавиатурой главного меню
     await ctx.reply(getMainMenuMessage(lang), {
       reply_markup: createMainMenuKeyboard(lang),
       parse_mode: 'HTML',
@@ -586,15 +586,34 @@ bot.callbackQuery(/^lang_/, async (ctx) => {
   }
 });
 
-// Register handlers
+// ── Register handlers ───────────────────────────────────────────────────────
+
 registerChannelHandlers(bot);
 registerPostHandlers(bot);
 registerGiveawayHandlers(bot);
 
-// Handle text messages that might be for channel or post input
+// ── Text message handler (channels, posts, emoji ID extraction) ─────────────
+
 bot.on('message:text', async (ctx, next) => {
   const userId = ctx.from?.id;
   if (!userId) return next();
+
+  // Admin: auto-detect custom emoji IDs in messages
+  if (isAdminUser(userId) && !ctx.message.text.startsWith('/')) {
+    const entities = ctx.message.entities;
+    const hasCustomEmoji = entities?.some(e => e.type === 'custom_emoji');
+    if (hasCustomEmoji) {
+      const emojiEntities = entities!.filter(e => e.type === 'custom_emoji');
+      let reply = '🎨 <b>Найденные кастомные эмодзи:</b>\n\n';
+      emojiEntities.forEach((e, i) => {
+        const emojiChar = ctx.message!.text!.substring(e.offset, e.offset + e.length);
+        reply += `${i + 1}. ${emojiChar} → <code>${(e as any).custom_emoji_id}</code>\n`;
+      });
+      reply += '\nСкопируйте ID и добавьте в <code>.env</code>';
+      await ctx.reply(reply, { parse_mode: 'HTML' });
+      return;
+    }
+  }
 
   // Check if user is adding a channel
   const channelState = getUserAddingChannel(userId);
@@ -612,7 +631,6 @@ bot.on('message:text', async (ctx, next) => {
   return next();
 });
 
-// Handle photo messages for post creation
 bot.on('message:photo', async (ctx, next) => {
   const userId = ctx.from?.id;
   if (!userId) return next();
@@ -625,7 +643,6 @@ bot.on('message:photo', async (ctx, next) => {
   return next();
 });
 
-// Handle video messages for post creation
 bot.on('message:video', async (ctx, next) => {
   const userId = ctx.from?.id;
   if (!userId) return next();
@@ -638,7 +655,6 @@ bot.on('message:video', async (ctx, next) => {
   return next();
 });
 
-// Handle forwarded messages for channel addition
 bot.on('message:forward_origin', async (ctx, next) => {
   const userId = ctx.from?.id;
   if (!userId) return next();
@@ -652,23 +668,20 @@ bot.on('message:forward_origin', async (ctx, next) => {
   return next();
 });
 
-// Handle WebApp data (when user comes from mini app)
 bot.on('message:web_app_data', async (ctx) => {
   const userId = ctx.from?.id;
   const locale = userId ? getUserLocale(userId) : 'ru';
   
-  const receivedText = t(locale, 'bot.dataReceived');
-  
-  await ctx.reply(receivedText, {
+  await ctx.reply(t(locale, 'bot.dataReceived'), {
     reply_markup: createMainMenuKeyboard(locale),
   });
 });
 
-// 🔒 ЗАДАЧА: Chat member events
 bot.on('my_chat_member', handleMyChatMember);
 bot.on('chat_member', handleChatMember);
 
-// 🔒 ЗАДАЧА 1.13: /repost command — отправить розыгрыш по shortCode
+// ── /repost command ─────────────────────────────────────────────────────────
+
 bot.hears(/^\/repost:?(.+)$/, async (ctx) => {
   const userId = ctx.from?.id;
   const locale = userId ? getUserLocale(userId) : 'ru';
@@ -685,7 +698,6 @@ bot.hears(/^\/repost:?(.+)$/, async (ctx) => {
   }
 
   try {
-    // Получаем данные розыгрыша по shortCode через API
     const res = await fetchWithTimeout(`${config.apiUrl}/internal/giveaways/by-code/${shortCode}`, {
       headers: { 'X-Internal-Token': config.internalApiToken },
     });
@@ -723,16 +735,11 @@ bot.hears(/^\/repost:?(.+)$/, async (ctx) => {
     const postText = data.postTemplate?.text || data.title;
     const buttonLabel = locale === 'ru' ? '🎁 Участвовать' : locale === 'en' ? '🎁 Participate' : '🎁 Қатысу';
 
-    await ctx.reply(postText, {
+    await safeReply(ctx, postText, {
       parse_mode: 'HTML',
-      reply_markup: {
-        inline_keyboard: [[
-          {
-            text: buttonLabel,
-            web_app: { url: `${config.webappUrl}?startapp=g_${data.shortCode}` },
-          },
-        ]],
-      },
+      reply_markup: inlineKeyboard(
+        [webAppBtn(buttonLabel, `${config.webappUrl}?startapp=g_${data.shortCode}`, 'join', 'danger')],
+      ),
     });
 
     log.info({ userId, shortCode, giveawayId: data.id }, 'Repost sent');
@@ -748,7 +755,8 @@ bot.hears(/^\/repost:?(.+)$/, async (ctx) => {
   }
 });
 
-// 🔒 ЗАДАЧА 1.19: Admin commands
+// ── Admin commands ──────────────────────────────────────────────────────────
+
 bot.command('admin_ban', handleAdminBan);
 bot.command('admin_unban', handleAdminUnban);
 bot.command('admin_stats', handleAdminStats);
@@ -757,13 +765,10 @@ bot.command('admin_broadcast', handleAdminBroadcast);
 bot.command('admin_approve', handleAdminApprove);
 bot.command('admin_reject', handleAdminReject);
 
-// 🔒 ЗАДАЧА: Inline mode
 bot.on('inline_query', handleInlineQuery);
 
-// 🔒 ЗАДАЧА 6.4: Telegram Stars payments
 registerPaymentHandlers(bot);
 
-// Error handler
 bot.catch((err) => {
   log.error({ err }, 'Bot error');
 });

@@ -16,6 +16,7 @@
 import type { Bot, Context } from 'grammy';
 import { config } from '../config.js';
 import { createLogger } from '../lib/logger.js';
+import { btn, webAppBtn, inlineKeyboard } from '../lib/customEmoji.js';
 
 const log = createLogger('payments');
 
@@ -220,11 +221,9 @@ export function registerPaymentHandlers(bot: Bot): void {
           `Откройте приложение, чтобы воспользоваться всеми возможностями.`,
           {
             parse_mode: 'HTML',
-            reply_markup: {
-              inline_keyboard: [[
-                { text: '📱 Открыть приложение', web_app: { url: config.webappUrl } },
-              ]],
-            },
+            reply_markup: inlineKeyboard(
+              [webAppBtn('📱 Открыть приложение', config.webappUrl, 'app', 'danger')],
+            ),
           }
         );
 
@@ -260,14 +259,12 @@ export function registerPaymentHandlers(bot: Bot): void {
         'Выберите подписку:',
         {
           parse_mode: 'HTML',
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: '⭐ PLUS — 200 Stars/мес', callback_data: 'stars_buy:SUBSCRIPTION_PLUS' }],
-              [{ text: '🚀 PRO — 500 Stars/мес', callback_data: 'stars_buy:SUBSCRIPTION_PRO' }],
-              [{ text: '💼 BUSINESS — 1500 Stars/мес', callback_data: 'stars_buy:SUBSCRIPTION_BUSINESS' }],
-              [{ text: '🎁 Каталог — 100 Stars/мес', callback_data: 'stars_buy:CATALOG_MONTHLY_1000' }],
-            ],
-          },
+          reply_markup: inlineKeyboard(
+            [btn('⭐ PLUS — 200 Stars/мес', 'stars_buy:SUBSCRIPTION_PLUS', 'buy', 'danger')],
+            [btn('🚀 PRO — 500 Stars/мес', 'stars_buy:SUBSCRIPTION_PRO', 'buy', 'danger')],
+            [btn('💼 BUSINESS — 1500 Stars/мес', 'stars_buy:SUBSCRIPTION_BUSINESS', 'buy', 'danger')],
+            [btn('🎁 Каталог — 100 Stars/мес', 'stars_buy:CATALOG_MONTHLY_1000', 'buy', 'danger')],
+          ),
         }
       );
       return;

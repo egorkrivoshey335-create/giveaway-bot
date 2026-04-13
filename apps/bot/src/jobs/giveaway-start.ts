@@ -10,6 +10,7 @@ import { Worker, Job } from 'bullmq';
 import { bot } from '../bot.js';
 import { config } from '../config.js';
 import { createLogger } from '../lib/logger.js';
+import { webAppBtn, inlineKeyboard } from '../lib/customEmoji.js';
 
 const log = createLogger('job:giveaway-start');
 
@@ -44,17 +45,9 @@ export const giveawayStartWorker = new Worker<GiveawayStartData>(
 
     for (const channel of channels) {
       try {
-        // Формируем inline кнопку для участия
-        const replyMarkup = {
-          inline_keyboard: [[
-            {
-              text: '🎁 Участвовать',
-              web_app: {
-                url: `${config.webappUrl}?startapp=g_${giveawayId}`,
-              },
-            },
-          ]],
-        };
+        const replyMarkup = inlineKeyboard(
+          [webAppBtn('🎁 Участвовать', `${config.webappUrl}?startapp=g_${giveawayId}`, 'join', 'danger')],
+        );
 
         // Публикуем пост
         if (mediaUrl && mediaType) {

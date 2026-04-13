@@ -11,6 +11,7 @@ import { Worker, Job } from 'bullmq';
 import { bot } from '../bot.js';
 import { config } from '../config.js';
 import { createLogger } from '../lib/logger.js';
+import { webAppBtn, inlineKeyboard } from '../lib/customEmoji.js';
 
 const log = createLogger('job:milestones');
 
@@ -64,16 +65,9 @@ ${milestone >= 500 ? '🚀 Розыгрыш становится вирусны�
 
       await bot.api.sendMessage(creatorTelegramId, message, {
         parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [[
-            {
-              text: '📊 Открыть статистику',
-              web_app: {
-                url: `${config.webappUrl}/creator/giveaway/${giveawayId}`,
-              },
-            },
-          ]],
-        },
+        reply_markup: inlineKeyboard(
+          [webAppBtn('📊 Открыть статистику', `${config.webappUrl}/creator/giveaway/${giveawayId}`, 'stats', 'danger')],
+        ),
       });
 
       log.info({ giveawayId, milestone }, 'Milestone notification sent');

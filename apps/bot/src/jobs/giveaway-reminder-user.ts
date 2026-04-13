@@ -16,6 +16,7 @@ import { Worker, Queue, Job } from 'bullmq';
 import { bot } from '../bot.js';
 import { config } from '../config.js';
 import { createLogger } from '../lib/logger.js';
+import { webAppBtn, inlineKeyboard } from '../lib/customEmoji.js';
 
 const log = createLogger('job:giveaway-reminder-user');
 
@@ -74,14 +75,9 @@ export const giveawayReminderUserWorker = new Worker<GiveawayReminderUserData>(
 
       await bot.api.sendMessage(telegramUserId, message, {
         parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [[
-            {
-              text: '🎁 Участвовать',
-              web_app: { url: `${config.webappUrl}?startapp=join_${giveawayId}` },
-            },
-          ]],
-        },
+        reply_markup: inlineKeyboard(
+          [webAppBtn('🎁 Участвовать', `${config.webappUrl}?startapp=join_${giveawayId}`, 'join', 'danger')],
+        ),
       });
 
       // Mark reminder as sent in the API

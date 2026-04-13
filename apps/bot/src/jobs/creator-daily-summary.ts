@@ -10,6 +10,7 @@ import { Worker, Job } from 'bullmq';
 import { bot } from '../bot.js';
 import { config } from '../config.js';
 import { createLogger } from '../lib/logger.js';
+import { webAppBtn, inlineKeyboard } from '../lib/customEmoji.js';
 
 const log = createLogger('job:creator-daily-summary');
 
@@ -57,16 +58,9 @@ export const creatorDailySummaryWorker = new Worker<CreatorDailySummaryData>(
 
       await bot.api.sendMessage(creatorTelegramId, message, {
         parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [[
-            {
-              text: '📱 Открыть приложение',
-              web_app: {
-                url: `${config.webappUrl}?startapp=nav_creator`,
-              },
-            },
-          ]],
-        },
+        reply_markup: inlineKeyboard(
+          [webAppBtn('📱 Открыть приложение', `${config.webappUrl}?startapp=nav_creator`, 'app', 'danger')],
+        ),
       });
 
       log.info({ creatorTelegramId }, 'Daily summary sent successfully');
