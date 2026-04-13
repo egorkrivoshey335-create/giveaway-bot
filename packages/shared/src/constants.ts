@@ -449,4 +449,18 @@ export const TIER_LIMITS = {
     PRO: 5,
     BUSINESS: Infinity,
   },
+  /** Максимум мин. участников */
+  maxMinParticipants: {
+    FREE: 1000,
+    PLUS: 3000,
+    PRO: 5000,
+    BUSINESS: Infinity,
+  },
+  /** Максимум каналов для бустов */
+  maxBoostChannels: {
+    FREE: 1,
+    PLUS: 3,
+    PRO: 5,
+    BUSINESS: 10,
+  },
 } as const;

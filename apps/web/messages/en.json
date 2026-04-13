@@ -213,6 +213,7 @@
       "maxFree": "Maximum for free account: {max}",
       "minParticipants": "Minimum Participants",
       "minParticipantsHint": "Giveaway won't finish until minimum number of participants is reached. Leave 0 for no minimum.",
+      "minParticipantsMax": "Max for your subscription: {max}",
       "cancelIfNotEnough": "Cancel if not enough",
       "cancelIfNotEnoughHint": "Giveaway will be cancelled if minimum participants not reached by end date",
       "autoExtendDays": "Auto-extend for N days",
@@ -261,6 +262,7 @@
       "storiesManualCheck": "Manual review required. Participant submits request, you verify their story and approve/reject.",
       "moderationPage": "Moderation page",
       "storiesPremiumOnly": "Only Telegram Premium users can post stories.",
+      "storiesRequiresPremium": "Available with PLUS subscription and above",
       "catalogPromotion": "Catalog Promotion",
       "catalogDescription": "Your giveaway will be shown in RandomBeast catalog and available to all users.",
       "comingSoon": "Paid feature. Coming soon."
@@ -592,7 +594,10 @@
       "analytics": { "title": "Advanced analytics", "description": "Traffic, conversion, anti-fraud, invite tree", "plus": "—", "pro": "✓", "business": "✓" },
       "liveness": { "title": "Liveness Check", "description": "Bot protection with camera verification", "plus": "—", "pro": "—", "business": "✓" },
       "theme": { "title": "Custom theme", "description": "Unique giveaway page design", "plus": "—", "pro": "—", "business": "✓" },
-      "randomizer": { "title": "Randomizer", "description": "Beautiful winner selection with animations", "plus": "—", "pro": "—", "business": "✓" }
+      "randomizer": { "title": "Randomizer", "description": "Beautiful winner selection with animations", "plus": "—", "pro": "—", "business": "✓" },
+      "minParticipants": { "title": "Min. participants", "description": "Maximum threshold for minimum participants", "free": "up to 1,000", "plus": "up to 3,000", "pro": "up to 5,000", "business": "Unlimited" },
+      "stories": { "title": "Stories", "description": "Extra tickets for posting to stories", "plus": "✓", "pro": "✓", "business": "✓" },
+      "boostChannels": { "title": "Boost channels", "description": "Number of channels for boosts per giveaway", "plus": "up to 3", "pro": "up to 5", "business": "up to 10" }
     },
     "participants": {
       "bonus": { "title": "+100% chance", "description": "Extra ticket in all giveaways — doubled chances", "plus": "✓", "pro": "✓", "business": "✓" },

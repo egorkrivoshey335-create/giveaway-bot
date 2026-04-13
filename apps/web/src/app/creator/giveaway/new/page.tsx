@@ -33,7 +33,6 @@ const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
 const WIZARD_STEPS = ['TYPE', 'BASICS', 'SUBSCRIPTIONS', 'PUBLISH', 'RESULTS', 'DATES', 'WINNERS', 'PROTECTION', 'EXTRAS', 'MASCOT', 'CUSTOM_TASKS', 'REVIEW'] as const;
 type WizardStep = (typeof WIZARD_STEPS)[number];
 
-const MAX_BOOST_CHANNELS = 5;
 
 
 /**
@@ -149,6 +148,8 @@ export default function GiveawayWizardPage() {
   const winnerLimit = TIER_LIMITS.maxWinners[userTier];
   const inviteLimit = TIER_LIMITS.maxInvites[userTier];
   const customTaskLimit = TIER_LIMITS.maxCustomTasks[userTier];
+  const minParticipantsLimit = TIER_LIMITS.maxMinParticipants[userTier];
+  const boostChannelLimit = TIER_LIMITS.maxBoostChannels[userTier];
 
   useEffect(() => {
     if (payload.inviteMax && payload.inviteMax > inviteLimit) {
@@ -855,9 +856,17 @@ export default function GiveawayWizardPage() {
                 <Mascot type="wizard-publish" size={160} loop={true} autoplay={true} />
               </div>
 
-              <p className="text-sm text-tg-hint mb-4">
+              <p className="text-sm text-tg-hint mb-2">
                 <AppIcon name="icon-channel" size={14} /> {t('publish.description')}
               </p>
+              {userTier === 'FREE' && (
+                <div className="flex flex-wrap gap-1 mb-4">
+                  <span className="text-[10px] bg-gray-500/20 text-gray-500 px-1.5 py-0.5 rounded">FREE: 1</span>
+                  <span className="text-[10px] bg-blue-500/20 text-blue-600 px-1.5 py-0.5 rounded">PLUS: 3</span>
+                  <span className="text-[10px] bg-purple-500/20 text-purple-600 px-1.5 py-0.5 rounded">PRO: 5</span>
+                  <span className="text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded">BUSINESS: ∞</span>
+                </div>
+              )}
               {channels.length === 0 ? (
                 <p className="text-center text-tg-hint py-8">
                   <AppIcon name="icon-channel" size={14} /> {t('publish.noChannels')}
@@ -1045,6 +1054,17 @@ export default function GiveawayWizardPage() {
                     </div>
                   </button>
                 </div>
+
+                {userTier !== 'BUSINESS' && (
+                  <button
+                    onClick={() => setShowSubscription(true)}
+                    className="relative w-full rounded-xl py-3 px-4 font-medium hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white overflow-hidden text-sm mt-4"
+                  >
+                    <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer-delayed_5s_ease-in-out_2.5s_infinite]" />
+                    <AppIcon name="icon-diamond" size={16} className="relative z-10" />
+                    <span className="relative z-10">{t('protection.upgradeTo')} BUSINESS</span>
+                  </button>
+                )}
               </div>
             </motion.div>
           )}
@@ -1221,7 +1241,7 @@ export default function GiveawayWizardPage() {
                 <input
                   type="number"
                   min={0}
-                  max={10000}
+                  max={minParticipantsLimit === Infinity ? 999999 : minParticipantsLimit}
                   value={payload.minParticipants ?? ''}
                   onChange={(e) => {
                     const raw = e.target.value;
@@ -1231,7 +1251,8 @@ export default function GiveawayWizardPage() {
                     }
                     const val = parseInt(raw);
                     if (!isNaN(val)) {
-                      updatePayload({ minParticipants: Math.max(0, val) });
+                      const maxVal = minParticipantsLimit === Infinity ? 999999 : minParticipantsLimit;
+                      updatePayload({ minParticipants: Math.min(Math.max(0, val), maxVal) });
                     }
                   }}
                   onBlur={() => {
@@ -1245,6 +1266,17 @@ export default function GiveawayWizardPage() {
                 <p className="text-xs text-tg-hint mt-2">
                   {t('winners.minParticipantsHint')}
                 </p>
+                <p className="text-xs text-tg-hint mt-1">
+                  <AppIcon name="icon-diamond" size={14} /> {t('winners.minParticipantsMax', { max: minParticipantsLimit === Infinity ? '∞' : minParticipantsLimit.toLocaleString() })}
+                </p>
+                {userTier === 'FREE' && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    <span className="text-[10px] bg-gray-500/20 text-gray-500 px-1.5 py-0.5 rounded">FREE: 1 000</span>
+                    <span className="text-[10px] bg-blue-500/20 text-blue-600 px-1.5 py-0.5 rounded">PLUS: 3 000</span>
+                    <span className="text-[10px] bg-purple-500/20 text-purple-600 px-1.5 py-0.5 rounded">PRO: 5 000</span>
+                    <span className="text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded">BUSINESS: ∞</span>
+                  </div>
+                )}
 
                 {/* Если указан минимум — показать дополнительные настройки */}
                 {(payload.minParticipants || 0) > 0 && (
@@ -1464,11 +1496,24 @@ export default function GiveawayWizardPage() {
                         type="number"
                         min={1}
                         max={inviteLimit}
-                        value={payload.inviteMax || inviteLimit}
+                        value={payload.inviteMax ?? ''}
                         onChange={(e) => {
-                          const val = parseInt(e.target.value) || 1;
-                          updatePayload({ inviteMax: Math.min(Math.max(1, val), inviteLimit) });
+                          const raw = e.target.value;
+                          if (raw === '') {
+                            updatePayload({ inviteMax: undefined as unknown as number });
+                            return;
+                          }
+                          const val = parseInt(raw);
+                          if (!isNaN(val)) {
+                            updatePayload({ inviteMax: Math.min(Math.max(1, val), inviteLimit) });
+                          }
                         }}
+                        onBlur={() => {
+                          if (!payload.inviteMax) {
+                            updatePayload({ inviteMax: 1 });
+                          }
+                        }}
+                        placeholder="1"
                         className="w-24 bg-tg-secondary rounded-lg px-3 py-2 text-tg-text text-center"
                       />
                       <span className="text-xs text-tg-hint">{t('extras.maxInvitesFree', { max: inviteLimit })}</span>
@@ -1512,7 +1557,7 @@ export default function GiveawayWizardPage() {
                 {payload.boostEnabled && (
                   <div className="mt-3 pt-3 border-t border-tg-secondary">
                     <label className="block text-sm text-tg-hint mb-2">
-                      {t('extras.selectBoostChannels', { max: MAX_BOOST_CHANNELS })}:
+                      {t('extras.selectBoostChannels', { max: boostChannelLimit })}:
                     </label>
                     {channels.filter(c => c.type === 'CHANNEL').length === 0 ? (
                       <p className="text-xs text-tg-hint text-center py-2">
@@ -1522,7 +1567,7 @@ export default function GiveawayWizardPage() {
                       <div className="space-y-2">
                         {channels.filter(c => c.type === 'CHANNEL').map((channel) => {
                           const isSelected = (payload.boostChannelIds || []).includes(channel.id);
-                          const canSelect = isSelected || (payload.boostChannelIds || []).length < MAX_BOOST_CHANNELS;
+                          const canSelect = isSelected || (payload.boostChannelIds || []).length < boostChannelLimit;
                           return (
                             <button
                               key={channel.id}
@@ -1559,34 +1604,57 @@ export default function GiveawayWizardPage() {
                         <AppIcon name="icon-warning" size={14} /> {t('extras.selectAtLeastOneBoost')}
                       </p>
                     )}
+                    {userTier === 'FREE' && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        <span className="text-[10px] bg-gray-500/20 text-gray-500 px-1.5 py-0.5 rounded">FREE: 1</span>
+                        <span className="text-[10px] bg-blue-500/20 text-blue-600 px-1.5 py-0.5 rounded">PLUS: 3</span>
+                        <span className="text-[10px] bg-purple-500/20 text-purple-600 px-1.5 py-0.5 rounded">PRO: 5</span>
+                        <span className="text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded">BUSINESS: 10</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
 
-              {/* Блок: Сторис */}
+              {/* Блок: Сторис — только PLUS+ */}
               <div className="bg-tg-bg rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <AppIcon name="icon-story" size={14} />
-                    <div>
+                    <div className="flex items-center gap-2">
                       <span className="font-medium">{t('extras.stories')}</span>
+                      {!userHasPremium && (
+                        <span className="text-xs bg-blue-500/20 text-blue-600 px-2 py-0.5 rounded">PLUS</span>
+                      )}
                     </div>
                   </div>
                   <button
-                    onClick={() => updatePayload({ storiesEnabled: !payload.storiesEnabled })}
+                    onClick={() => {
+                      if (!userHasPremium) {
+                        setShowSubscription(true);
+                        return;
+                      }
+                      updatePayload({ storiesEnabled: !payload.storiesEnabled });
+                    }}
                     className={`w-12 h-6 rounded-full transition-colors relative ${
+                      !userHasPremium ? 'bg-tg-secondary opacity-50 cursor-not-allowed' :
                       payload.storiesEnabled ? 'bg-tg-button' : 'bg-tg-secondary'
                     }`}
                   >
                     <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                      payload.storiesEnabled ? 'left-7' : 'left-1'
+                      payload.storiesEnabled && userHasPremium ? 'left-7' : 'left-1'
                     }`} />
                   </button>
                 </div>
                 <p className="text-xs text-tg-hint">
                   {t('extras.storiesDescription')}
                 </p>
-                {payload.storiesEnabled && (
+                {!userHasPremium && (
+                  <p className="text-xs text-blue-600 mt-2 flex items-center gap-1">
+                    <AppIcon name="icon-diamond" size={14} /> {t('extras.storiesRequiresPremium')}
+                  </p>
+                )}
+                {payload.storiesEnabled && userHasPremium && (
                   <div className="mt-3 p-2 bg-blue-500/10 rounded-lg">
                     <p className="text-xs text-blue-600">
                       <AppIcon name="icon-info" size={14} /> {t('extras.storiesManualCheck')}
