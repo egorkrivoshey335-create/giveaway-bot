@@ -85,11 +85,26 @@ export function createContinueDraftKeyboard(draftId: string, locale: Locale = 'r
 }
 
 /**
- * Creates inline keyboard for language selection only
+ * Main settings keyboard: two buttons — Language and Notifications
  */
-export function createLanguageKeyboard(): any {
+export function createSettingsMainKeyboard(locale: Locale): any {
+  const langLabel = locale === 'ru' ? '🌐 Язык' : locale === 'en' ? '🌐 Language' : '🌐 Тіл';
+  const notifLabel = locale === 'ru' ? '🔔 Уведомления' : locale === 'en' ? '🔔 Notifications' : '🔔 Хабарландырулар';
+
+  return inlineKeyboard(
+    [btn(langLabel, 'settings_language', 'lang', 'primary'), btn(notifLabel, 'settings_notifications', 'notif', 'primary')],
+  );
+}
+
+/**
+ * Creates inline keyboard for language selection with back button
+ */
+export function createLanguageKeyboard(locale: Locale): any {
+  const backLabel = locale === 'ru' ? '◀️ Назад' : locale === 'en' ? '◀️ Back' : '◀️ Артқа';
+
   return inlineKeyboard(
     [btn('🇷🇺 Русский', 'lang_ru', 'lang_ru', 'primary'), btn('🇬🇧 English', 'lang_en', 'lang_en', 'primary'), btn('🇰🇿 Қазақша', 'lang_kk', 'lang_kk', 'primary')],
+    [btn(backLabel, 'settings_back', 'back', 'primary')],
   );
 }
 
@@ -105,10 +120,10 @@ const NOTIF_MODES: Array<{
 ];
 
 /**
- * Full settings keyboard: languages + notification section + notification modes
+ * Notifications keyboard: mode selection + back button
  */
-export function createSettingsKeyboard(locale: Locale, currentMode: string): any {
-  const sectionLabel = locale === 'ru' ? '📢 Уведомления:' : locale === 'en' ? '📢 Notifications:' : '📢 Хабарландырулар:';
+export function createNotificationsKeyboard(locale: Locale, currentMode: string): any {
+  const backLabel = locale === 'ru' ? '◀️ Назад' : locale === 'en' ? '◀️ Back' : '◀️ Артқа';
 
   const notifBtns = NOTIF_MODES.map(m => {
     const active = currentMode === m.id;
@@ -117,15 +132,34 @@ export function createSettingsKeyboard(locale: Locale, currentMode: string): any
   });
 
   return inlineKeyboard(
-    [btn('🇷🇺 Русский', 'lang_ru', 'lang_ru', 'primary'), btn('🇬🇧 English', 'lang_en', 'lang_en', 'primary'), btn('🇰🇿 Қазақша', 'lang_kk', 'lang_kk', 'primary')],
-    [btn(sectionLabel, 'notif_section', 'notif', 'primary')],
     notifBtns,
+    [btn(backLabel, 'settings_back', 'back', 'primary')],
   );
 }
 
-// ── Message helpers (unchanged) ─────────────────────────────────────────────
+// ── Message helpers ─────────────────────────────────────────────────────────
 
-export function getSettingsWithNotificationsMessage(locale: Locale, notificationMode: string): string {
+export function getSettingsMainMessage(locale: Locale): string {
+  if (locale === 'ru') {
+    return `⚙️ <b>Настройки</b>\n\nВыберите, что хотите настроить:`;
+  } else if (locale === 'en') {
+    return `⚙️ <b>Settings</b>\n\nChoose what to configure:`;
+  } else {
+    return `⚙️ <b>Баптаулар</b>\n\nНені баптағыңыз келеді:`;
+  }
+}
+
+export function getLanguageSettingsMessage(locale: Locale): string {
+  if (locale === 'ru') {
+    return `🌐 <b>Язык интерфейса</b>\n\nВыберите язык:`;
+  } else if (locale === 'en') {
+    return `🌐 <b>Interface language</b>\n\nSelect language:`;
+  } else {
+    return `🌐 <b>Интерфейс тілі</b>\n\nТілді таңдаңыз:`;
+  }
+}
+
+export function getNotificationSettingsMessage(locale: Locale, notificationMode: string): string {
   const modeLabels: Record<string, Record<string, string>> = {
     MILESTONE: { ru: 'Вехи (10/50/100/500)', en: 'Milestones (10/50/100/500)', kk: 'Белестер (10/50/100/500)' },
     DAILY: { ru: 'Ежедневная сводка', en: 'Daily summary', kk: 'Күнделікті жиынтық' },
@@ -135,11 +169,11 @@ export function getSettingsWithNotificationsMessage(locale: Locale, notification
   const currentModeLabel = modeLabels[notificationMode]?.[locale] || notificationMode;
 
   if (locale === 'ru') {
-    return `⚙️ <b>Настройки</b>\n\n🌐 <b>Язык интерфейса:</b>\n\n📢 <b>Уведомления создателя:</b>\nТекущий режим: <b>${currentModeLabel}</b>`;
+    return `🔔 <b>Уведомления создателя</b>\n\nТекущий режим: <b>${currentModeLabel}</b>\n\nВыберите режим уведомлений:\n\n🎯 <b>Вехи</b> — уведомления при достижении отметок участников: 10, 50, 100, 500\n📅 <b>Ежедневно</b> — сводка по вашим розыгрышам каждый день\n🔕 <b>Выкл</b> — не получать уведомления о розыгрышах`;
   } else if (locale === 'en') {
-    return `⚙️ <b>Settings</b>\n\n🌐 <b>Interface language:</b>\n\n📢 <b>Creator notifications:</b>\nCurrent mode: <b>${currentModeLabel}</b>`;
+    return `🔔 <b>Creator notifications</b>\n\nCurrent mode: <b>${currentModeLabel}</b>\n\nSelect notification mode:\n\n🎯 <b>Milestones</b> — get notified when participants reach milestones: 10, 50, 100, 500\n📅 <b>Daily</b> — daily summary of your giveaways\n🔕 <b>Off</b> — no giveaway notifications`;
   } else {
-    return `⚙️ <b>Баптаулар</b>\n\n🌐 <b>Интерфейс тілі:</b>\n\n📢 <b>Автор хабарландырулары:</b>\nАғымдағы режим: <b>${currentModeLabel}</b>`;
+    return `🔔 <b>Автор хабарландырулары</b>\n\nАғымдағы режим: <b>${currentModeLabel}</b>\n\nХабарландыру режимін таңдаңыз:\n\n🎯 <b>Белестер</b> — қатысушылар белестерге жеткенде хабарландыру: 10, 50, 100, 500\n📅 <b>Күнделікті</b> — ұтыс ойындары бойынша күнделікті жиынтық\n🔕 <b>Өшіру</b> — ұтыс ойындары туралы хабарландырмау`;
   }
 }
 
@@ -153,10 +187,6 @@ export function getOpenAppMessage(locale: Locale = 'ru'): string {
 
 export function getCreateGiveawayMessage(locale: Locale = 'ru'): string {
   return t(locale, 'screens.createGiveaway');
-}
-
-export function getSettingsMessage(locale: Locale = 'ru'): string {
-  return t(locale, 'settings.title') + '\n\n' + t(locale, 'menu.selectLanguage');
 }
 
 export function getSupportMessage(locale: Locale = 'ru'): string {

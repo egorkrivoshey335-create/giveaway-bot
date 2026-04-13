@@ -8,12 +8,14 @@ import {
   createWebAppInlineKeyboard,
   createGiveawayMethodKeyboard,
   createLanguageKeyboard,
-  createSettingsKeyboard,
-  getSettingsWithNotificationsMessage,
+  createSettingsMainKeyboard,
+  createNotificationsKeyboard,
+  getSettingsMainMessage,
+  getLanguageSettingsMessage,
+  getNotificationSettingsMessage,
   getWelcomeMessage,
   getOpenAppMessage,
   getCreateGiveawayMessage,
-  getSettingsMessage,
   getSupportMessage,
   getMainMenuMessage,
   getBackToMenuMessage,
@@ -364,26 +366,8 @@ bot.hears(MENU.SETTINGS, async (ctx) => {
 
   const locale = ctx.from?.id ? getUserLocale(ctx.from.id) : 'ru';
 
-  let notificationMode = 'MILESTONE';
-  try {
-    const userId = ctx.from?.id;
-    if (userId) {
-      const res = await fetchWithTimeout(`${config.apiUrl}/internal/users/${userId}/notification-mode`, {
-        headers: { 'X-Internal-Token': config.internalApiToken },
-      });
-      if (res.ok) {
-        const data = await res.json() as { notificationMode?: string };
-        notificationMode = data.notificationMode || 'MILESTONE';
-      }
-    }
-  } catch {
-    // fallback to default
-  }
-
-  const settingsMessage = getSettingsWithNotificationsMessage(locale, notificationMode);
-
-  await ctx.reply(settingsMessage, {
-    reply_markup: createSettingsKeyboard(locale, notificationMode),
+  await ctx.reply(getSettingsMainMessage(locale), {
+    reply_markup: createSettingsMainKeyboard(locale),
     parse_mode: 'HTML',
   });
 });
@@ -455,6 +439,66 @@ bot.callbackQuery(NAV_CALLBACKS.MAIN_MENU, async (ctx) => {
   });
 });
 
+bot.callbackQuery('settings_language', async (ctx) => {
+  const userId = ctx.from?.id;
+  const locale = userId ? getUserLocale(userId) : 'ru';
+  await ctx.answerCallbackQuery();
+
+  try {
+    await ctx.editMessageText(getLanguageSettingsMessage(locale), {
+      reply_markup: createLanguageKeyboard(locale),
+      parse_mode: 'HTML',
+    });
+  } catch {
+    // message not changed
+  }
+});
+
+bot.callbackQuery('settings_notifications', async (ctx) => {
+  const userId = ctx.from?.id;
+  const locale = userId ? getUserLocale(userId) : 'ru';
+  await ctx.answerCallbackQuery();
+
+  let notificationMode = 'MILESTONE';
+  try {
+    if (userId) {
+      const res = await fetchWithTimeout(`${config.apiUrl}/internal/users/${userId}/notification-mode`, {
+        headers: { 'X-Internal-Token': config.internalApiToken },
+      });
+      if (res.ok) {
+        const data = await res.json() as { notificationMode?: string };
+        notificationMode = data.notificationMode || 'MILESTONE';
+      }
+    }
+  } catch {
+    // fallback to default
+  }
+
+  try {
+    await ctx.editMessageText(getNotificationSettingsMessage(locale, notificationMode), {
+      reply_markup: createNotificationsKeyboard(locale, notificationMode),
+      parse_mode: 'HTML',
+    });
+  } catch {
+    // message not changed
+  }
+});
+
+bot.callbackQuery('settings_back', async (ctx) => {
+  const userId = ctx.from?.id;
+  const locale = userId ? getUserLocale(userId) : 'ru';
+  await ctx.answerCallbackQuery();
+
+  try {
+    await ctx.editMessageText(getSettingsMainMessage(locale), {
+      reply_markup: createSettingsMainKeyboard(locale),
+      parse_mode: 'HTML',
+    });
+  } catch {
+    // message not changed
+  }
+});
+
 bot.callbackQuery('notif_section', async (ctx) => {
   await ctx.answerCallbackQuery();
 });
@@ -470,7 +514,7 @@ bot.callbackQuery(/^notif_(MILESTONE|DAILY|OFF)$/, async (ctx) => {
   }
 
   try {
-    const res = await fetchWithTimeout(`${config.apiUrl}/internal/users/${userId}/notification-mode`, {
+    await fetchWithTimeout(`${config.apiUrl}/internal/users/${userId}/notification-mode`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -478,8 +522,6 @@ bot.callbackQuery(/^notif_(MILESTONE|DAILY|OFF)$/, async (ctx) => {
       },
       body: JSON.stringify({ notificationMode: mode }),
     });
-
-    if (!res.ok) throw new Error(`API returned ${res.status}`);
 
     const modeLabels: Record<string, Record<string, string>> = {
       MILESTONE: { ru: 'Вехи', en: 'Milestones', kk: 'Белестер' },
@@ -496,11 +538,9 @@ bot.callbackQuery(/^notif_(MILESTONE|DAILY|OFF)$/, async (ctx) => {
 
     await ctx.answerCallbackQuery({ text: confirmText });
 
-    const settingsMessage = getSettingsWithNotificationsMessage(locale, mode);
-
     try {
-      await ctx.editMessageText(settingsMessage, {
-        reply_markup: createSettingsKeyboard(locale, mode),
+      await ctx.editMessageText(getNotificationSettingsMessage(locale, mode), {
+        reply_markup: createNotificationsKeyboard(locale, mode),
         parse_mode: 'HTML',
       });
     } catch {
@@ -534,42 +574,35 @@ bot.callbackQuery(/^lang_/, async (ctx) => {
     return;
   }
 
-  const success = await updateUserLocale(userId, lang);
+  await updateUserLocale(userId, lang);
   
-  if (success) {
-    const message = t(lang, 'settings.languageChanged', { language: localeNames[lang] });
-    await ctx.answerCallbackQuery({ text: message, show_alert: false });
+  const message = t(lang, 'settings.languageChanged', { language: localeNames[lang] });
+  await ctx.answerCallbackQuery({ text: message, show_alert: false });
 
-    try {
-      await ctx.editMessageText(getSettingsMessage(lang), {
-        reply_markup: createLanguageKeyboard(),
-        parse_mode: 'HTML',
-      });
-    } catch {
-      // message not changed
-    }
-
-    void ctx.api
-      .setChatMenuButton({
-        chat_id: userId,
-        menu_button: {
-          type: 'web_app',
-          text: t(lang, 'buttons.menuButton'),
-          web_app: { url: config.webappUrl },
-        },
-      })
-      .catch(() => {});
-
-    await ctx.reply(getMainMenuMessage(lang), {
-      reply_markup: createMainMenuKeyboard(lang),
+  try {
+    await ctx.editMessageText(getLanguageSettingsMessage(lang), {
+      reply_markup: createLanguageKeyboard(lang),
       parse_mode: 'HTML',
     });
-  } else {
-    await ctx.answerCallbackQuery({
-      text: t(lang, 'errors.generic'),
-      show_alert: true,
-    });
+  } catch {
+    // message not changed
   }
+
+  void ctx.api
+    .setChatMenuButton({
+      chat_id: userId,
+      menu_button: {
+        type: 'web_app',
+        text: t(lang, 'buttons.menuButton'),
+        web_app: { url: config.webappUrl },
+      },
+    })
+    .catch(() => {});
+
+  await ctx.reply(getMainMenuMessage(lang), {
+    reply_markup: createMainMenuKeyboard(lang),
+    parse_mode: 'HTML',
+  });
 });
 
 // ── Register handlers ───────────────────────────────────────────────────────

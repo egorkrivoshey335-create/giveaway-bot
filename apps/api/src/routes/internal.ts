@@ -1136,6 +1136,66 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   /**
+   * GET /internal/users/:telegramUserId/notification-mode
+   * Получить текущий режим уведомлений создателя
+   */
+  fastify.get<{ Params: { telegramUserId: string } }>('/users/:telegramUserId/notification-mode', async (request, reply) => {
+    try {
+      const telegramUserId = BigInt(request.params.telegramUserId);
+      const user = await prisma.user.findUnique({
+        where: { telegramUserId },
+        select: { creatorNotificationMode: true },
+      });
+
+      return reply.success({
+        notificationMode: user?.creatorNotificationMode || 'MILESTONE',
+      });
+    } catch (error) {
+      fastify.log.error(error, 'Internal get notification-mode error');
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
+    }
+  });
+
+  /**
+   * PATCH /internal/users/:telegramUserId/notification-mode
+   * Обновить режим уведомлений создателя (вызывается ботом)
+   */
+  fastify.patch<{ Params: { telegramUserId: string } }>('/users/:telegramUserId/notification-mode', async (request, reply) => {
+    try {
+      const telegramUserId = BigInt(request.params.telegramUserId);
+      const body = z.object({
+        notificationMode: z.enum(['MILESTONE', 'DAILY', 'OFF']),
+      }).parse(request.body);
+
+      const user = await findOrCreateUser(telegramUserId);
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { creatorNotificationMode: body.notificationMode },
+      });
+
+      fastify.log.info(
+        { telegramUserId: telegramUserId.toString(), notificationMode: body.notificationMode },
+        'User notification mode updated via internal API'
+      );
+
+      return reply.success({ notificationMode: body.notificationMode });
+    } catch (error) {
+      fastify.log.error(error, 'Internal update notification-mode error');
+
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({
+          ok: false,
+          error: 'Invalid request body',
+          details: error.errors,
+        });
+      }
+
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
+    }
+  });
+
+  /**
    * POST /internal/stars-payment
    * Обработать успешную оплату Telegram Stars (вызывается ботом)
    * Создаёт Purchase + Entitlement для пользователя

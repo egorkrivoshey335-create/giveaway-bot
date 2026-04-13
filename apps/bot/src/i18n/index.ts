@@ -67,14 +67,16 @@ export function setUserLocale(telegramUserId: number, locale: Locale): void {
  * Обновить язык пользователя через API
  */
 export async function updateUserLocale(telegramUserId: number, locale: Locale): Promise<boolean> {
+  // Always update local cache first so the UI responds immediately
+  setUserLocale(telegramUserId, locale);
+
   try {
     const controller = new AbortController();
     const timeoutMs = getLocaleUpdateTimeoutMs();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-    let response: Response;
 
     try {
-      response = await fetch(`${config.apiUrl}/internal/users/language`, {
+      const response = await fetch(`${config.apiUrl}/internal/users/language`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -86,28 +88,22 @@ export async function updateUserLocale(telegramUserId: number, locale: Locale): 
         }),
         signal: controller.signal,
       });
+
+      if (!response.ok) {
+        log.error({ status: response.status }, 'Failed to update user locale: API returned error');
+      }
     } finally {
       clearTimeout(timeoutId);
     }
-
-    if (response.ok) {
-      // Обновляем кэш
-      setUserLocale(telegramUserId, locale);
-      return true;
-    }
-    
-    log.error({ status: response.status }, 'Failed to update user locale: API returned error');
-    return false;
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
-      log.warn('updateUserLocale timed out, using local cache');
+      log.warn('updateUserLocale timed out, local cache already updated');
     } else {
       log.error({ err }, 'Failed to update user locale');
     }
-    // Всё равно обновляем локальный кэш
-    setUserLocale(telegramUserId, locale);
-    return true; // Возвращаем true, т.к. локально язык установлен
   }
+
+  return true;
 }
 
 /**
