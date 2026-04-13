@@ -25,6 +25,7 @@ import { ValidationMessage, useURLValidation } from '@/components/ui/ValidationM
 import { AppIcon } from '@/components/AppIcon';
 import { hapticNavigation, hapticSuccess, hapticError, hapticToggle, hapticSelect } from '@/lib/haptic';
 import { TIER_LIMITS } from '@randombeast/shared';
+import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
 
 const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
 
@@ -32,11 +33,6 @@ const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
 const WIZARD_STEPS = ['TYPE', 'BASICS', 'SUBSCRIPTIONS', 'PUBLISH', 'RESULTS', 'DATES', 'WINNERS', 'PROTECTION', 'EXTRAS', 'MASCOT', 'CUSTOM_TASKS', 'REVIEW'] as const;
 type WizardStep = (typeof WIZARD_STEPS)[number];
 
-// Лимиты для победителей (бесплатный аккаунт)
-const MAX_WINNERS_FREE = 10;
-
-// Лимиты для дополнительных билетов
-const MAX_INVITES_FREE = 10;
 const MAX_BOOST_CHANNELS = 5;
 
 
@@ -145,9 +141,21 @@ export default function GiveawayWizardPage() {
   }, []);
 
   const userHasPremium = userTier !== 'FREE';
+  const [showSubscription, setShowSubscription] = useState(false);
+  const nextTier = userTier === 'FREE' ? 'plus' : userTier === 'PLUS' ? 'pro' : userTier === 'PRO' ? 'business' : 'business';
+  const nextTierLabel = nextTier.toUpperCase();
 
   const subscriptionChannelLimit = TIER_LIMITS.maxChannelsPerGiveaway[userTier];
   const winnerLimit = TIER_LIMITS.maxWinners[userTier];
+  const inviteLimit = TIER_LIMITS.maxInvites[userTier];
+  const customTaskLimit = TIER_LIMITS.maxCustomTasks[userTier];
+
+  useEffect(() => {
+    if (payload.inviteMax && payload.inviteMax > inviteLimit) {
+      updatePayload({ inviteMax: inviteLimit });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inviteLimit]);
 
   // Helper: валидация URL
   const isValidURL = (url: string): boolean => {
@@ -765,11 +773,25 @@ export default function GiveawayWizardPage() {
                   </p>
                 )}
                 {userTier === 'FREE' && (
-                  <p className="text-xs text-tg-hint mt-1">
-                    FREE: 1 · PLUS: 3 · PRO: 5 · BUSINESS: ∞
-                  </p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    <span className="text-[10px] bg-gray-500/20 text-gray-500 px-1.5 py-0.5 rounded">FREE: 1</span>
+                    <span className="text-[10px] bg-blue-500/20 text-blue-600 px-1.5 py-0.5 rounded">PLUS: 3</span>
+                    <span className="text-[10px] bg-purple-500/20 text-purple-600 px-1.5 py-0.5 rounded">PRO: 5</span>
+                    <span className="text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded">BUSINESS: ∞</span>
+                  </div>
                 )}
               </div>
+
+              {!userHasPremium && (
+                <button
+                  onClick={() => setShowSubscription(true)}
+                  className="relative w-full rounded-xl py-3 px-4 font-medium hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white overflow-hidden text-sm mb-4"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer-delayed_5s_ease-in-out_2.5s_infinite]" />
+                  <AppIcon name="icon-diamond" size={16} className="relative z-10" />
+                  <span className="relative z-10">{t('protection.upgradeTo')} {nextTierLabel}</span>
+                </button>
+              )}
 
               {channels.length === 0 ? (
                 <p className="text-center text-tg-hint py-8">
@@ -885,6 +907,17 @@ export default function GiveawayWizardPage() {
                     </p>
                   )}
                 </div>
+              )}
+
+              {!userHasPremium && (
+                <button
+                  onClick={() => setShowSubscription(true)}
+                  className="relative w-full rounded-xl py-3 px-4 font-medium hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white overflow-hidden text-sm mt-4"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer-delayed_5s_ease-in-out_2.5s_infinite]" />
+                  <AppIcon name="icon-diamond" size={16} className="relative z-10" />
+                  <span className="relative z-10">{t('protection.upgradeTo')} {nextTierLabel}</span>
+                </button>
               )}
             </motion.div>
           )}
@@ -1162,9 +1195,25 @@ export default function GiveawayWizardPage() {
                 <p className="mb-1"><AppIcon name="icon-winner" size={14} /> {t('winners.randomHint')}</p>
                 <p><AppIcon name="icon-diamond" size={14} /> {t('winners.maxFree', { max: winnerLimit })}</p>
                 {userTier === 'FREE' && (
-                  <p className="mt-1 text-xs">FREE: 5 · PLUS: 10 · PRO: 20 · BUSINESS: 200</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    <span className="text-[10px] bg-gray-500/20 text-gray-500 px-1.5 py-0.5 rounded">FREE: 5</span>
+                    <span className="text-[10px] bg-blue-500/20 text-blue-600 px-1.5 py-0.5 rounded">PLUS: 10</span>
+                    <span className="text-[10px] bg-purple-500/20 text-purple-600 px-1.5 py-0.5 rounded">PRO: 20</span>
+                    <span className="text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded">BUSINESS: 200</span>
+                  </div>
                 )}
               </div>
+
+              {!userHasPremium && (
+                <button
+                  onClick={() => setShowSubscription(true)}
+                  className="relative w-full rounded-xl py-3 px-4 font-medium hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white overflow-hidden text-sm"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer-delayed_5s_ease-in-out_2.5s_infinite]" />
+                  <AppIcon name="icon-diamond" size={16} className="relative z-10" />
+                  <span className="relative z-10">{t('protection.upgradeTo')} {nextTierLabel}</span>
+                </button>
+              )}
 
               {/* Минимальное количество участников */}
               <div className="border-t border-tg-bg pt-4 mt-4">
@@ -1305,7 +1354,7 @@ export default function GiveawayWizardPage() {
                             )}
                             {isLockedForFree && (
                               <span className="text-xs bg-blue-500/20 text-blue-600 px-2 py-0.5 rounded">
-                                PLUS+
+                                PLUS
                               </span>
                             )}
                           </div>
@@ -1350,10 +1399,19 @@ export default function GiveawayWizardPage() {
                     <span className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full" />
                   </button>
                 </div>
-                <p className="text-xs text-tg-hint mt-2 text-center">
-                  <AppIcon name="icon-diamond" size={14} /> {t('protection.availableInPro')}
-                </p>
               </div>
+
+              {/* Upgrade button */}
+              {!userHasPremium && (
+                <button
+                  onClick={() => setShowSubscription(true)}
+                  className="relative w-full rounded-xl py-3 px-4 font-medium hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white overflow-hidden text-sm"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer-delayed_5s_ease-in-out_2.5s_infinite]" />
+                  <AppIcon name="icon-diamond" size={16} className="relative z-10" />
+                  <span className="relative z-10">{t('protection.upgradeTo')} {nextTierLabel}</span>
+                </button>
+              )}
             </motion.div>
           )}
 
@@ -1405,16 +1463,24 @@ export default function GiveawayWizardPage() {
                       <input
                         type="number"
                         min={1}
-                        max={MAX_INVITES_FREE}
-                        value={payload.inviteMax || 10}
+                        max={inviteLimit}
+                        value={payload.inviteMax || inviteLimit}
                         onChange={(e) => {
                           const val = parseInt(e.target.value) || 1;
-                          updatePayload({ inviteMax: Math.min(Math.max(1, val), MAX_INVITES_FREE) });
+                          updatePayload({ inviteMax: Math.min(Math.max(1, val), inviteLimit) });
                         }}
                         className="w-24 bg-tg-secondary rounded-lg px-3 py-2 text-tg-text text-center"
                       />
-                      <span className="text-xs text-tg-hint">{t('extras.maxInvitesFree', { max: MAX_INVITES_FREE })}</span>
+                      <span className="text-xs text-tg-hint">{t('extras.maxInvitesFree', { max: inviteLimit })}</span>
                     </div>
+                    {userTier === 'FREE' && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        <span className="text-[10px] bg-gray-500/20 text-gray-500 px-1.5 py-0.5 rounded">FREE: 3</span>
+                        <span className="text-[10px] bg-blue-500/20 text-blue-600 px-1.5 py-0.5 rounded">PLUS: 10</span>
+                        <span className="text-[10px] bg-purple-500/20 text-purple-600 px-1.5 py-0.5 rounded">PRO: 20</span>
+                        <span className="text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded">BUSINESS: 10 000</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1525,42 +1591,52 @@ export default function GiveawayWizardPage() {
                     <p className="text-xs text-blue-600">
                       <AppIcon name="icon-info" size={14} /> {t('extras.storiesManualCheck')}
                     </p>
-                    <p className="text-xs text-tg-hint mt-1">
-                      {t('extras.moderationPage')}: <span className="font-mono">/creator/giveaway/[id]/stories</span>
-                    </p>
-                    <p className="text-xs text-yellow-600 mt-1">
-                      <AppIcon name="icon-warning" size={14} /> {t('extras.storiesPremiumOnly')}
+                    <p className="text-xs text-yellow-600 mt-1 flex items-center gap-1">
+                      <AppIcon name="icon-error" size={14} /> {t('extras.storiesPremiumOnly')}
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* Продвижение в каталоге — платная функция */}
+              {/* Продвижение в каталоге — включено в PLUS+ */}
               <div className="bg-tg-secondary rounded-xl p-4 relative overflow-hidden">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <AppIcon name="icon-channel" size={14} />
                     <span className="font-medium">{t('extras.catalogPromotion')}</span>
-                    <span className="text-xs bg-yellow-500/20 text-yellow-600 px-2 py-0.5 rounded-full">
-                      PRO
+                    <span className="text-xs bg-blue-500/20 text-blue-600 px-2 py-0.5 rounded-full">
+                      PLUS
                     </span>
                   </div>
                   <button
-                    disabled
-                    className="w-12 h-6 rounded-full transition-colors relative bg-tg-secondary border border-tg-hint opacity-50 cursor-not-allowed"
+                    disabled={!userHasPremium}
+                    onClick={() => updatePayload({ catalogEnabled: !payload.catalogEnabled })}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${
+                      !userHasPremium ? 'bg-tg-secondary border border-tg-hint opacity-50 cursor-not-allowed' :
+                      payload.catalogEnabled ? 'bg-tg-button' : 'bg-tg-secondary'
+                    }`}
                   >
-                    <span className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full" />
+                    <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                      payload.catalogEnabled && userHasPremium ? 'left-7' : 'left-1'
+                    }`} />
                   </button>
                 </div>
                 <p className="text-xs text-tg-hint">
                   {t('extras.catalogDescription')}
                 </p>
-                <div className="mt-3 p-2 bg-yellow-500/10 rounded-lg">
-                  <p className="text-xs text-yellow-600">
-                    <AppIcon name="icon-diamond" size={14} /> {t('extras.comingSoon')}
-                  </p>
-                </div>
               </div>
+
+              {/* Upgrade button for EXTRAS */}
+              {!userHasPremium && (
+                <button
+                  onClick={() => setShowSubscription(true)}
+                  className="relative w-full rounded-xl py-3 px-4 font-medium hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white overflow-hidden text-sm"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer-delayed_5s_ease-in-out_2.5s_infinite]" />
+                  <AppIcon name="icon-diamond" size={16} className="relative z-10" />
+                  <span className="relative z-10">{t('protection.upgradeTo')} {nextTierLabel}</span>
+                </button>
+              )}
             </motion.div>
           )}
 
@@ -1651,13 +1727,16 @@ export default function GiveawayWizardPage() {
                 </div>
               )}
 
-              {/* Уведомление для бесплатных пользователей */}
+              {/* Upgrade button for mascot */}
               {!userHasPremium && (
-                <div className="bg-yellow-500/10 rounded-lg p-3">
-                  <p className="text-sm text-yellow-600">
-                    <AppIcon name="icon-diamond" size={14} /> {t('mascot.premiumHint')}
-                  </p>
-                </div>
+                <button
+                  onClick={() => setShowSubscription(true)}
+                  className="relative w-full rounded-xl py-3 px-4 font-medium hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white overflow-hidden text-sm"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer-delayed_5s_ease-in-out_2.5s_infinite]" />
+                  <AppIcon name="icon-diamond" size={16} className="relative z-10" />
+                  <span className="relative z-10">{t('protection.upgradeTo')} {nextTierLabel}</span>
+                </button>
               )}
             </motion.div>
           )}
@@ -1761,7 +1840,7 @@ export default function GiveawayWizardPage() {
                 ))}
 
                 {/* Добавить задание */}
-                {(payload.customTasks || []).length < 10 && (
+                {(payload.customTasks || []).length < customTaskLimit && (
                   <button
                     onClick={() => {
                       const tasks = [...(payload.customTasks || [])];
@@ -1775,12 +1854,34 @@ export default function GiveawayWizardPage() {
                 )}
               </div>
 
-              {/* Подсказка */}
+              {/* Подсказка с лимитами */}
               <div className="bg-tg-bg rounded-lg p-3">
                 <p className="text-xs text-tg-hint">
                   <AppIcon name="icon-info" size={14} /> {t('customTasks.hint')}
                 </p>
+                <p className="text-xs text-tg-hint mt-1">
+                  <AppIcon name="icon-diamond" size={14} /> {t('customTasks.limit', { max: customTaskLimit })}
+                </p>
+                {userTier === 'FREE' && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    <span className="text-[10px] bg-gray-500/20 text-gray-500 px-1.5 py-0.5 rounded">FREE: 1</span>
+                    <span className="text-[10px] bg-blue-500/20 text-blue-600 px-1.5 py-0.5 rounded">PLUS: 3</span>
+                    <span className="text-[10px] bg-purple-500/20 text-purple-600 px-1.5 py-0.5 rounded">PRO: 5</span>
+                    <span className="text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded">BUSINESS: 10</span>
+                  </div>
+                )}
               </div>
+
+              {!userHasPremium && (
+                <button
+                  onClick={() => setShowSubscription(true)}
+                  className="relative w-full rounded-xl py-3 px-4 font-medium hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white overflow-hidden text-sm"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer-delayed_5s_ease-in-out_2.5s_infinite]" />
+                  <AppIcon name="icon-diamond" size={16} className="relative z-10" />
+                  <span className="relative z-10">{t('protection.upgradeTo')} {nextTierLabel}</span>
+                </button>
+              )}
             </motion.div>
           )}
 
@@ -1912,8 +2013,8 @@ export default function GiveawayWizardPage() {
                 <div className="flex justify-between">
                   <span className="text-tg-hint">{t('review.invites')}:</span>
                   <span>
-                    {payload.inviteEnabled 
-                      ? <><AppIcon name="icon-success" size={14} /> {t('review.upToFriends', { count: payload.inviteMax || 10 })}</> 
+                    {payload.inviteEnabled
+                      ? <><AppIcon name="icon-success" size={14} /> {t('review.upToFriends', { count: Math.min(payload.inviteMax || inviteLimit, inviteLimit) })}</>
                       : <><AppIcon name="icon-cancelled" size={14} /> {t('review.disabled')}</>}
                   </span>
                 </div>
@@ -2092,6 +2193,12 @@ export default function GiveawayWizardPage() {
           </div>
         )}
       </div>
+
+      <SubscriptionBottomSheet
+        isOpen={showSubscription}
+        onClose={() => setShowSubscription(false)}
+        defaultTier={nextTier as 'plus' | 'pro' | 'business'}
+      />
     </main>
   );
 }

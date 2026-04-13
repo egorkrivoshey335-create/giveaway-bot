@@ -241,7 +241,8 @@
       "livenessTitle": "Liveness Check",
       "livenessHint": "Camera verification of participant — protection close to 100%",
       "livenessProAlert": "This feature is available in BUSINESS subscription\n\nLiveness Check verifies that a real person is behind the screen, not a bot.",
-      "availableInPro": "Available in BUSINESS subscription"
+      "availableInPro": "Available in BUSINESS subscription",
+      "upgradeTo": "Upgrade to"
     },
     "extras": {
       "title": "Extra Tickets",
@@ -278,7 +279,8 @@
       "urlPlaceholder": "https://... (optional)",
       "extraTickets": "Tickets per task",
       "addTask": "Add Task",
-      "hint": "Participants will mark tasks as completed. Verification is your responsibility."
+      "hint": "Participants will mark tasks as completed. Verification is your responsibility.",
+      "limit": "Max tasks for your subscription: {max}"
     },
     "exitConfirm": {
       "title": "Exit wizard?",
