@@ -8,6 +8,7 @@ import {
   createWebAppInlineKeyboard,
   createGiveawayMethodKeyboard,
   createLanguageKeyboard,
+  createSettingsKeyboard,
   getSettingsWithNotificationsMessage,
   getWelcomeMessage,
   getOpenAppMessage,
@@ -381,16 +382,8 @@ bot.hears(MENU.SETTINGS, async (ctx) => {
 
   const settingsMessage = getSettingsWithNotificationsMessage(locale, notificationMode);
 
-  const kb = inlineKeyboard(
-    [btn('🇷🇺 Русский', 'lang_ru', undefined, 'primary'), btn('🇬🇧 English', 'lang_en', undefined, 'primary'), btn('🇰🇿 Қазақша', 'lang_kk', undefined, 'primary')],
-    [btn(locale === 'ru' ? '📢 Уведомления:' : locale === 'en' ? '📢 Notifications:' : '📢 Хабарландырулар:', 'notif_section', undefined, 'primary')],
-    [btn(`${notificationMode === 'MILESTONE' ? '✅ ' : ''}🎯 Milestone`, 'notif_MILESTONE', undefined, 'primary'),
-     btn(`${notificationMode === 'DAILY' ? '✅ ' : ''}📅 Daily`, 'notif_DAILY', undefined, 'primary'),
-     btn(`${notificationMode === 'OFF' ? '✅ ' : ''}🔕 Off`, 'notif_OFF', undefined, 'primary')],
-  );
-
   await ctx.reply(settingsMessage, {
-    reply_markup: kb,
+    reply_markup: createSettingsKeyboard(locale, notificationMode),
     parse_mode: 'HTML',
   });
 });
@@ -489,8 +482,8 @@ bot.callbackQuery(/^notif_(MILESTONE|DAILY|OFF)$/, async (ctx) => {
     if (!res.ok) throw new Error(`API returned ${res.status}`);
 
     const modeLabels: Record<string, Record<string, string>> = {
-      MILESTONE: { ru: 'Milestone', en: 'Milestone', kk: 'Milestone' },
-      DAILY: { ru: 'Ежедневная сводка', en: 'Daily summary', kk: 'Күнделікті жиынтық' },
+      MILESTONE: { ru: 'Вехи', en: 'Milestones', kk: 'Белестер' },
+      DAILY: { ru: 'Ежедневно', en: 'Daily', kk: 'Күнделікті' },
       OFF: { ru: 'Выключены', en: 'Disabled', kk: 'Өшірілді' },
     };
 
@@ -504,17 +497,10 @@ bot.callbackQuery(/^notif_(MILESTONE|DAILY|OFF)$/, async (ctx) => {
     await ctx.answerCallbackQuery({ text: confirmText });
 
     const settingsMessage = getSettingsWithNotificationsMessage(locale, mode);
-    const kb = inlineKeyboard(
-      [btn('🇷🇺 Русский', 'lang_ru', undefined, 'primary'), btn('🇬🇧 English', 'lang_en', undefined, 'primary'), btn('🇰🇿 Қазақша', 'lang_kk', undefined, 'primary')],
-      [btn(locale === 'ru' ? '📢 Уведомления:' : locale === 'en' ? '📢 Notifications:' : '📢 Хабарландырулар:', 'notif_section', undefined, 'primary')],
-      [btn(`${mode === 'MILESTONE' ? '✅ ' : ''}🎯 Milestone`, 'notif_MILESTONE', undefined, 'primary'),
-       btn(`${mode === 'DAILY' ? '✅ ' : ''}📅 Daily`, 'notif_DAILY', undefined, 'primary'),
-       btn(`${mode === 'OFF' ? '✅ ' : ''}🔕 Off`, 'notif_OFF', undefined, 'primary')],
-    );
 
     try {
       await ctx.editMessageText(settingsMessage, {
-        reply_markup: kb,
+        reply_markup: createSettingsKeyboard(locale, mode),
         parse_mode: 'HTML',
       });
     } catch {

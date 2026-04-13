@@ -70,31 +70,42 @@ export function createContinueDraftKeyboard(draftId: string, locale: Locale = 'r
 }
 
 /**
- * Creates inline keyboard for language selection
+ * Creates inline keyboard for language selection only
  */
 export function createLanguageKeyboard(): any {
   return inlineKeyboard(
-    [btn('🇷🇺 Русский', 'lang_ru', undefined, 'primary'), btn('🇬🇧 English', 'lang_en', undefined, 'primary'), btn('🇰🇿 Қазақша', 'lang_kk', undefined, 'primary')],
+    [btn('🇷🇺 Русский', 'lang_ru', 'lang_ru', 'primary'), btn('🇬🇧 English', 'lang_en', 'lang_en', 'primary'), btn('🇰🇿 Қазақша', 'lang_kk', 'lang_kk', 'primary')],
   );
 }
 
-/**
- * Creates inline keyboard for notification mode selection
- */
-export function createNotificationKeyboard(currentMode: string, locale: Locale = 'ru'): any {
-  const modes = [
-    { id: 'MILESTONE', label: '🎯 Milestone', desc: { ru: 'Вехи (10/50/100/500)', en: 'Milestones (10/50/100/500)', kk: 'Белестер (10/50/100/500)' } },
-    { id: 'DAILY', label: '📅 Daily', desc: { ru: 'Ежедневная сводка', en: 'Daily summary', kk: 'Күнделікті жиынтық' } },
-    { id: 'OFF', label: '🔕 Off', desc: { ru: 'Выключить', en: 'Disabled', kk: 'Өшіру' } },
-  ];
+const NOTIF_MODES: Array<{
+  id: string;
+  emoji: string;
+  emojiName: string;
+  label: Record<string, string>;
+}> = [
+  { id: 'MILESTONE', emoji: '🎯', emojiName: 'notif_milestone', label: { ru: 'Вехи', en: 'Milestones', kk: 'Белестер' } },
+  { id: 'DAILY', emoji: '📅', emojiName: 'notif_daily', label: { ru: 'Ежедневно', en: 'Daily', kk: 'Күнделікті' } },
+  { id: 'OFF', emoji: '🔕', emojiName: 'notif_off', label: { ru: 'Выкл', en: 'Off', kk: 'Өшіру' } },
+];
 
-  const rows = modes.map(mode => {
-    const isActive = currentMode === mode.id;
-    const label = `${isActive ? '✅ ' : ''}${mode.label} — ${mode.desc[locale]}`;
-    return [btn(label, `notif_${mode.id}`, undefined, 'primary')];
+/**
+ * Full settings keyboard: languages + notification section + notification modes
+ */
+export function createSettingsKeyboard(locale: Locale, currentMode: string): any {
+  const sectionLabel = locale === 'ru' ? '📢 Уведомления:' : locale === 'en' ? '📢 Notifications:' : '📢 Хабарландырулар:';
+
+  const notifBtns = NOTIF_MODES.map(m => {
+    const active = currentMode === m.id;
+    const text = `${active ? '✅ ' : ''}${m.emoji} ${m.label[locale] || m.label.en}`;
+    return btn(text, `notif_${m.id}`, m.emojiName, 'primary');
   });
 
-  return inlineKeyboard(...rows);
+  return inlineKeyboard(
+    [btn('🇷🇺 Русский', 'lang_ru', 'lang_ru', 'primary'), btn('🇬🇧 English', 'lang_en', 'lang_en', 'primary'), btn('🇰🇿 Қазақша', 'lang_kk', 'lang_kk', 'primary')],
+    [btn(sectionLabel, 'notif_section', 'notif', 'primary')],
+    notifBtns,
+  );
 }
 
 // ── Message helpers (unchanged) ─────────────────────────────────────────────

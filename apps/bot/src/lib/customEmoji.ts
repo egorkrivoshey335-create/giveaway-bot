@@ -46,6 +46,13 @@ export const EMOJI_MAP: Record<string, string> = {
   undo:      process.env.EMOJI_UNDO || '',
   winners:   process.env.EMOJI_WINNERS || '',
   subscribe: process.env.EMOJI_SUBSCRIBE || '',
+  lang_ru:   process.env.EMOJI_LANG_RU || '',
+  lang_en:   process.env.EMOJI_LANG_EN || '',
+  lang_kk:   process.env.EMOJI_LANG_KK || '',
+  notif:     process.env.EMOJI_NOTIF || '',
+  notif_milestone: process.env.EMOJI_NOTIF_MILESTONE || '',
+  notif_daily:     process.env.EMOJI_NOTIF_DAILY || '',
+  notif_off:       process.env.EMOJI_NOTIF_OFF || '',
 };
 
 let _enabled = process.env.CUSTOM_EMOJI_ENABLED !== 'false';
