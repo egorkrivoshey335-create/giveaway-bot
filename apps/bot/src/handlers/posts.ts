@@ -89,7 +89,7 @@ export function createPostsKeyboard(locale: Locale = 'ru'): any {
 
   return inlineKeyboard(
     [btn(createPost, 'create_post', 'posts', 'danger')],
-    [btn(back, 'back_to_menu', 'back', 'primary'), btn(toMenu, 'go_to_menu', 'home', 'primary')],
+    [btn(back, 'back_to_menu', 'back', 'danger'), btn(toMenu, 'go_to_menu', 'home', 'danger')],
   );
 }
 
@@ -99,7 +99,7 @@ export function createPostsKeyboard(locale: Locale = 'ru'): any {
 export function createPostCancelKeyboard(locale: Locale = 'ru'): any {
   const cancel = t(locale, 'posts.cancelBtn');
   return inlineKeyboard(
-    [btn(cancel, 'cancel_post_creation', 'cancel', 'primary')],
+    [btn(cancel, 'cancel_post_creation', 'cancel', 'danger')],
   );
 }
 
@@ -113,7 +113,7 @@ export function createPostCreatedKeyboard(templateId: string, locale: Locale = '
 
   return inlineKeyboard(
     [webAppBtn(openApp, config.webappUrl, 'app', 'danger')],
-    [btn(createMore, 'create_post', 'posts', 'danger'), btn(deleteBtn, `delete_template:${templateId}`, 'delete')],
+    [btn(createMore, 'create_post', 'posts', 'danger'), btn(deleteBtn, `delete_template:${templateId}`, 'delete', 'danger')],
   );
 }
 

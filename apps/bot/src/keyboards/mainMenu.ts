@@ -27,7 +27,7 @@ export function createMainMenuKeyboard(locale: Locale = 'ru'): any {
   return replyKb([
     [replyBtn(t(locale, 'menu.openApp'), 'danger'), replyBtn(t(locale, 'menu.createGiveaway'), 'danger')],
     [replyBtn(t(locale, 'menu.myChannels'), 'danger'), replyBtn(t(locale, 'menu.posts'), 'danger')],
-    [replyBtn(t(locale, 'menu.settings')), replyBtn(t(locale, 'menu.support'))],
+    [replyBtn(t(locale, 'menu.settings'), 'danger'), replyBtn(t(locale, 'menu.support'), 'danger')],
   ]);
 }
 
@@ -36,7 +36,7 @@ export function createMainMenuKeyboard(locale: Locale = 'ru'): any {
  */
 export function createSubMenuKeyboard(locale: Locale = 'ru'): any {
   return replyKb([
-    [replyBtn(t(locale, 'menu.back'), 'primary'), replyBtn(t(locale, 'menu.toMenu'), 'primary')],
+    [replyBtn(t(locale, 'menu.back'), 'danger'), replyBtn(t(locale, 'menu.toMenu'), 'danger')],
   ]);
 }
 
@@ -55,7 +55,7 @@ export function createWebAppInlineKeyboard(locale: Locale = 'ru'): any {
 export function createGiveawayMethodKeyboard(locale: Locale = 'ru'): any {
   return inlineKeyboard(
     [webAppBtn(t(locale, 'wizard.inApp'), config.webappUrl, 'create', 'danger')],
-    [btn(t(locale, 'wizard.inBotSoon'), 'create_in_bot')],
+    [btn(t(locale, 'wizard.inBotSoon'), 'create_in_bot', undefined, 'danger')],
   );
 }
 
@@ -74,7 +74,7 @@ export function createContinueDraftKeyboard(draftId: string, locale: Locale = 'r
  */
 export function createLanguageKeyboard(): any {
   return inlineKeyboard(
-    [btn('🇷🇺 Русский', 'lang_ru'), btn('🇬🇧 English', 'lang_en'), btn('🇰🇿 Қазақша', 'lang_kk')],
+    [btn('🇷🇺 Русский', 'lang_ru', undefined, 'danger'), btn('🇬🇧 English', 'lang_en', undefined, 'danger'), btn('🇰🇿 Қазақша', 'lang_kk', undefined, 'danger')],
   );
 }
 
@@ -91,7 +91,7 @@ export function createNotificationKeyboard(currentMode: string, locale: Locale =
   const rows = modes.map(mode => {
     const isActive = currentMode === mode.id;
     const label = `${isActive ? '✅ ' : ''}${mode.label} — ${mode.desc[locale]}`;
-    return [btn(label, `notif_${mode.id}`)];
+    return [btn(label, `notif_${mode.id}`, undefined, 'danger')];
   });
 
   return inlineKeyboard(...rows);

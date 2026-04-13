@@ -152,7 +152,7 @@ ${formatChannels(channels?.results || [])}`;
   // Send confirmation prompt with buttons + navigation
   const confirmKb = inlineKeyboard(
     [btn(t(locale, 'giveawayConfirm.acceptBtn'), `giveaway_accept:${giveawayId}`, 'confirm', 'danger'),
-     btn(t(locale, 'giveawayConfirm.rejectBtn'), `giveaway_reject:${giveawayId}`, 'reject', 'primary')],
+     btn(t(locale, 'giveawayConfirm.rejectBtn'), `giveaway_reject:${giveawayId}`, 'reject', 'danger')],
     navigationRow(locale, { back: false }),
   );
 

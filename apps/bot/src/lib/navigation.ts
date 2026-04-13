@@ -39,12 +39,12 @@ export function navigationRow(
 
   if (back) {
     const label = backLabel || BACK_LABELS[locale] || BACK_LABELS.ru;
-    row.push(btn(label, backCallback, 'back', 'primary'));
+    row.push(btn(label, backCallback, 'back', 'danger'));
   }
 
   if (mainMenu) {
     const label = MAIN_MENU_LABELS[locale] || MAIN_MENU_LABELS.ru;
-    row.push(btn(label, 'nav_main_menu', 'home', 'primary'));
+    row.push(btn(label, 'nav_main_menu', 'home', 'danger'));
   }
 
   return row;

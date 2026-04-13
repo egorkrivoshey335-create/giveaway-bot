@@ -382,11 +382,11 @@ bot.hears(MENU.SETTINGS, async (ctx) => {
   const settingsMessage = getSettingsWithNotificationsMessage(locale, notificationMode);
 
   const kb = inlineKeyboard(
-    [btn('🇷🇺 Русский', 'lang_ru'), btn('🇬🇧 English', 'lang_en'), btn('🇰🇿 Қазақша', 'lang_kk')],
-    [btn(locale === 'ru' ? '📢 Уведомления:' : locale === 'en' ? '📢 Notifications:' : '📢 Хабарландырулар:', 'notif_section')],
-    [btn(`${notificationMode === 'MILESTONE' ? '✅ ' : ''}🎯 Milestone`, 'notif_MILESTONE'),
-     btn(`${notificationMode === 'DAILY' ? '✅ ' : ''}📅 Daily`, 'notif_DAILY'),
-     btn(`${notificationMode === 'OFF' ? '✅ ' : ''}🔕 Off`, 'notif_OFF')],
+    [btn('🇷🇺 Русский', 'lang_ru', undefined, 'danger'), btn('🇬🇧 English', 'lang_en', undefined, 'danger'), btn('🇰🇿 Қазақша', 'lang_kk', undefined, 'danger')],
+    [btn(locale === 'ru' ? '📢 Уведомления:' : locale === 'en' ? '📢 Notifications:' : '📢 Хабарландырулар:', 'notif_section', undefined, 'danger')],
+    [btn(`${notificationMode === 'MILESTONE' ? '✅ ' : ''}🎯 Milestone`, 'notif_MILESTONE', undefined, 'danger'),
+     btn(`${notificationMode === 'DAILY' ? '✅ ' : ''}📅 Daily`, 'notif_DAILY', undefined, 'danger'),
+     btn(`${notificationMode === 'OFF' ? '✅ ' : ''}🔕 Off`, 'notif_OFF', undefined, 'danger')],
   );
 
   await ctx.reply(settingsMessage, {
@@ -505,11 +505,11 @@ bot.callbackQuery(/^notif_(MILESTONE|DAILY|OFF)$/, async (ctx) => {
 
     const settingsMessage = getSettingsWithNotificationsMessage(locale, mode);
     const kb = inlineKeyboard(
-      [btn('🇷🇺 Русский', 'lang_ru'), btn('🇬🇧 English', 'lang_en'), btn('🇰🇿 Қазақша', 'lang_kk')],
-      [btn(locale === 'ru' ? '📢 Уведомления:' : locale === 'en' ? '📢 Notifications:' : '📢 Хабарландырулар:', 'notif_section')],
-      [btn(`${mode === 'MILESTONE' ? '✅ ' : ''}🎯 Milestone`, 'notif_MILESTONE'),
-       btn(`${mode === 'DAILY' ? '✅ ' : ''}📅 Daily`, 'notif_DAILY'),
-       btn(`${mode === 'OFF' ? '✅ ' : ''}🔕 Off`, 'notif_OFF')],
+      [btn('🇷🇺 Русский', 'lang_ru', undefined, 'danger'), btn('🇬🇧 English', 'lang_en', undefined, 'danger'), btn('🇰🇿 Қазақша', 'lang_kk', undefined, 'danger')],
+      [btn(locale === 'ru' ? '📢 Уведомления:' : locale === 'en' ? '📢 Notifications:' : '📢 Хабарландырулар:', 'notif_section', undefined, 'danger')],
+      [btn(`${mode === 'MILESTONE' ? '✅ ' : ''}🎯 Milestone`, 'notif_MILESTONE', undefined, 'danger'),
+       btn(`${mode === 'DAILY' ? '✅ ' : ''}📅 Daily`, 'notif_DAILY', undefined, 'danger'),
+       btn(`${mode === 'OFF' ? '✅ ' : ''}🔕 Off`, 'notif_OFF', undefined, 'danger')],
     );
 
     try {

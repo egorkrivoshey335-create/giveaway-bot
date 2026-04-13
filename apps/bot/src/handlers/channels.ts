@@ -60,7 +60,7 @@ export function createChannelManagementKeyboard(locale: Locale = 'ru'): any {
 
   return inlineKeyboard(
     [btn(addChannel, 'add_channel', 'add', 'danger'), btn(addGroup, 'add_group', 'add', 'danger')],
-    [btn(back, 'back_to_menu', 'back', 'primary'), btn(toMenu, 'go_to_menu', 'home', 'primary')],
+    [btn(back, 'back_to_menu', 'back', 'danger'), btn(toMenu, 'go_to_menu', 'home', 'danger')],
   );
 }
 
