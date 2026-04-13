@@ -46,6 +46,7 @@ export const EMOJI_MAP: Record<string, string> = {
   undo:      process.env.EMOJI_UNDO || '',
   winners:   process.env.EMOJI_WINNERS || '',
   subscribe: process.env.EMOJI_SUBSCRIBE || '',
+  create_bot: process.env.EMOJI_CREATE_BOT || '',
   lang_ru:   process.env.EMOJI_LANG_RU || '',
   lang_en:   process.env.EMOJI_LANG_EN || '',
   lang_kk:   process.env.EMOJI_LANG_KK || '',
@@ -133,7 +134,7 @@ export function inlineKeyboard(...rows: StyledButton[][]): any {
 
 export function replyBtn(text: string, emojiName?: string, style?: ButtonStyle): any {
   const eid = emojiName ? getEmojiId(emojiName) : undefined;
-  const b: any = { text };
+  const b: any = { text: eid ? stripLeadingEmoji(text) : text };
   if (style) b.style = style;
   if (eid) b.icon_custom_emoji_id = eid;
   return b;

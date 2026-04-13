@@ -6,18 +6,33 @@ import {
 } from '../lib/customEmoji.js';
 
 /**
+ * Strip leading non-letter/non-digit chars (emoji + spaces).
+ * Used to create bot.hears patterns that work both with and without
+ * Unicode emoji prefix (when icon_custom_emoji_id replaces it).
+ */
+function strip(s: string): string {
+  return s.replace(/^[^\p{L}\p{N}]+/u, '');
+}
+
+function withStripped(texts: string[]): string[] {
+  const set = new Set<string>();
+  for (const t of texts) { set.add(t); set.add(strip(t)); }
+  return [...set];
+}
+
+/**
  * Menu button labels (для matching в bot.hears)
- * Содержит все варианты на всех языках
+ * Содержит все варианты на всех языках (с эмодзи и без — для совместимости)
  */
 export const MENU: Record<string, string[]> = {
-  OPEN_APP: ['📱 Открыть приложение', '📱 Open App', '📱 Қолданбаны ашу'],
-  CREATE_GIVEAWAY: ['🎁 Создать розыгрыш', '🎁 Create Giveaway', '🎁 Ұтыс ойынын құру'],
-  MY_CHANNELS: ['📣 Мои каналы', '📣 My Channels', '📣 Менің арналарым'],
-  MY_POSTS: ['📝 Посты', '📝 Posts', '📝 Жазбалар'],
-  SETTINGS: ['⚙️ Настройки', '⚙️ Settings', '⚙️ Баптаулар'],
-  SUPPORT: ['🆘 Поддержка', '🆘 Support', '🆘 Қолдау'],
-  BACK: ['◀️ Назад', '◀️ Back', '◀️ Артқа'],
-  TO_MENU: ['🏠 В меню', '🏠 Menu', '🏠 Мәзір'],
+  OPEN_APP: withStripped(['📱 Открыть приложение', '📱 Open App', '📱 Қолданбаны ашу']),
+  CREATE_GIVEAWAY: withStripped(['🎁 Создать розыгрыш', '🎁 Create Giveaway', '🎁 Ұтыс ойынын құру']),
+  MY_CHANNELS: withStripped(['📣 Мои каналы', '📣 My Channels', '📣 Менің арналарым']),
+  MY_POSTS: withStripped(['📝 Посты', '📝 Posts', '📝 Жазбалар']),
+  SETTINGS: withStripped(['⚙️ Настройки', '⚙️ Settings', '⚙️ Баптаулар']),
+  SUPPORT: withStripped(['🆘 Поддержка', '🆘 Support', '🆘 Қолдау']),
+  BACK: withStripped(['◀️ Назад', '◀️ Back', '◀️ Артқа']),
+  TO_MENU: withStripped(['🏠 В меню', '🏠 Menu', '🏠 Мәзір']),
 };
 
 /**
@@ -55,7 +70,7 @@ export function createWebAppInlineKeyboard(locale: Locale = 'ru'): any {
 export function createGiveawayMethodKeyboard(locale: Locale = 'ru'): any {
   return inlineKeyboard(
     [webAppBtn(t(locale, 'wizard.inApp'), config.webappUrl, 'create', 'danger')],
-    [btn(t(locale, 'wizard.inBotSoon'), 'create_in_bot', undefined, 'danger')],
+    [btn(t(locale, 'wizard.inBotSoon'), 'create_in_bot', 'create_bot', 'danger')],
   );
 }
 
