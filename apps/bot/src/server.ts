@@ -194,12 +194,16 @@ async function main() {
           log.warn({ err }, '[Polling] deleteWebhook timed out, continuing startup');
         }
         
-        // Запуск long polling
+        // Запуск long polling with short timeout to avoid CF Worker proxy timeouts
+        const pollingTimeoutSec = Number.parseInt(process.env.BOT_POLLING_TIMEOUT || '5', 10);
+        log.info({ pollingTimeoutSec }, '[Polling] Using short polling timeout for proxy compatibility');
         await bot.start({
+          allowed_updates: ['message', 'callback_query', 'inline_query', 'my_chat_member', 'chat_member', 'pre_checkout_query'],
           onStart: (botInfo) => {
             log.info(`✅ Bot @${botInfo.username} is running!`);
             log.info(`🔗 WebApp URL: ${config.webappUrl}`);
           },
+          timeout: pollingTimeoutSec,
         });
       }
     } else {

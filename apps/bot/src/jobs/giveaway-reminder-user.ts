@@ -82,7 +82,7 @@ export const giveawayReminderUserWorker = new Worker<GiveawayReminderUserData>(
 
       // Mark reminder as sent in the API
       await fetch(
-        `${config.apiUrl}/internal/giveaway-reminders/${reminderId}/mark-sent`,
+        `${config.internalApiUrl}/internal/giveaway-reminders/${reminderId}/mark-sent`,
         {
           method: 'POST',
           headers: {
@@ -101,7 +101,7 @@ export const giveawayReminderUserWorker = new Worker<GiveawayReminderUserData>(
         log.warn({ telegramUserId }, 'User blocked bot, skipping reminder');
         // Still mark as sent so we don't retry
         await fetch(
-          `${config.apiUrl}/internal/giveaway-reminders/${reminderId}/mark-sent`,
+          `${config.internalApiUrl}/internal/giveaway-reminders/${reminderId}/mark-sent`,
           {
             method: 'POST',
             headers: { 'X-Internal-Token': config.internalApiToken },
@@ -141,7 +141,7 @@ export const giveawayReminderCheckWorker = new Worker(
 
     try {
       const res = await fetch(
-        `${config.apiUrl}/internal/giveaway-reminders/pending?limit=200`,
+        `${config.internalApiUrl}/internal/giveaway-reminders/pending?limit=200`,
         {
           headers: { 'X-Internal-Token': config.internalApiToken },
         }
@@ -172,7 +172,7 @@ export const giveawayReminderCheckWorker = new Worker(
         if (reminder.giveawayStatus === 'CANCELLED' || reminder.giveawayStatus === 'FINISHED') {
           // Mark as sent without sending
           await fetch(
-            `${config.apiUrl}/internal/giveaway-reminders/${reminder.id}/mark-sent`,
+            `${config.internalApiUrl}/internal/giveaway-reminders/${reminder.id}/mark-sent`,
             {
               method: 'POST',
               headers: { 'X-Internal-Token': config.internalApiToken },

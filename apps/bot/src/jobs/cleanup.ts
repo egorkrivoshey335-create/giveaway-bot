@@ -48,7 +48,7 @@ export const sandboxCleanupWorker = new Worker<SandboxCleanupData>(
     log.info({ olderThanHours }, 'Starting sandbox cleanup');
 
     try {
-      const response = await fetch(`${config.apiUrl}/internal/cleanup/sandbox`, {
+      const response = await fetch(`${config.internalApiUrl}/internal/cleanup/sandbox`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -102,7 +102,7 @@ export const prizeFormCleanupWorker = new Worker<PrizeFormCleanupData>(
     log.info({ olderThanDays }, 'Starting prize form cleanup');
 
     try {
-      const response = await fetch(`${config.apiUrl}/internal/cleanup/prize-forms`, {
+      const response = await fetch(`${config.internalApiUrl}/internal/cleanup/prize-forms`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,7 +156,7 @@ export const livenessCleanupWorker = new Worker<LivenessCleanupData>(
     log.info({ olderThanDays }, 'Starting liveness photo cleanup');
 
     try {
-      const response = await fetch(`${config.apiUrl}/internal/cleanup/liveness`, {
+      const response = await fetch(`${config.internalApiUrl}/internal/cleanup/liveness`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -214,7 +214,7 @@ export const badgesCheckWorker = new Worker<BadgesCheckData>(
     log.info({ userId: userId || 'all', batchSize }, 'Starting badges check');
 
     try {
-      const response = await fetch(`${config.apiUrl}/internal/badges/check`, {
+      const response = await fetch(`${config.internalApiUrl}/internal/badges/check`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

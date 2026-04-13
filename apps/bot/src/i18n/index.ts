@@ -76,7 +76,7 @@ export async function updateUserLocale(telegramUserId: number, locale: Locale): 
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const response = await fetch(`${config.apiUrl}/internal/users/language`, {
+      const response = await fetch(`${config.internalApiUrl}/internal/users/language`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

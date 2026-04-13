@@ -77,7 +77,7 @@ async function notifyApiStarsPayment(params: {
   starsAmount: number;
   telegramPaymentChargeId: string;
 }): Promise<{ ok: boolean; error?: string }> {
-  const url = `${config.apiUrl}/api/v1/internal/stars-payment`;
+  const url = `${config.internalApiUrl}/api/v1/internal/stars-payment`;
 
   try {
     const response = await fetch(url, {

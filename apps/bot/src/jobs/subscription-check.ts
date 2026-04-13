@@ -50,7 +50,7 @@ export const subscriptionCheckWorker = new Worker(
 
     try {
       // Fetch expiring subscriptions from API (within 4 days)
-      const res = await fetch(`${config.apiUrl}/internal/subscriptions/expiring?days=4`, {
+      const res = await fetch(`${config.internalApiUrl}/internal/subscriptions/expiring?days=4`, {
         headers: { 'X-Internal-Token': config.internalApiToken },
       });
 
@@ -111,7 +111,7 @@ export const subscriptionCheckWorker = new Worker(
           );
 
           // Mark warning as sent
-          await fetch(`${config.apiUrl}/internal/subscriptions/${ent.userId}/mark-warning-sent`, {
+          await fetch(`${config.internalApiUrl}/internal/subscriptions/${ent.userId}/mark-warning-sent`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

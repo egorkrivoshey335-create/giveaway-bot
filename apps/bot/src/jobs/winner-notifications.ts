@@ -61,7 +61,7 @@ ${creatorUsername ? `Свяжитесь с организатором @${creator
         log.warn({ telegramUserId }, 'User blocked the bot - updating notificationsBlocked flag');
         
         // Обновляем флаг User.notificationsBlocked через API
-        await fetch(`${config.apiUrl}/internal/users/${telegramUserId}/notifications-blocked`, {
+        await fetch(`${config.internalApiUrl}/internal/users/${telegramUserId}/notifications-blocked`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',

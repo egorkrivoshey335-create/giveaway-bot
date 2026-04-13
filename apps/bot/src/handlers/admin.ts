@@ -53,7 +53,7 @@ export async function handleAdminBan(ctx: Context) {
   }
 
   try {
-    const response = await fetch(`${config.apiUrl}/internal/users/${targetUserId}/ban`, {
+    const response = await fetch(`${config.internalApiUrl}/internal/users/${targetUserId}/ban`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -96,7 +96,7 @@ export async function handleAdminUnban(ctx: Context) {
   }
 
   try {
-    const response = await fetch(`${config.apiUrl}/internal/users/${targetUserId}/ban`, {
+    const response = await fetch(`${config.internalApiUrl}/internal/users/${targetUserId}/ban`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -127,7 +127,7 @@ export async function handleAdminStats(ctx: Context) {
   }
 
   try {
-    const response = await fetch(`${config.apiUrl}/internal/admin/stats`, {
+    const response = await fetch(`${config.internalApiUrl}/internal/admin/stats`, {
       headers: {
         'X-Internal-Token': config.internalApiToken,
       },
@@ -183,7 +183,7 @@ export async function handleAdminGiveaway(ctx: Context) {
   const giveawayId = args[0];
 
   try {
-    const response = await fetch(`${config.apiUrl}/internal/admin/giveaways/${giveawayId}`, {
+    const response = await fetch(`${config.internalApiUrl}/internal/admin/giveaways/${giveawayId}`, {
       headers: {
         'X-Internal-Token': config.internalApiToken,
       },
@@ -236,7 +236,7 @@ export async function handleAdminApprove(ctx: Context) {
   const giveawayId = args[0];
 
   try {
-    const response = await fetch(`${config.apiUrl}/internal/catalog/${giveawayId}/approve`, {
+    const response = await fetch(`${config.internalApiUrl}/internal/catalog/${giveawayId}/approve`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -277,7 +277,7 @@ export async function handleAdminReject(ctx: Context) {
   const reason = args.slice(1).join(' ') || 'Нарушение правил платформы';
 
   try {
-    const response = await fetch(`${config.apiUrl}/internal/catalog/${giveawayId}/reject`, {
+    const response = await fetch(`${config.internalApiUrl}/internal/catalog/${giveawayId}/reject`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

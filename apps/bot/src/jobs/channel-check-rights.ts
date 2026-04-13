@@ -38,7 +38,7 @@ export const channelCheckRightsWorker = new Worker<ChannelCheckRightsData>(
         'can_post_messages' in chatMember ? chatMember.can_post_messages : false;
 
       // Обновляем через API
-      const response = await fetch(`${config.apiUrl}/internal/channels/${channelId}/rights`, {
+      const response = await fetch(`${config.internalApiUrl}/internal/channels/${channelId}/rights`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -62,7 +62,7 @@ export const channelCheckRightsWorker = new Worker<ChannelCheckRightsData>(
       
       // Если канал не найден (404) или бот удален (403) - помечаем как неактивный
       if (error.error_code === 400 || error.error_code === 403) {
-        await fetch(`${config.apiUrl}/internal/channels/${channelId}/rights`, {
+        await fetch(`${config.internalApiUrl}/internal/channels/${channelId}/rights`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',

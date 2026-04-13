@@ -462,7 +462,7 @@ bot.callbackQuery('settings_notifications', async (ctx) => {
   let notificationMode = 'MILESTONE';
   try {
     if (userId) {
-      const res = await fetchWithTimeout(`${config.apiUrl}/internal/users/${userId}/notification-mode`, {
+      const res = await fetchWithTimeout(`${config.internalApiUrl}/internal/users/${userId}/notification-mode`, {
         headers: { 'X-Internal-Token': config.internalApiToken },
       });
       if (res.ok) {
@@ -514,7 +514,7 @@ bot.callbackQuery(/^notif_(MILESTONE|DAILY|OFF)$/, async (ctx) => {
   }
 
   try {
-    await fetchWithTimeout(`${config.apiUrl}/internal/users/${userId}/notification-mode`, {
+    await fetchWithTimeout(`${config.internalApiUrl}/internal/users/${userId}/notification-mode`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -717,7 +717,7 @@ bot.hears(/^\/repost:?(.+)$/, async (ctx) => {
   }
 
   try {
-    const res = await fetchWithTimeout(`${config.apiUrl}/internal/giveaways/by-code/${shortCode}`, {
+    const res = await fetchWithTimeout(`${config.internalApiUrl}/internal/giveaways/by-code/${shortCode}`, {
       headers: { 'X-Internal-Token': config.internalApiToken },
     });
 

@@ -33,7 +33,7 @@ export const channelUpdateSubscribersWorker = new Worker<ChannelUpdateSubscriber
       const memberCount = await bot.api.getChatMemberCount(telegramId);
 
       // Обновляем через API
-      const response = await fetch(`${config.apiUrl}/internal/channels/${channelId}/subscribers`, {
+      const response = await fetch(`${config.internalApiUrl}/internal/channels/${channelId}/subscribers`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

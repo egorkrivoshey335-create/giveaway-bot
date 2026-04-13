@@ -44,7 +44,7 @@ export async function handleMyChatMember(ctx: Context) {
     }
 
     // Обновляем через API
-    await fetch(`${config.apiUrl}/internal/channels/telegram/${chat.id}/rights`, {
+    await fetch(`${config.internalApiUrl}/internal/channels/telegram/${chat.id}/rights`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

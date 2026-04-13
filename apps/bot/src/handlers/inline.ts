@@ -25,7 +25,7 @@ export async function handleInlineQuery(ctx: Context) {
 
     // Поиск розыгрышей через API
     const response = await fetch(
-      `${config.apiUrl}/internal/giveaways/search?q=${encodeURIComponent(query)}&limit=10`,
+      `${config.internalApiUrl}/internal/giveaways/search?q=${encodeURIComponent(query)}&limit=10`,
       {
         headers: {
           'X-Internal-Secret': config.internalApiToken,

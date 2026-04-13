@@ -59,7 +59,7 @@ export const subscriptionExpireWorker = new Worker<SubscriptionExpireData>(
 
     try {
       // Деактивируем подписку через API
-      const response = await fetch(`${config.apiUrl}/internal/subscriptions/${userId}/deactivate`, {
+      const response = await fetch(`${config.internalApiUrl}/internal/subscriptions/${userId}/deactivate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -206,7 +206,7 @@ export const subscriptionAutoRenewWorker = new Worker<SubscriptionAutoRenewData>
 
     try {
       // Инициируем рекуррентный платёж через API
-      const response = await fetch(`${config.apiUrl}/internal/subscriptions/${userId}/auto-renew`, {
+      const response = await fetch(`${config.internalApiUrl}/internal/subscriptions/${userId}/auto-renew`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

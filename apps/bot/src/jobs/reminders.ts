@@ -66,7 +66,7 @@ export const remindersWorker = new Worker<ReminderData>(
               
               // 403 - пользователь заблокировал бота
               if (error.error_code === 403) {
-                await fetch(`${config.apiUrl}/internal/users/${participant.telegramUserId}/notifications-blocked`, {
+                await fetch(`${config.internalApiUrl}/internal/users/${participant.telegramUserId}/notifications-blocked`, {
                   method: 'PATCH',
                   headers: {
                     'Content-Type': 'application/json',

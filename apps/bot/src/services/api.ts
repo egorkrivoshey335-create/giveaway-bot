@@ -161,7 +161,7 @@ export class ApiService {
   private requestTimeoutMs: number;
 
   constructor() {
-    this.baseUrl = config.apiUrl;
+    this.baseUrl = config.internalApiUrl;
     this.internalToken = config.internalApiToken;
     this.requestTimeoutMs = parsePositiveInt(
       process.env.BOT_INTERNAL_API_TIMEOUT_MS,
