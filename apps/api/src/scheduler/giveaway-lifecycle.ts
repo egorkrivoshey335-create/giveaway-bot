@@ -108,12 +108,18 @@ export async function processGiveawayLifecycle(): Promise<void> {
           where: { id: giveaway.id },
           data: { status: GiveawayStatus.CANCELLED },
         });
-        updateCancelledPostButtons(giveaway.id).catch(err =>
-          console.error('[Scheduler] Ошибка обновления поста при отмене:', err)
-        );
-        notifyCancelToAll(giveaway.id, giveaway.title, giveaway.ownerUserId).catch(err =>
-          console.error('[Scheduler] Ошибка уведомления об отмене:', err)
-        );
+        try {
+          await updateCancelledPostButtons(giveaway.id);
+          console.log(`[Scheduler] updateCancelledPostButtons completed for cancelIfNotEnough: ${giveaway.id}`);
+        } catch (err) {
+          console.error('[Scheduler] Ошибка обновления поста при отмене:', err);
+        }
+        try {
+          await notifyCancelToAll(giveaway.id, giveaway.title, giveaway.ownerUserId);
+          console.log(`[Scheduler] notifyCancelToAll completed for cancelIfNotEnough: ${giveaway.id}`);
+        } catch (err) {
+          console.error('[Scheduler] Ошибка уведомления об отмене:', err);
+        }
         continue;
       }
 
@@ -131,36 +137,49 @@ export async function processGiveawayLifecycle(): Promise<void> {
  * Заменяет "Участвовать" на "Розыгрыш не состоялся".
  */
 export async function updateCancelledPostButtons(giveawayId: string): Promise<void> {
+  if (!config.botToken) {
+    console.warn('[Scheduler] updateCancelledPostButtons: no bot token');
+    return;
+  }
+
   try {
     const messages = await prisma.giveawayMessage.findMany({
       where: { giveawayId, kind: GiveawayMessageKind.START },
       select: { channelId: true, telegramMessageId: true },
     });
 
+    console.log(`[Scheduler] updateCancelledPostButtons: found ${messages.length} messages for giveaway ${giveawayId}`);
+
     for (const msg of messages) {
       const channel = await prisma.channel.findUnique({
         where: { id: msg.channelId },
         select: { telegramChatId: true },
       });
-      if (!channel) continue;
+      if (!channel) {
+        console.warn(`[Scheduler] updateCancelledPostButtons: channel ${msg.channelId} not found`);
+        continue;
+      }
 
       try {
-        await fetch(`${config.apiUrl}/internal/edit-message-button`, {
+        const res = await fetch(`https://api.telegram.org/bot${config.botToken}/editMessageReplyMarkup`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Internal-Token': config.internalApiToken,
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            chatId: channel.telegramChatId.toString(),
-            messageId: msg.telegramMessageId,
-            replyMarkup: {
+            chat_id: channel.telegramChatId.toString(),
+            message_id: msg.telegramMessageId,
+            reply_markup: {
               inline_keyboard: [[
                 { text: '❌ Розыгрыш не состоялся', callback_data: 'noop' },
               ]],
             },
           }),
         });
+        const data = await res.json() as { ok: boolean; description?: string };
+        if (!data.ok) {
+          console.error(`[Scheduler] Telegram editMessageReplyMarkup failed:`, data.description);
+        } else {
+          console.log(`[Scheduler] Updated cancelled button for chat ${channel.telegramChatId}, msg ${msg.telegramMessageId}`);
+        }
       } catch (err) {
         console.error(`[Scheduler] Ошибка обновления кнопки при отмене:`, err);
       }
@@ -368,13 +387,19 @@ export async function finishGiveaway(giveawayId: string): Promise<{
         where: { id: giveawayId },
         data: { status: GiveawayStatus.CANCELLED },
       });
-      console.log(`[Scheduler] Розыгрыш ${giveawayId} отменён — нет допущенных участников`);
-      updateCancelledPostButtons(giveawayId).catch(err =>
-        console.error('[Scheduler] Ошибка обновления поста при отмене:', err)
-      );
-      notifyCancelToAll(giveawayId, giveaway.title, giveaway.owner.id).catch(err =>
-        console.error('[Scheduler] Ошибка уведомления об отмене (0 участников):', err)
-      );
+      console.log(`[Scheduler] Розыгрыш ${giveawayId} отменён — нет допущенных участников. Owner: ${giveaway.owner.id}, title: "${giveaway.title}"`);
+      try {
+        await updateCancelledPostButtons(giveawayId);
+        console.log(`[Scheduler] updateCancelledPostButtons completed for ${giveawayId}`);
+      } catch (err) {
+        console.error('[Scheduler] Ошибка обновления поста при отмене:', err);
+      }
+      try {
+        await notifyCancelToAll(giveawayId, giveaway.title, giveaway.owner.id);
+        console.log(`[Scheduler] notifyCancelToAll completed for ${giveawayId}`);
+      } catch (err) {
+        console.error('[Scheduler] Ошибка уведомления об отмене (0 участников):', err);
+      }
       return { ok: true, winnersCount: 0 };
     }
 

@@ -154,7 +154,7 @@ export function ThemeCustomizer({
     return (
       <Card className="p-6 text-center">
         <div className="flex justify-center mb-2">
-          <Mascot type="state-locked" size={120} loop={false} autoplay />
+          <Mascot type="state-locked" size={120} loop autoplay />
         </div>
         <h3 className="text-lg font-semibold mb-2">Кастомизация темы</h3>
         <p className="text-tg-hint mb-4">

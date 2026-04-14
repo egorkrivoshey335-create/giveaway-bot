@@ -31,6 +31,7 @@ import { StatsBottomSheet } from '@/components/StatsBottomSheet';
 import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
 import { AppIcon } from '@/components/AppIcon';
+import { Mascot } from '@/components/Mascot';
 import { AnimatePresence, motion } from 'framer-motion';
 
 // Берём username бота из env
@@ -423,8 +424,8 @@ export default function GiveawayDetailsPage() {
     return (
       <main className="min-h-screen p-4">
         <div className="max-w-xl mx-auto text-center py-12">
-          <div className="flex justify-center mb-4"><AppIcon name="icon-pending" size={40} /></div>
-          <p className="text-tg-hint">{tCommon('loading')}</p>
+          <Mascot type="state-loading" size={100} loop autoplay />
+          <p className="text-tg-hint mt-2">{tCommon('loading')}</p>
         </div>
       </main>
     );
@@ -434,8 +435,8 @@ export default function GiveawayDetailsPage() {
     return (
       <main className="min-h-screen p-4">
         <div className="max-w-xl mx-auto text-center py-12">
-          <div className="flex justify-center mb-4">
-            <AppIcon name="icon-error" variant="brand" size={56} />
+          <div className="flex justify-center mb-2">
+            <Mascot type="state-error" size={120} loop autoplay />
           </div>
           <p className="text-tg-hint mb-4">{error || tErrors('giveawayNotFound')}</p>
           <button

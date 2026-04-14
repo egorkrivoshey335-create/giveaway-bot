@@ -694,7 +694,7 @@ export default function JoinGiveawayPage() {
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
           <div className="flex justify-center mb-2">
-            <Mascot type="state-error" size={120} loop={false} autoplay />
+            <Mascot type="state-error" size={120} loop autoplay />
           </div>
           <h1 className="text-xl font-bold mb-2">{t('error.title')}</h1>
           <p className="text-tg-hint mb-6">{error}</p>
@@ -715,7 +715,7 @@ export default function JoinGiveawayPage() {
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
           <div className="flex justify-center mb-2">
-            <Mascot type="state-empty" size={120} loop={false} autoplay />
+            <Mascot type="state-empty" size={120} loop autoplay />
           </div>
           <h1 className="text-xl font-bold mb-2">{t('finished.title')}</h1>
           <p className="text-tg-hint mb-6">

@@ -531,7 +531,7 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
     const cacheKey = `stats:giveaway:${id}`;
     const cached = await getCache(cacheKey);
     if (cached) {
-      return reply.success(cached);
+      return reply.success({ stats: cached });
     }
 
     // Проверяем владельца
@@ -676,10 +676,9 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
       channelStats,
     };
 
-    // 🔒 Сохраняем в кеш (60 секунд)
     await setCache(cacheKey, stats, 60);
 
-    return reply.success(stats);
+    return reply.success({ stats });
   });
 
   /**
@@ -850,8 +849,8 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
-    return reply.paginated(
-      participants.map(p => ({
+    return reply.success({
+      participants: participants.map(p => ({
         id: p.id,
         user: {
           id: p.user.id,
@@ -868,8 +867,9 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
         storyRequestStatus: p.storyRequest?.status || null,
         joinedAt: p.joinedAt.toISOString(),
       })),
-      { total, hasMore: offset + participants.length < total }
-    );
+      total,
+      hasMore: offset + participants.length < total,
+    });
   });
 
   /**
@@ -1141,6 +1141,7 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     return reply.success({
+      giveaway: {
         id: giveaway.id,
         status: giveaway.status,
         title: giveaway.title,
@@ -1154,6 +1155,7 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
         createdAt: giveaway.createdAt.toISOString(),
         updatedAt: giveaway.updatedAt.toISOString(),
         participantsCount: giveaway._count.participations,
+        isSandbox: giveaway.isSandbox,
         postTemplate: giveaway.postTemplate,
         condition: giveaway.condition ? {
           captchaMode: giveaway.condition.captchaMode,
@@ -1176,6 +1178,7 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
             username: w.user.username,
           },
         })),
+      },
     });
   });
 

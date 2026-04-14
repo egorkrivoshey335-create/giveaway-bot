@@ -82,7 +82,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="max-w-md w-full text-center">
             {/* Маскот */}
             <div className="mb-4 flex justify-center">
-              <Mascot type="state-error" size={150} loop={false} autoplay />
+              <Mascot type="state-error" size={150} loop autoplay />
             </div>
 
             {/* Заголовок */}

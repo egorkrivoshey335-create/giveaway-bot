@@ -487,7 +487,7 @@ export default function CreatorDashboardPage() {
     return (
       <main className="min-h-screen p-4">
         <div className="max-w-xl mx-auto flex flex-col items-center text-center py-12">
-          <Mascot type="state-error" size={100} loop={false} autoplay />
+          <Mascot type="state-error" size={100} loop autoplay />
           <p className="text-tg-hint mb-4 mt-2">{error}</p>
           <button
             onClick={() => window.location.reload()}

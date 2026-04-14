@@ -329,7 +329,7 @@ export function ParticipantSection() {
           ) : error ? (
             <div className="flex flex-col items-center text-center py-8 bg-tg-secondary rounded-xl">
               <div className="mb-2">
-                <Mascot type="state-error" size={100} loop={false} autoplay />
+                <Mascot type="state-error" size={100} loop autoplay />
               </div>
               <p className="text-tg-hint mb-4">{error}</p>
               <button

@@ -333,7 +333,7 @@ export default function HomePage() {
           {authStatus === 'error' && (
             <FadeIn key="error" delay={0.1}>
               <div className="bg-tg-secondary rounded-xl p-6 flex flex-col items-center text-center">
-                <Mascot type="state-error" size={100} loop={false} autoplay />
+                <Mascot type="state-error" size={100} loop autoplay />
                 <div className="h-2" />
                 <h2 className="text-lg font-semibold mb-2 text-red-500">{tCommon('error')}</h2>
                 <p className="text-tg-hint text-sm mb-4">{error || t('errors.connectionError')}</p>

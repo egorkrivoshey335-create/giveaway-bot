@@ -171,7 +171,7 @@ function PaywallFullOverlay({
       
       <div className="bg-tg-bg p-4">
         <div className="bg-tg-secondary rounded-xl p-6 flex flex-col items-center text-center">
-          <Mascot type="state-locked" size={100} loop={false} autoplay />
+          <Mascot type="state-locked" size={100} loop autoplay />
           <div className="h-2" />
           <h3 className="text-xl font-bold mb-2">{t('giveawaysCount', { count: total })}</h3>
           <p className="text-tg-hint text-sm mb-4">
