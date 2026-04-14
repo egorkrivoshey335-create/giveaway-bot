@@ -29,7 +29,7 @@ export function BottomSheet({
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
-      setTimeout(() => { document.body.style.overflow = ''; }, 300);
+      document.body.style.overflow = '';
     }
 
     return () => {

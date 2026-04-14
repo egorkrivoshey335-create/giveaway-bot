@@ -36,6 +36,7 @@ import {
   CustomTask,
 } from '@/lib/api';
 import { AppIcon } from '@/components/AppIcon';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Состояния экрана
 type ScreenState = 
@@ -1035,7 +1036,7 @@ export default function JoinGiveawayPage() {
           {/* Маскот */}
           <div className="flex justify-center mb-2">
             <Mascot 
-              type={(giveaway?.mascotType as any) || 'participant-joined'} 
+              type="wizard-results"
               size={180}
               loop
               autoplay
@@ -1198,9 +1199,17 @@ export default function JoinGiveawayPage() {
 
               {/* Контент табов */}
               <div className="mt-4 pb-4">
+                <AnimatePresence mode="wait">
                 {/* Вкладка: Приглашения */}
                 {activeExtrasTab === 'invites' && giveaway.conditions.inviteEnabled && (
-                  <div className="space-y-3">
+                  <motion.div
+                    key="invites"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-3"
+                  >
                     {/* Прогресс приглашений */}
                     <div>
                       <div className="flex justify-between text-xs text-tg-hint mb-1">
@@ -1292,12 +1301,19 @@ export default function JoinGiveawayPage() {
                         </div>
                       </div>
                     )}
-                  </div>
+                  </motion.div>
                 )}
 
                 {/* Вкладка: Бусты */}
                 {activeExtrasTab === 'boosts' && giveaway.conditions.boostEnabled && (
-                  <div className="space-y-3">
+                  <motion.div
+                    key="boosts"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-3"
+                  >
                     <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 text-center">
                       <span className="text-xs font-medium text-amber-600">
                         <AppIcon name="icon-boost" size={14} /> {t('extras.boostDescription')}
@@ -1346,12 +1362,19 @@ export default function JoinGiveawayPage() {
                         {boostMessage}
                       </div>
                     )}
-                  </div>
+                  </motion.div>
                 )}
 
                 {/* Вкладка: Сторис */}
                 {activeExtrasTab === 'stories' && giveaway.conditions.storiesEnabled && (
-                  <div className="space-y-3">
+                  <motion.div
+                    key="stories"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-3"
+                  >
                     <p className="text-sm text-tg-hint">
                       {t('extras.storyDescription')}
                     </p>
@@ -1446,12 +1469,19 @@ export default function JoinGiveawayPage() {
                         </div>
                       </div>
                     )}
-                  </div>
+                  </motion.div>
                 )}
 
                 {/* Вкладка: Кастомные задания */}
                 {activeExtrasTab === 'tasks' && customTasks.length > 0 && (
-                  <div className="space-y-3">
+                  <motion.div
+                    key="tasks"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-3"
+                  >
                     {customTasks.map((task) => {
                       const isCompleted = customTaskCompletions.get(task.id) || false;
                       const isCompleting = completingTask === task.id;
@@ -1506,8 +1536,9 @@ export default function JoinGiveawayPage() {
                         🔴 {t('extras.requiredTasksNote')}
                       </p>
                     )}
-                  </div>
+                  </motion.div>
                 )}
+                </AnimatePresence>
               </div>
             </div>
           </BottomSheet>
@@ -1542,7 +1573,7 @@ export default function JoinGiveawayPage() {
           <div className="text-center mb-6">
             <div className="flex justify-center mb-2">
               <Mascot 
-                type={(giveaway?.mascotType as any) || 'participant-joined'} 
+                type="wizard-results"
                 size={180}
                 loop
                 autoplay

@@ -75,21 +75,49 @@ export async function handleConfirmStart(ctx: Context, giveawayId: string): Prom
   // Send post preview
   const previewLabel = t(locale, 'giveawayConfirm.previewLabel');
   if (postTemplate) {
+    const hasEntities = Array.isArray(postTemplate.entities) && postTemplate.entities.length > 0;
+    const labelPrefix = `📝 ${previewLabel}\n\n`;
+    const labelLen = labelPrefix.length;
+
     try {
-      if (postTemplate.mediaType === 'PHOTO' && postTemplate.telegramFileId) {
-        await ctx.replyWithPhoto(postTemplate.telegramFileId, {
-          caption: `📝 <b>${previewLabel}</b>\n\n${postTemplate.text}`,
-          parse_mode: 'HTML',
-        });
-      } else if (postTemplate.mediaType === 'VIDEO' && postTemplate.telegramFileId) {
-        await ctx.replyWithVideo(postTemplate.telegramFileId, {
-          caption: `📝 <b>${previewLabel}</b>\n\n${postTemplate.text}`,
-          parse_mode: 'HTML',
-        });
+      if (hasEntities) {
+        const shiftedEntities = (postTemplate.entities as any[]).map((e: any) => ({
+          ...e,
+          offset: e.offset + labelLen,
+        }));
+        const fullText = labelPrefix + postTemplate.text;
+
+        if (postTemplate.mediaType === 'PHOTO' && postTemplate.telegramFileId) {
+          await ctx.replyWithPhoto(postTemplate.telegramFileId, {
+            caption: fullText,
+            caption_entities: shiftedEntities,
+          });
+        } else if (postTemplate.mediaType === 'VIDEO' && postTemplate.telegramFileId) {
+          await ctx.replyWithVideo(postTemplate.telegramFileId, {
+            caption: fullText,
+            caption_entities: shiftedEntities,
+          });
+        } else {
+          await ctx.reply(fullText, {
+            entities: shiftedEntities,
+          });
+        }
       } else {
-        await ctx.reply(`📝 <b>${previewLabel}</b>\n\n${postTemplate.text}`, {
-          parse_mode: 'HTML',
-        });
+        if (postTemplate.mediaType === 'PHOTO' && postTemplate.telegramFileId) {
+          await ctx.replyWithPhoto(postTemplate.telegramFileId, {
+            caption: `📝 <b>${previewLabel}</b>\n\n${postTemplate.text}`,
+            parse_mode: 'HTML',
+          });
+        } else if (postTemplate.mediaType === 'VIDEO' && postTemplate.telegramFileId) {
+          await ctx.replyWithVideo(postTemplate.telegramFileId, {
+            caption: `📝 <b>${previewLabel}</b>\n\n${postTemplate.text}`,
+            parse_mode: 'HTML',
+          });
+        } else {
+          await ctx.reply(`📝 <b>${previewLabel}</b>\n\n${postTemplate.text}`, {
+            parse_mode: 'HTML',
+          });
+        }
       }
     } catch (error) {
       log.error({ error }, 'Error sending preview');
