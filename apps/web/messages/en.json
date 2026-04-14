@@ -1,4 +1,7 @@
 {
+  "loadingScreen": {
+    "subtitle": "Fair Giveaways"
+  },
   "common": {
     "loading": "Loading...",
     "error": "Error",

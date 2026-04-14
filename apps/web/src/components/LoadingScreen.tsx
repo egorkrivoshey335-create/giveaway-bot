@@ -3,11 +3,13 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 const MIN_DISPLAY_MS = 5000;
 const MAX_DISPLAY_MS = 7000;
 
 export function LoadingScreen() {
+  const t = useTranslations('loadingScreen');
   const [isVisible, setIsVisible] = useState(true);
   const [shouldRender, setShouldRender] = useState(true);
 
@@ -113,7 +115,7 @@ export function LoadingScreen() {
               transition={{ delay: 0.4, duration: 0.6, ease: 'easeOut' }}
             >
               <h1 className="text-2xl font-bold text-brand-900">RandomBeast</h1>
-              <p className="text-sm text-brand-700 mt-1">Честные розыгрыши</p>
+              <p className="text-sm text-brand-700 mt-1">{t('subtitle')}</p>
             </motion.div>
 
             {/* Loading dots */}

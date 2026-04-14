@@ -71,6 +71,7 @@ interface PostTemplateCreateParams {
   mediaType: 'NONE' | 'PHOTO' | 'VIDEO';
   telegramFileId?: string;
   telegramFileUniqueId?: string;
+  entities?: any[];
 }
 
 interface PostTemplateCreateResponse {
@@ -255,6 +256,72 @@ export class ApiService {
   }
 
   /**
+   * Get user's channels/groups
+   */
+  async getUserChannels(telegramUserId: number, type?: 'CHANNEL' | 'GROUP'): Promise<{ ok: boolean; channels: Channel[]; error?: string }> {
+    try {
+      const url = new URL(`${this.baseUrl}/internal/channels/by-user/${telegramUserId}`);
+      if (type) url.searchParams.set('type', type);
+
+      const response = await this.fetchWithTimeout(url.toString(), {
+        headers: this.getHeaders(),
+      });
+      const data = await response.json() as { ok: boolean; data?: { channels: Channel[] }; error?: string };
+
+      if (!response.ok || !data.ok) {
+        return { ok: false, channels: [], error: data.error || 'API request failed' };
+      }
+
+      return { ok: true, channels: data.data?.channels || [] };
+    } catch (error) {
+      log.error({ error }, 'getUserChannels failed');
+      return { ok: false, channels: [], error: this.mapNetworkError(error) };
+    }
+  }
+
+  /**
+   * Delete a channel by ID
+   */
+  async deleteChannel(channelId: string): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const response = await this.fetchWithTimeout(`${this.baseUrl}/internal/channels/${channelId}`, {
+        method: 'DELETE',
+        headers: this.getHeaders(),
+      });
+      const data = await response.json() as { ok: boolean; error?: string };
+
+      if (!response.ok || !data.ok) {
+        return { ok: false, error: data.error || 'API request failed' };
+      }
+      return { ok: true };
+    } catch (error) {
+      log.error({ error }, 'deleteChannel failed');
+      return { ok: false, error: this.mapNetworkError(error) };
+    }
+  }
+
+  /**
+   * Get user's post templates
+   */
+  async getUserPostTemplates(telegramUserId: number): Promise<{ ok: boolean; templates: { id: string; text: string; mediaType: string; telegramFileId: string | null; preview: string; createdAt: string }[]; error?: string }> {
+    try {
+      const response = await this.fetchWithTimeout(`${this.baseUrl}/internal/post-templates/by-user/${telegramUserId}`, {
+        headers: this.getHeaders(),
+      });
+      const data = await response.json() as { ok: boolean; data?: { templates: any[] }; error?: string };
+
+      if (!response.ok || !data.ok) {
+        return { ok: false, templates: [], error: data.error || 'API request failed' };
+      }
+
+      return { ok: true, templates: data.data?.templates || [] };
+    } catch (error) {
+      log.error({ error }, 'getUserPostTemplates failed');
+      return { ok: false, templates: [], error: this.mapNetworkError(error) };
+    }
+  }
+
+  /**
    * Create a new post template
    */
   async createPostTemplate(params: PostTemplateCreateParams): Promise<PostTemplateCreateResponse> {
@@ -268,6 +335,7 @@ export class ApiService {
           mediaType: params.mediaType,
           telegramFileId: params.telegramFileId,
           telegramFileUniqueId: params.telegramFileUniqueId,
+          entities: params.entities,
         }),
       });
 

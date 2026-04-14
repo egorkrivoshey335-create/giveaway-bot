@@ -10,7 +10,6 @@ import { t, getUserLocale, Locale } from '../i18n/index.js';
 import { btn, webAppBtn, inlineKeyboard } from '../lib/customEmoji.js';
 
 // Simple in-memory state for channel addition flow
-// In production, use conversations plugin or persistent sessions
 interface ChannelAddState {
   type: 'CHANNEL' | 'GROUP';
   expiresAt: number;
@@ -50,17 +49,18 @@ export function clearUserAddingChannel(userId: number) {
 }
 
 /**
- * Create inline keyboard for channel management
+ * Create inline keyboard for channel management (main screen)
  */
 export function createChannelManagementKeyboard(locale: Locale = 'ru'): any {
   const addChannel = t(locale, 'channels.addChannelBtn');
   const addGroup = t(locale, 'channels.addGroupBtn');
-  const back = t(locale, 'menu.back');
-  const toMenu = t(locale, 'menu.toMenu');
+
+  const myChannelsLabel = locale === 'en' ? 'My Channels' : locale === 'kk' ? 'Менің арналарым' : 'Мои каналы';
+  const myGroupsLabel = locale === 'en' ? 'My Groups' : locale === 'kk' ? 'Менің топтарым' : 'Мои группы';
 
   return inlineKeyboard(
     [btn(addChannel, 'add_channel', 'add', 'danger'), btn(addGroup, 'add_group', 'add', 'danger')],
-    [btn(back, 'back_to_menu', 'back', 'primary'), btn(toMenu, 'go_to_menu', 'home', 'primary')],
+    [btn(myChannelsLabel, 'list_channels', 'channel', 'primary'), btn(myGroupsLabel, 'list_groups', 'channel', 'primary')],
   );
 }
 
@@ -160,21 +160,17 @@ Send one of:
  * Parse channel identifier from user input
  */
 export function parseChannelInput(text: string): string | null {
-  // Clean up the text
   const cleaned = text.trim();
 
-  // @username format
   if (cleaned.startsWith('@')) {
     return cleaned;
   }
 
-  // t.me link format
   const tmeMatch = cleaned.match(/(?:https?:\/\/)?(?:t\.me|telegram\.me)\/([a-zA-Z0-9_]+)/);
   if (tmeMatch) {
     return `@${tmeMatch[1]}`;
   }
 
-  // Just username without @
   if (/^[a-zA-Z][a-zA-Z0-9_]{3,30}$/.test(cleaned)) {
     return `@${cleaned}`;
   }
@@ -182,27 +178,10 @@ export function parseChannelInput(text: string): string | null {
   return null;
 }
 
-/**
- * Check if user is admin in a chat
- */
 function isAdmin(member: ChatMember): boolean {
   return member.status === 'creator' || member.status === 'administrator';
 }
 
-/**
- * Check if bot has required permissions for posting
- */
-function hasBotPostPermissions(member: ChatMember): boolean {
-  if (member.status !== 'administrator') return false;
-
-  // For channels, check can_post_messages
-  // For groups, being admin is usually enough
-  return true;
-}
-
-/**
- * Determine chat type
- */
 function getChatType(chat: Chat.ChannelChat | Chat.SupergroupChat | Chat.GroupChat): 'CHANNEL' | 'GROUP' {
   return chat.type === 'channel' ? 'CHANNEL' : 'GROUP';
 }
@@ -216,10 +195,8 @@ export async function handleChannelAddition(ctx: Context, targetType: 'CHANNEL' 
   
   const locale = getUserLocale(userId);
 
-  // Get chat identifier
   let chatIdentifier: string | number | null = null;
 
-  // Check if it's a forwarded message
   const forwardOrigin = ctx.message?.forward_origin;
   if (forwardOrigin && forwardOrigin.type === 'channel') {
     chatIdentifier = forwardOrigin.chat.id;
@@ -233,11 +210,9 @@ export async function handleChannelAddition(ctx: Context, targetType: 'CHANNEL' 
     return;
   }
 
-  // Clear the state
   clearUserAddingChannel(userId);
 
   try {
-    // Get chat info
     const checkingMsg = t(locale, 'channels.checking');
     await ctx.reply(checkingMsg);
 
@@ -262,7 +237,6 @@ export async function handleChannelAddition(ctx: Context, targetType: 'CHANNEL' 
 
     const actualType = getChatType(chat);
 
-    // Check bot membership
     let botMember: ChatMember;
     try {
       const botInfo = await ctx.api.getMe();
@@ -284,7 +258,6 @@ export async function handleChannelAddition(ctx: Context, targetType: 'CHANNEL' 
       return;
     }
 
-    // Check user membership
     let userMember: ChatMember;
     try {
       userMember = await ctx.api.getChatMember(chat.id, userId);
@@ -309,15 +282,13 @@ export async function handleChannelAddition(ctx: Context, targetType: 'CHANNEL' 
       return;
     }
 
-    // Get member count if available
     let memberCount: number | undefined;
     try {
       memberCount = await ctx.api.getChatMemberCount(chat.id);
     } catch {
-      // Ignore - member count is optional
+      // optional
     }
 
-    // Save to database via API
     const result = await apiService.upsertChannel({
       telegramUserId: userId,
       telegramChatId: chat.id,
@@ -339,7 +310,6 @@ export async function handleChannelAddition(ctx: Context, targetType: 'CHANNEL' 
       return;
     }
 
-    // Success message
     const typeLabel = actualType === 'CHANNEL' ? t(locale, 'channels.typeChannel') : t(locale, 'channels.typeGroup');
     const username = 'username' in chat && chat.username ? `@${chat.username}` : '';
     const subscribersLabel = t(locale, 'channels.subscribersLabel');
@@ -374,6 +344,47 @@ export async function handleChannelAddition(ctx: Context, targetType: 'CHANNEL' 
 }
 
 /**
+ * Build channel info message
+ */
+function getChannelInfoMessage(channel: { title: string; username?: string | null; botIsAdmin: boolean; creatorIsAdmin: boolean; memberCount?: number | null; type: string }, locale: Locale): string {
+  const typeLabel = channel.type === 'CHANNEL'
+    ? (locale === 'en' ? 'channel' : locale === 'kk' ? 'арна' : 'канале')
+    : (locale === 'en' ? 'group' : locale === 'kk' ? 'топ' : 'группе');
+  const titleLabel = locale === 'en' ? 'Info about' : locale === 'kk' ? 'туралы ақпарат' : 'Информация о';
+  const botAdminLabel = locale === 'en' ? 'Bot is admin' : locale === 'kk' ? 'Бот админ' : 'Бот админ';
+  const postingLabel = locale === 'en' ? 'Bot can post' : locale === 'kk' ? 'Бот жазба жаза алады' : 'Боту выданы права на постинг';
+  const userAdminLabel = locale === 'en' ? 'You are admin' : locale === 'kk' ? 'Сіз админсіз' : 'Вы админ канала';
+  const subscribersLabel = locale === 'en' ? 'Subscribers' : locale === 'kk' ? 'Жазылушылар' : 'Подписчиков';
+  const yes = '✅';
+  const no = '❌';
+
+  let msg = `ℹ️ <b>${titleLabel} ${typeLabel} "${channel.title}"</b>`;
+  if (channel.username) msg += ` (@${channel.username})`;
+  msg += '\n\n';
+  msg += `${botAdminLabel}: ${channel.botIsAdmin ? yes : no}\n`;
+  msg += `${postingLabel}: ${channel.botIsAdmin ? yes : no}\n`;
+  msg += `${userAdminLabel}: ${channel.creatorIsAdmin ? yes : no}`;
+  if (channel.memberCount) {
+    msg += `\n👥 ${subscribersLabel}: ${channel.memberCount.toLocaleString()}`;
+  }
+  return msg;
+}
+
+/**
+ * Build channel info keyboard
+ */
+function createChannelInfoKeyboard(channelId: string, type: 'CHANNEL' | 'GROUP', locale: Locale): any {
+  const refreshLabel = locale === 'en' ? 'Refresh' : locale === 'kk' ? 'Жаңарту' : 'Обновить';
+  const deleteLabel = locale === 'en' ? 'Delete' : locale === 'kk' ? 'Жою' : 'Удалить';
+  const backLabel = locale === 'en' ? 'Back' : locale === 'kk' ? 'Артқа' : 'Назад';
+
+  return inlineKeyboard(
+    [btn(`🔄 ${refreshLabel}`, `refresh_channel:${channelId}`, undefined, 'primary'), btn(`🗑 ${deleteLabel}`, `delete_channel:${channelId}`, undefined, 'danger')],
+    [btn(`◀️ ${backLabel}`, type === 'CHANNEL' ? 'list_channels' : 'list_groups', 'back', 'primary')],
+  );
+}
+
+/**
  * Register channel-related handlers
  */
 export function registerChannelHandlers(bot: import('grammy').Bot) {
@@ -405,6 +416,256 @@ export function registerChannelHandlers(bot: import('grammy').Bot) {
     });
   });
 
+  // List user's channels
+  bot.callbackQuery('list_channels', async (ctx) => {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+    const locale = getUserLocale(userId);
+
+    await ctx.answerCallbackQuery();
+
+    const result = await apiService.getUserChannels(userId, 'CHANNEL');
+    if (!result.ok || result.channels.length === 0) {
+      const emptyMsg = locale === 'en' ? '📭 You have no channels added yet.'
+        : locale === 'kk' ? '📭 Сізде әлі арналар жоқ.'
+        : '📭 У вас пока нет добавленных каналов.';
+      const titleMsg = locale === 'en' ? 'Your Channels' : locale === 'kk' ? 'Сіздің арналарыңыз' : 'Список ваших каналов';
+      const backLabel = locale === 'en' ? 'Back' : locale === 'kk' ? 'Артқа' : 'Назад';
+      try {
+        await ctx.editMessageText(`📣 <b>${titleMsg}</b>\n\n${emptyMsg}`, {
+          parse_mode: 'HTML',
+          reply_markup: inlineKeyboard(
+            [btn(`◀️ ${backLabel}`, 'back_to_channels', 'back', 'primary')],
+          ),
+        });
+      } catch {
+        await ctx.reply(`📣 <b>${titleMsg}</b>\n\n${emptyMsg}`, {
+          parse_mode: 'HTML',
+          reply_markup: inlineKeyboard(
+            [btn(`◀️ ${backLabel}`, 'back_to_channels', 'back', 'primary')],
+          ),
+        });
+      }
+      return;
+    }
+
+    const titleMsg = locale === 'en' ? 'Your Channels' : locale === 'kk' ? 'Сіздің арналарыңыз' : 'Список ваших каналов';
+    const selectMsg = locale === 'en' ? 'Select a channel for details:' : locale === 'kk' ? 'Толығырақ үшін арнаны таңдаңыз:' : 'Выберите канал для подробностей:';
+    const backLabel = locale === 'en' ? 'Back' : locale === 'kk' ? 'Артқа' : 'Назад';
+
+    const channelButtons = result.channels.map(ch => [
+      btn(`📢 ${ch.title}`, `channel_info:${ch.id}`, undefined, 'primary'),
+    ]);
+    channelButtons.push([btn(`◀️ ${backLabel}`, 'back_to_channels', 'back', 'primary')]);
+
+    try {
+      await ctx.editMessageText(`📣 <b>${titleMsg}</b>\n\n${selectMsg}`, {
+        parse_mode: 'HTML',
+        reply_markup: inlineKeyboard(...channelButtons),
+      });
+    } catch {
+      await ctx.reply(`📣 <b>${titleMsg}</b>\n\n${selectMsg}`, {
+        parse_mode: 'HTML',
+        reply_markup: inlineKeyboard(...channelButtons),
+      });
+    }
+  });
+
+  // List user's groups
+  bot.callbackQuery('list_groups', async (ctx) => {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+    const locale = getUserLocale(userId);
+
+    await ctx.answerCallbackQuery();
+
+    const result = await apiService.getUserChannels(userId, 'GROUP');
+    if (!result.ok || result.channels.length === 0) {
+      const emptyMsg = locale === 'en' ? '📭 You have no groups added yet.'
+        : locale === 'kk' ? '📭 Сізде әлі топтар жоқ.'
+        : '📭 У вас пока нет добавленных групп.';
+      const titleMsg = locale === 'en' ? 'Your Groups' : locale === 'kk' ? 'Сіздің топтарыңыз' : 'Список ваших групп';
+      const backLabel = locale === 'en' ? 'Back' : locale === 'kk' ? 'Артқа' : 'Назад';
+      try {
+        await ctx.editMessageText(`👥 <b>${titleMsg}</b>\n\n${emptyMsg}`, {
+          parse_mode: 'HTML',
+          reply_markup: inlineKeyboard(
+            [btn(`◀️ ${backLabel}`, 'back_to_channels', 'back', 'primary')],
+          ),
+        });
+      } catch {
+        await ctx.reply(`👥 <b>${titleMsg}</b>\n\n${emptyMsg}`, {
+          parse_mode: 'HTML',
+          reply_markup: inlineKeyboard(
+            [btn(`◀️ ${backLabel}`, 'back_to_channels', 'back', 'primary')],
+          ),
+        });
+      }
+      return;
+    }
+
+    const titleMsg = locale === 'en' ? 'Your Groups' : locale === 'kk' ? 'Сіздің топтарыңыз' : 'Список ваших групп';
+    const selectMsg = locale === 'en' ? 'Select a group for details:' : locale === 'kk' ? 'Толығырақ үшін топты таңдаңыз:' : 'Выберите группу для подробностей:';
+    const backLabel = locale === 'en' ? 'Back' : locale === 'kk' ? 'Артқа' : 'Назад';
+
+    const groupButtons = result.channels.map(ch => [
+      btn(`👥 ${ch.title}`, `channel_info:${ch.id}`, undefined, 'primary'),
+    ]);
+    groupButtons.push([btn(`◀️ ${backLabel}`, 'back_to_channels', 'back', 'primary')]);
+
+    try {
+      await ctx.editMessageText(`👥 <b>${titleMsg}</b>\n\n${selectMsg}`, {
+        parse_mode: 'HTML',
+        reply_markup: inlineKeyboard(...groupButtons),
+      });
+    } catch {
+      await ctx.reply(`👥 <b>${titleMsg}</b>\n\n${selectMsg}`, {
+        parse_mode: 'HTML',
+        reply_markup: inlineKeyboard(...groupButtons),
+      });
+    }
+  });
+
+  // Channel/group info
+  bot.callbackQuery(/^channel_info:/, async (ctx) => {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+    const locale = getUserLocale(userId);
+    const channelId = ctx.callbackQuery.data.replace('channel_info:', '');
+
+    await ctx.answerCallbackQuery();
+
+    // Fetch channels to find this one
+    const result = await apiService.getUserChannels(userId);
+    const channel = result.channels.find(ch => ch.id === channelId);
+    if (!channel) {
+      const notFoundMsg = locale === 'en' ? 'Channel not found' : locale === 'kk' ? 'Арна табылмады' : 'Канал не найден';
+      await ctx.answerCallbackQuery({ text: notFoundMsg, show_alert: true });
+      return;
+    }
+
+    const msg = getChannelInfoMessage(channel, locale);
+    const type = channel.type === 'CHANNEL' ? 'CHANNEL' as const : 'GROUP' as const;
+
+    try {
+      await ctx.editMessageText(msg, {
+        parse_mode: 'HTML',
+        reply_markup: createChannelInfoKeyboard(channelId, type, locale),
+      });
+    } catch {
+      await ctx.reply(msg, {
+        parse_mode: 'HTML',
+        reply_markup: createChannelInfoKeyboard(channelId, type, locale),
+      });
+    }
+  });
+
+  // Refresh channel info (re-check permissions from Telegram)
+  bot.callbackQuery(/^refresh_channel:/, async (ctx) => {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+    const locale = getUserLocale(userId);
+    const channelId = ctx.callbackQuery.data.replace('refresh_channel:', '');
+
+    const result = await apiService.getUserChannels(userId);
+    const channel = result.channels.find(ch => ch.id === channelId);
+    if (!channel) {
+      await ctx.answerCallbackQuery({ text: '❌', show_alert: false });
+      return;
+    }
+
+    try {
+      const chatId = BigInt(channel.telegramChatId);
+      const botInfo = await ctx.api.getMe();
+      const botMember = await ctx.api.getChatMember(Number(chatId), botInfo.id);
+      const userMember = await ctx.api.getChatMember(Number(chatId), userId);
+      let memberCount: number | undefined;
+      try {
+        memberCount = await ctx.api.getChatMemberCount(Number(chatId));
+      } catch { /* optional */ }
+
+      const chatInfo = await ctx.api.getChat(Number(chatId));
+      const title = 'title' in chatInfo ? chatInfo.title : channel.title;
+
+      await apiService.upsertChannel({
+        telegramUserId: userId,
+        telegramChatId: Number(chatId),
+        username: 'username' in chatInfo ? chatInfo.username || null : null,
+        title,
+        type: channel.type === 'CHANNEL' ? 'CHANNEL' : 'GROUP',
+        botIsAdmin: isAdmin(botMember),
+        creatorIsAdmin: isAdmin(userMember),
+        permissionsSnapshot: { bot: botMember, user: userMember },
+        memberCount,
+      });
+
+      const updatedChannel = {
+        ...channel,
+        title,
+        botIsAdmin: isAdmin(botMember),
+        creatorIsAdmin: isAdmin(userMember),
+        memberCount: memberCount ?? channel.memberCount,
+      };
+
+      const msg = getChannelInfoMessage(updatedChannel, locale);
+      const type = channel.type === 'CHANNEL' ? 'CHANNEL' as const : 'GROUP' as const;
+      const updatedLabel = locale === 'en' ? '✅ Updated' : locale === 'kk' ? '✅ Жаңартылды' : '✅ Обновлено';
+      
+      await ctx.answerCallbackQuery({ text: updatedLabel });
+      await ctx.editMessageText(msg, {
+        parse_mode: 'HTML',
+        reply_markup: createChannelInfoKeyboard(channelId, type, locale),
+      });
+    } catch (error) {
+      log.error({ error, channelId }, 'Refresh channel failed');
+      const errLabel = locale === 'en' ? '❌ Could not refresh' : locale === 'kk' ? '❌ Жаңарту мүмкін болмады' : '❌ Не удалось обновить';
+      await ctx.answerCallbackQuery({ text: errLabel, show_alert: true });
+    }
+  });
+
+  // Delete channel
+  bot.callbackQuery(/^delete_channel:/, async (ctx) => {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+    const locale = getUserLocale(userId);
+    const channelId = ctx.callbackQuery.data.replace('delete_channel:', '');
+
+    const result = await apiService.deleteChannel(channelId);
+    if (!result.ok) {
+      const errMsg = locale === 'en' ? '❌ Could not delete' : locale === 'kk' ? '❌ Жою мүмкін болмады' : '❌ Не удалось удалить';
+      await ctx.answerCallbackQuery({ text: errMsg, show_alert: true });
+      return;
+    }
+
+    const deletedLabel = locale === 'en' ? '✅ Deleted' : locale === 'kk' ? '✅ Жойылды' : '✅ Удалено';
+    await ctx.answerCallbackQuery({ text: deletedLabel });
+
+    // Return to channels list
+    await ctx.editMessageText(getChannelsMessage(locale), {
+      parse_mode: 'HTML',
+      reply_markup: createChannelManagementKeyboard(locale),
+    });
+  });
+
+  // Back to channels main screen
+  bot.callbackQuery('back_to_channels', async (ctx) => {
+    const userId = ctx.from?.id;
+    const locale = userId ? getUserLocale(userId) : 'ru';
+
+    await ctx.answerCallbackQuery();
+    try {
+      await ctx.editMessageText(getChannelsMessage(locale), {
+        parse_mode: 'HTML',
+        reply_markup: createChannelManagementKeyboard(locale),
+      });
+    } catch {
+      await ctx.reply(getChannelsMessage(locale), {
+        parse_mode: 'HTML',
+        reply_markup: createChannelManagementKeyboard(locale),
+      });
+    }
+  });
+
   // Handle "Back to menu" button
   bot.callbackQuery('back_to_menu', async (ctx) => {
     const userId = ctx.from?.id;
@@ -428,7 +689,4 @@ export function registerChannelHandlers(bot: import('grammy').Bot) {
       reply_markup: createMainMenuKeyboard(locale),
     });
   });
-
-  // Handle /cancel command during channel addition
-  // Note: This is handled by the main /cancel handler in bot.ts
 }

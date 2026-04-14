@@ -617,7 +617,20 @@ bot.on('message:text', async (ctx, next) => {
   const userId = ctx.from?.id;
   if (!userId) return next();
 
-  // Admin: auto-detect custom emoji IDs in messages
+  // Check if user is adding a channel (priority over emoji detection)
+  const channelState = getUserAddingChannel(userId);
+  if (channelState) {
+    await handleChannelAddition(ctx, channelState.type);
+    return;
+  }
+
+  // Check if user is creating a post (priority over emoji detection)
+  if (isUserAwaitingPost(userId)) {
+    await handlePostCreation(ctx);
+    return;
+  }
+
+  // Admin: auto-detect custom emoji IDs (only when not in a flow)
   if (isAdminUser(userId) && !ctx.message.text.startsWith('/')) {
     const entities = ctx.message.entities;
     const hasCustomEmoji = entities?.some(e => e.type === 'custom_emoji');
@@ -632,19 +645,6 @@ bot.on('message:text', async (ctx, next) => {
       await ctx.reply(reply, { parse_mode: 'HTML' });
       return;
     }
-  }
-
-  // Check if user is adding a channel
-  const channelState = getUserAddingChannel(userId);
-  if (channelState) {
-    await handleChannelAddition(ctx, channelState.type);
-    return;
-  }
-
-  // Check if user is creating a post
-  if (isUserAwaitingPost(userId)) {
-    await handlePostCreation(ctx);
-    return;
   }
 
   return next();

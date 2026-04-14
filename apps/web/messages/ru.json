@@ -1,4 +1,7 @@
 {
+  "loadingScreen": {
+    "subtitle": "Честные розыгрыши"
+  },
   "common": {
     "loading": "Загрузка...",
     "error": "Ошибка",

@@ -1,4 +1,7 @@
 {
+  "loadingScreen": {
+    "subtitle": "Адал ұтыс ойындары"
+  },
   "common": {
     "loading": "Жүктелуде...",
     "error": "Қате",

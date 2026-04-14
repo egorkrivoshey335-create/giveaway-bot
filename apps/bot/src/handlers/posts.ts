@@ -84,11 +84,13 @@ export function getRecentTemplate(userId: number): RecentTemplate | null {
  */
 export function createPostsKeyboard(locale: Locale = 'ru'): any {
   const createPost = t(locale, 'posts.createPostBtn');
+  const myPostsLabel = locale === 'en' ? 'My Posts' : locale === 'kk' ? 'Менің жазбаларым' : 'Мои посты';
   const back = t(locale, 'posts.backBtn');
   const toMenu = t(locale, 'posts.toMenuBtn');
 
   return inlineKeyboard(
     [btn(createPost, 'create_post', 'posts', 'danger')],
+    [btn(`📋 ${myPostsLabel}`, 'list_posts', undefined, 'primary')],
     [btn(back, 'back_to_menu', 'back', 'primary'), btn(toMenu, 'go_to_menu', 'home', 'primary')],
   );
 }
@@ -214,24 +216,27 @@ export async function handlePostCreation(ctx: Context) {
   let mediaType: 'NONE' | 'PHOTO' | 'VIDEO' = 'NONE';
   let telegramFileId: string | undefined;
   let telegramFileUniqueId: string | undefined;
+  let entities: any[] | undefined;
 
-  // Check message type
+  // Check message type and extract entities (including custom emoji)
   if (ctx.message?.photo) {
-    // Photo message - take largest size
     const photos = ctx.message.photo;
     const largest = photos[photos.length - 1];
     telegramFileId = largest.file_id;
     telegramFileUniqueId = largest.file_unique_id;
     mediaType = 'PHOTO';
     text = ctx.message.caption || '';
+    entities = ctx.message.caption_entities as any[] | undefined;
   } else if (ctx.message?.video) {
     telegramFileId = ctx.message.video.file_id;
     telegramFileUniqueId = ctx.message.video.file_unique_id;
     mediaType = 'VIDEO';
     text = ctx.message.caption || '';
+    entities = ctx.message.caption_entities as any[] | undefined;
   } else if (ctx.message?.text) {
     text = ctx.message.text;
     mediaType = 'NONE';
+    entities = ctx.message.entities as any[] | undefined;
   } else {
     const msg = t(locale, 'posts.unsupportedType');
     await ctx.reply(msg, { reply_markup: createPostCancelKeyboard(locale) });
@@ -284,6 +289,7 @@ export async function handlePostCreation(ctx: Context) {
     mediaType,
     telegramFileId,
     telegramFileUniqueId,
+    entities,
   });
 
   if (!result.ok) {
@@ -440,5 +446,140 @@ export function registerPostHandlers(bot: import('grammy').Bot) {
       restoredMsg,
       { reply_markup: createPostCreatedKeyboard(templateId, locale) }
     );
+  });
+
+  // List user's posts
+  bot.callbackQuery('list_posts', async (ctx) => {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+    const locale = getUserLocale(userId);
+
+    await ctx.answerCallbackQuery();
+
+    const result = await apiService.getUserPostTemplates(userId);
+    if (!result.ok || result.templates.length === 0) {
+      const emptyMsg = locale === 'en' ? '📭 You have no post templates yet.'
+        : locale === 'kk' ? '📭 Сізде әлі жазба үлгілері жоқ.'
+        : '📭 У вас пока нет шаблонов постов.';
+      const titleMsg = locale === 'en' ? 'Your Posts' : locale === 'kk' ? 'Сіздің жазбаларыңыз' : 'Ваши посты';
+      const backLabel = locale === 'en' ? 'Back' : locale === 'kk' ? 'Артқа' : 'Назад';
+
+      try {
+        await ctx.editMessageText(`📋 <b>${titleMsg}</b>\n\n${emptyMsg}`, {
+          parse_mode: 'HTML',
+          reply_markup: inlineKeyboard(
+            [btn(t(locale, 'posts.createPostBtn'), 'create_post', 'posts', 'danger')],
+            [btn(`◀️ ${backLabel}`, 'back_to_posts', 'back', 'primary')],
+          ),
+        });
+      } catch {
+        await ctx.reply(`📋 <b>${titleMsg}</b>\n\n${emptyMsg}`, {
+          parse_mode: 'HTML',
+          reply_markup: inlineKeyboard(
+            [btn(t(locale, 'posts.createPostBtn'), 'create_post', 'posts', 'danger')],
+            [btn(`◀️ ${backLabel}`, 'back_to_posts', 'back', 'primary')],
+          ),
+        });
+      }
+      return;
+    }
+
+    const titleMsg = locale === 'en' ? 'Your Posts' : locale === 'kk' ? 'Сіздің жазбаларыңыз' : 'Ваши посты';
+    const selectMsg = locale === 'en' ? 'Select a post to view:' : locale === 'kk' ? 'Көру үшін жазбаны таңдаңыз:' : 'Выберите пост для просмотра:';
+    const backLabel = locale === 'en' ? 'Back' : locale === 'kk' ? 'Артқа' : 'Назад';
+
+    const mediaIcon = (type: string) => type === 'PHOTO' ? '🖼' : type === 'VIDEO' ? '🎬' : '📝';
+
+    const postButtons = result.templates.map(tpl => [
+      btn(`${mediaIcon(tpl.mediaType)} ${tpl.preview}`, `post_info:${tpl.id}`, undefined, 'primary'),
+    ]);
+    postButtons.push([btn(`◀️ ${backLabel}`, 'back_to_posts', 'back', 'primary')]);
+
+    try {
+      await ctx.editMessageText(`📋 <b>${titleMsg}</b>\n\n${selectMsg}`, {
+        parse_mode: 'HTML',
+        reply_markup: inlineKeyboard(...postButtons),
+      });
+    } catch {
+      await ctx.reply(`📋 <b>${titleMsg}</b>\n\n${selectMsg}`, {
+        parse_mode: 'HTML',
+        reply_markup: inlineKeyboard(...postButtons),
+      });
+    }
+  });
+
+  // Post info/preview
+  bot.callbackQuery(/^post_info:/, async (ctx) => {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+    const locale = getUserLocale(userId);
+    const templateId = ctx.callbackQuery.data.replace('post_info:', '');
+
+    await ctx.answerCallbackQuery();
+
+    const result = await apiService.getUserPostTemplates(userId);
+    const template = result.templates.find(t => t.id === templateId);
+    if (!template) {
+      const notFoundMsg = locale === 'en' ? 'Post not found' : locale === 'kk' ? 'Жазба табылмады' : 'Пост не найден';
+      await ctx.answerCallbackQuery({ text: notFoundMsg, show_alert: true });
+      return;
+    }
+
+    const typeLabel = template.mediaType === 'PHOTO'
+      ? (locale === 'en' ? 'Photo' : locale === 'kk' ? 'Фото' : 'Фото')
+      : template.mediaType === 'VIDEO'
+      ? (locale === 'en' ? 'Video' : locale === 'kk' ? 'Бейне' : 'Видео')
+      : (locale === 'en' ? 'Text' : locale === 'kk' ? 'Мәтін' : 'Текст');
+    const typeInfo = locale === 'en' ? 'Type' : locale === 'kk' ? 'Түрі' : 'Тип';
+    const lengthInfo = locale === 'en' ? 'Length' : locale === 'kk' ? 'Ұзындығы' : 'Длина';
+    const charsLabel = locale === 'en' ? 'chars' : locale === 'kk' ? 'таңба' : 'симв.';
+    const deleteLabel = locale === 'en' ? 'Delete' : locale === 'kk' ? 'Жою' : 'Удалить';
+    const backLabel = locale === 'en' ? 'Back' : locale === 'kk' ? 'Артқа' : 'Назад';
+    const previewTitle = locale === 'en' ? 'Post Template' : locale === 'kk' ? 'Жазба үлгісі' : 'Шаблон поста';
+
+    const infoMsg = `📝 <b>${previewTitle}</b>\n\n${typeInfo}: ${typeLabel}\n${lengthInfo}: ${template.text.length} ${charsLabel}`;
+
+    const keyboard = inlineKeyboard(
+      [btn(`🗑 ${deleteLabel}`, `delete_template:${templateId}`, undefined, 'danger')],
+      [btn(`◀️ ${backLabel}`, 'list_posts', 'back', 'primary')],
+    );
+
+    try {
+      await ctx.editMessageText(infoMsg, { parse_mode: 'HTML', reply_markup: keyboard });
+    } catch {
+      await ctx.reply(infoMsg, { parse_mode: 'HTML', reply_markup: keyboard });
+    }
+
+    // Send preview
+    try {
+      if (template.mediaType === 'NONE' || !template.telegramFileId) {
+        await ctx.reply(template.text);
+      } else if (template.mediaType === 'PHOTO') {
+        await ctx.replyWithPhoto(template.telegramFileId, { caption: template.text });
+      } else if (template.mediaType === 'VIDEO') {
+        await ctx.replyWithVideo(template.telegramFileId, { caption: template.text });
+      }
+    } catch (error) {
+      log.error({ error }, 'Post preview error');
+    }
+  });
+
+  // Back to posts main screen
+  bot.callbackQuery('back_to_posts', async (ctx) => {
+    const userId = ctx.from?.id;
+    const locale = userId ? getUserLocale(userId) : 'ru';
+
+    await ctx.answerCallbackQuery();
+    try {
+      await ctx.editMessageText(getPostsMessage(locale), {
+        parse_mode: 'HTML',
+        reply_markup: createPostsKeyboard(locale),
+      });
+    } catch {
+      await ctx.reply(getPostsMessage(locale), {
+        parse_mode: 'HTML',
+        reply_markup: createPostsKeyboard(locale),
+      });
+    }
   });
 }

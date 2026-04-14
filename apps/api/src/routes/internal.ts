@@ -42,6 +42,7 @@ const internalPostTemplateCreateSchema = z.object({
   mediaType: z.enum(['NONE', 'PHOTO', 'VIDEO']),
   telegramFileId: z.string().optional(),
   telegramFileUniqueId: z.string().optional(),
+  entities: z.any().optional(),
 });
 
 /**
@@ -244,6 +245,107 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   /**
+   * GET /internal/channels/by-user/:telegramUserId
+   * Returns all channels/groups added by a user
+   */
+  fastify.get<{ Params: { telegramUserId: string }; Querystring: { type?: string } }>('/channels/by-user/:telegramUserId', async (request, reply) => {
+    try {
+      const telegramUserId = BigInt(request.params.telegramUserId);
+      const typeFilter = request.query.type;
+
+      const user = await prisma.user.findUnique({ where: { telegramUserId } });
+      if (!user) {
+        return reply.success({ channels: [] });
+      }
+
+      const where: Record<string, unknown> = { addedByUserId: user.id };
+      if (typeFilter === 'CHANNEL') where.type = ChannelType.CHANNEL;
+      if (typeFilter === 'GROUP') where.type = ChannelType.GROUP;
+
+      const channels = await prisma.channel.findMany({
+        where,
+        select: {
+          id: true,
+          telegramChatId: true,
+          username: true,
+          title: true,
+          type: true,
+          botIsAdmin: true,
+          creatorIsAdmin: true,
+          memberCount: true,
+          lastCheckedAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      return reply.success({
+        channels: channels.map(ch => ({
+          ...ch,
+          telegramChatId: ch.telegramChatId.toString(),
+          lastCheckedAt: ch.lastCheckedAt?.toISOString() || null,
+        })),
+      });
+    } catch (error) {
+      fastify.log.error(error, 'Internal channels list error');
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
+    }
+  });
+
+  /**
+   * DELETE /internal/channels/:channelId
+   * Deletes a channel by ID
+   */
+  fastify.delete<{ Params: { channelId: string } }>('/channels/:channelId', async (request, reply) => {
+    try {
+      const { channelId } = request.params;
+
+      await prisma.channel.delete({ where: { id: channelId } });
+
+      return reply.success({ deleted: true });
+    } catch (error) {
+      fastify.log.error(error, 'Internal channel delete error');
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
+    }
+  });
+
+  /**
+   * GET /internal/post-templates/by-user/:telegramUserId
+   * Returns all active post templates for a user
+   */
+  fastify.get<{ Params: { telegramUserId: string } }>('/post-templates/by-user/:telegramUserId', async (request, reply) => {
+    try {
+      const telegramUserId = BigInt(request.params.telegramUserId);
+      const user = await prisma.user.findUnique({ where: { telegramUserId } });
+      if (!user) {
+        return reply.success({ templates: [] });
+      }
+
+      const templates = await prisma.postTemplate.findMany({
+        where: { ownerUserId: user.id, deletedAt: null },
+        select: {
+          id: true,
+          text: true,
+          mediaType: true,
+          telegramFileId: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      return reply.success({
+        templates: templates.map(t => ({
+          ...t,
+          createdAt: t.createdAt.toISOString(),
+          preview: t.text.length > 40 ? t.text.substring(0, 40) + '...' : t.text,
+        })),
+      });
+    } catch (error) {
+      fastify.log.error(error, 'Internal post templates list error');
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
+    }
+  });
+
+  /**
    * POST /internal/post-templates/create
    * Creates a new post template
    */
@@ -303,6 +405,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
           mediaType: mediaTypeEnum,
           telegramFileId: body.telegramFileId || null,
           telegramFileUniqueId: body.telegramFileUniqueId || null,
+          entities: body.entities ? (body.entities as Prisma.InputJsonValue) : undefined,
         },
         select: {
           id: true,
