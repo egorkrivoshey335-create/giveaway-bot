@@ -10,6 +10,13 @@ const YOOKASSA_API_URL = 'https://api.yookassa.ru/v3';
 
 // Типы для запросов и ответов ЮKassa
 
+export interface ReceiptItem {
+  description: string;
+  quantity: string;
+  amount: { value: string; currency: string };
+  vat_code: number;
+}
+
 export interface CreatePaymentParams {
   /** Сумма в рублях */
   amount: number;
@@ -21,6 +28,11 @@ export interface CreatePaymentParams {
   returnUrl: string;
   /** Метаданные для идентификации платежа */
   metadata?: Record<string, string>;
+  /** Чек 54-ФЗ */
+  receipt?: {
+    customer: { email?: string; phone?: string };
+    items: ReceiptItem[];
+  };
 }
 
 export interface YooKassaAmount {
@@ -73,7 +85,7 @@ function getAuthHeader(): string {
 export async function createPayment(params: CreatePaymentParams): Promise<YooKassaPayment> {
   const idempotenceKey = randomUUID();
   
-  const body = {
+  const body: Record<string, unknown> = {
     amount: {
       value: params.amount.toFixed(2),
       currency: params.currency || 'RUB',
@@ -82,10 +94,14 @@ export async function createPayment(params: CreatePaymentParams): Promise<YooKas
       type: 'redirect',
       return_url: params.returnUrl,
     },
-    capture: true, // Автоматическое подтверждение платежа
+    capture: true,
     description: params.description,
     metadata: params.metadata,
   };
+
+  if (params.receipt) {
+    body.receipt = params.receipt;
+  }
 
   const response = await fetch(`${YOOKASSA_API_URL}/payments`, {
     method: 'POST',

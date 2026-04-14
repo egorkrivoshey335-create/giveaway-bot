@@ -79,8 +79,9 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
       const returnUrl = `${config.yookassa.returnUrl}?purchaseId=${purchase.id}`;
 
       try {
+        const amountRub = product.price / 100;
         const payment = await createPayment({
-          amount: product.price / 100, // копейки → рубли
+          amount: amountRub,
           currency: product.currency,
           description: product.title,
           returnUrl,
@@ -88,6 +89,15 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
             purchaseId: purchase.id,
             userId: user.id,
             productCode: product.code,
+          },
+          receipt: {
+            customer: { email: 'payments@randombeast.ru' },
+            items: [{
+              description: product.title,
+              quantity: '1',
+              amount: { value: amountRub.toFixed(2), currency: product.currency },
+              vat_code: 1,
+            }],
           },
         });
 
