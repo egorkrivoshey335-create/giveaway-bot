@@ -609,11 +609,11 @@
       "business": { "name": "BUSINESS", "price": "1 499 ₽", "priceNum": "1499", "starsPrice": "1 000 ⭐", "badge": "Maximum" }
     },
     "creators": {
-      "activeGiveaways": { "title": "Active giveaways", "plus": "up to 5", "pro": "up to 10", "business": "Unlimited" },
-      "channels": { "title": "Channels", "plus": "up to 5", "pro": "up to 10", "business": "Unlimited" },
-      "postTemplates": { "title": "Post templates", "plus": "up to 10", "pro": "up to 20", "business": "Unlimited" },
-      "winners": { "title": "Winners", "plus": "up to 10", "pro": "up to 20", "business": "up to 200" },
-      "invites": { "title": "Invites per participant", "plus": "up to 10", "pro": "up to 20", "business": "up to 10,000" },
+      "activeGiveaways": { "title": "Active giveaways", "description": "How many giveaways can run at the same time", "plus": "up to 5", "pro": "up to 10", "business": "Unlimited" },
+      "channels": { "title": "Channels", "description": "Maximum number of channels/groups you can connect", "plus": "up to 5", "pro": "up to 10", "business": "Unlimited" },
+      "postTemplates": { "title": "Post templates", "description": "Ready-made templates for quick giveaway publishing with text, photo or video", "plus": "up to 10", "pro": "up to 20", "business": "Unlimited" },
+      "winners": { "title": "Winners", "description": "Maximum number of winners per giveaway", "plus": "up to 10", "pro": "up to 20", "business": "up to 200" },
+      "invites": { "title": "Invites per participant", "description": "How many friends each participant can invite for extra tickets", "plus": "up to 10", "pro": "up to 20", "business": "up to 10,000" },
       "trackingLinks": { "title": "Tracking links", "description": "Track where participants come from", "plus": "1", "pro": "up to 5", "business": "Unlimited" },
       "channelsPerGiveaway": { "title": "Channels per giveaway", "plus": "up to 3", "pro": "up to 5", "business": "Unlimited" },
       "customTasks": { "title": "Custom tasks", "description": "Custom tasks for participants", "plus": "up to 3", "pro": "up to 5", "business": "up to 10" },
@@ -875,7 +875,8 @@
       "title": "Quick Actions",
       "newGiveaway": "New Giveaway",
       "manageChannels": "Manage Channels",
-      "history": "History"
+      "history": "History",
+      "banList": "Ban List"
     },
     "error": {
       "title": "Profile Not Found",

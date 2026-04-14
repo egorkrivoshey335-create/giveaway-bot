@@ -358,7 +358,7 @@ export default function CreatorProfilePage() {
               className="flex items-center justify-between p-3 bg-tg-bg rounded-lg hover:bg-tg-bg/80 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <span className="text-2xl"><AppIcon name="icon-giveaway" size={16} /></span>
+                <AppIcon name="icon-giveaway" size={20} />
                 <span className="font-medium">{t('quickActions.newGiveaway')}</span>
               </div>
               <AppIcon name="icon-back" size={16} className="rotate-180" />
@@ -368,7 +368,7 @@ export default function CreatorProfilePage() {
               className="flex items-center justify-between p-3 bg-tg-bg rounded-lg hover:bg-tg-bg/80 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <span className="text-2xl"><AppIcon name="icon-channel" size={14} /></span>
+                <AppIcon name="icon-channel" size={20} />
                 <span className="font-medium">{t('quickActions.manageChannels')}</span>
               </div>
               <AppIcon name="icon-back" size={16} className="rotate-180" />
@@ -378,7 +378,7 @@ export default function CreatorProfilePage() {
               className="flex items-center justify-between p-3 bg-tg-bg rounded-lg hover:bg-tg-bg/80 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <span className="text-2xl"><AppIcon name="icon-chart" size={14} /></span>
+                <AppIcon name="icon-giveaway" size={20} />
                 <span className="font-medium">{t('quickActions.history')}</span>
               </div>
               <AppIcon name="icon-back" size={16} className="rotate-180" />
@@ -388,8 +388,8 @@ export default function CreatorProfilePage() {
               className="flex items-center justify-between p-3 bg-tg-bg rounded-lg hover:bg-tg-bg/80 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <span className="text-2xl"><AppIcon name="icon-cancel" size={14} /></span>
-                <span className="font-medium">Бан-лист</span>
+                <AppIcon name="icon-cancel" size={20} />
+                <span className="font-medium">{t('quickActions.banList')}</span>
               </div>
               <AppIcon name="icon-back" size={16} className="rotate-180" />
             </Link>
