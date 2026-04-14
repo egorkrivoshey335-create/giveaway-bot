@@ -13,6 +13,7 @@ interface ShareBottomSheetProps {
   giveawayId: string;
   shortCode?: string;
   botUsername: string;
+  maxLinks?: number;
 }
 
 export function ShareBottomSheet({
@@ -20,7 +21,8 @@ export function ShareBottomSheet({
   onClose,
   giveawayId,
   shortCode,
-  botUsername = 'BeastRandomBot'
+  botUsername = 'BeastRandomBot',
+  maxLinks = Infinity,
 }: ShareBottomSheetProps) {
   const t = useTranslations('giveawayDetails');
   const tCommon = useTranslations('common');
@@ -159,6 +161,13 @@ export function ShareBottomSheet({
         {/* Таб: Ссылки */}
         {activeTab === 'links' && (
           <div className="space-y-4">
+            {/* Лимит ссылок */}
+            {maxLinks !== Infinity && (
+              <div className="text-xs text-tg-hint text-center">
+                {t('share.linkLimit', { current: links.length, max: maxLinks })}
+              </div>
+            )}
+
             {/* Создание ссылки */}
             <div className="space-y-2">
               <div className="flex gap-2">
@@ -167,13 +176,13 @@ export function ShareBottomSheet({
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
                   placeholder={t('share.tagPlaceholder')}
-                  disabled={loading}
+                  disabled={loading || links.length >= maxLinks}
                   className="flex-1 bg-tg-secondary text-tg-text rounded-lg px-3 py-2 text-sm transition-all disabled:opacity-50"
                   maxLength={50}
                 />
                 <button
                   onClick={handleCreateLink}
-                  disabled={loading || !newTag.trim()}
+                  disabled={loading || !newTag.trim() || links.length >= maxLinks}
                   className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
                 >
                   {loading ? (

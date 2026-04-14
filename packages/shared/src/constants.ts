@@ -437,7 +437,7 @@ export const TIER_LIMITS = {
   },
   /** Максимум трекинг-ссылок */
   maxTrackingLinks: {
-    FREE: 1,
+    FREE: 0,
     PLUS: 1,
     PRO: 5,
     BUSINESS: Infinity,

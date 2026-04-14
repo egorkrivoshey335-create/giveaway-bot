@@ -25,6 +25,7 @@ import {
   TopInviter,
   LivenessCheck,
 } from '@/lib/api';
+import { TIER_LIMITS } from '@randombeast/shared';
 import { InlineToast } from '@/components/Toast';
 import { ShareBottomSheet } from '@/components/ShareBottomSheet';
 import { StatsBottomSheet } from '@/components/StatsBottomSheet';
@@ -1549,6 +1550,7 @@ export default function GiveawayDetailsPage() {
         giveawayId={giveawayId}
         shortCode={giveaway.id.slice(0, 8)}
         botUsername={BOT_USERNAME}
+        maxLinks={TIER_LIMITS.maxTrackingLinks[userTier]}
       />
 
       {/* BottomSheet: Статистика */}
