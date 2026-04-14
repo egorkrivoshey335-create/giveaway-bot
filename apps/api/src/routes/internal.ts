@@ -194,6 +194,24 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       const body = internalChannelUpsertSchema.parse(request.body);
       const user = await findOrCreateUser(body.telegramUserId);
 
+      // Check tier limit only for new channels (not updates)
+      const existing = await prisma.channel.findUnique({
+        where: { telegramChatId: body.telegramChatId },
+        select: { id: true },
+      });
+      if (!existing) {
+        const tier = await getUserTier(user.id);
+        const maxChannels = TIER_LIMITS.maxChannels[tier];
+        const currentCount = await prisma.channel.count({ where: { addedByUserId: user.id } });
+        if (currentCount >= maxChannels) {
+          return reply.status(403).send({
+            ok: false,
+            error: `Достигнут лимит каналов для тарифа ${tier}: ${maxChannels}. Повысьте подписку.`,
+            code: 'TIER_LIMIT_REACHED',
+          });
+        }
+      }
+
       // Upsert channel by telegramChatId
       const channel = await prisma.channel.upsert({
         where: { telegramChatId: body.telegramChatId },

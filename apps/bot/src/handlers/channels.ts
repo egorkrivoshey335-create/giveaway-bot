@@ -1,5 +1,6 @@
 import type { Context } from 'grammy';
 import type { Chat, ChatMember } from 'grammy/types';
+import { TIER_LIMITS } from '@randombeast/shared';
 import { createLogger } from '../lib/logger.js';
 
 const log = createLogger('handlers:channels');
@@ -394,6 +395,22 @@ export function registerChannelHandlers(bot: import('grammy').Bot) {
     if (!userId) return;
     
     const locale = getUserLocale(userId);
+    const { tier } = await apiService.getUserTier(userId);
+    const tierKey = (tier as 'FREE' | 'PLUS' | 'PRO' | 'BUSINESS') || 'FREE';
+    const maxChannels = TIER_LIMITS.maxChannels[tierKey];
+    const channelsRes = await apiService.getUserChannels(userId);
+    const currentCount = channelsRes.ok ? channelsRes.channels.length : 0;
+
+    if (currentCount >= maxChannels) {
+      await ctx.answerCallbackQuery();
+      const limitMsg = locale === 'en'
+        ? `⚠️ Channel limit reached: ${maxChannels} (${tierKey}). Upgrade your subscription.`
+        : locale === 'kk'
+        ? `⚠️ Арна шегіне жеттіңіз: ${maxChannels} (${tierKey}). Жазылымыңызды жаңартыңыз.`
+        : `⚠️ Достигнут лимит каналов: ${maxChannels} (${tierKey}). Повысьте подписку.`;
+      await ctx.reply(limitMsg, { reply_markup: createChannelManagementKeyboard(locale) });
+      return;
+    }
 
     setUserAddingChannel(userId, 'CHANNEL');
     await ctx.answerCallbackQuery();
@@ -408,6 +425,22 @@ export function registerChannelHandlers(bot: import('grammy').Bot) {
     if (!userId) return;
     
     const locale = getUserLocale(userId);
+    const { tier } = await apiService.getUserTier(userId);
+    const tierKey = (tier as 'FREE' | 'PLUS' | 'PRO' | 'BUSINESS') || 'FREE';
+    const maxChannels = TIER_LIMITS.maxChannels[tierKey];
+    const channelsRes = await apiService.getUserChannels(userId);
+    const currentCount = channelsRes.ok ? channelsRes.channels.length : 0;
+
+    if (currentCount >= maxChannels) {
+      await ctx.answerCallbackQuery();
+      const limitMsg = locale === 'en'
+        ? `⚠️ Channel/group limit reached: ${maxChannels} (${tierKey}). Upgrade your subscription.`
+        : locale === 'kk'
+        ? `⚠️ Арна/топ шегіне жеттіңіз: ${maxChannels} (${tierKey}). Жазылымыңызды жаңартыңыз.`
+        : `⚠️ Достигнут лимит каналов/групп: ${maxChannels} (${tierKey}). Повысьте подписку.`;
+      await ctx.reply(limitMsg, { reply_markup: createChannelManagementKeyboard(locale) });
+      return;
+    }
 
     setUserAddingChannel(userId, 'GROUP');
     await ctx.answerCallbackQuery();
