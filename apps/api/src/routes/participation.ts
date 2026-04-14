@@ -301,11 +301,13 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
-    // Получаем каналы обязательной подписки из draftPayload
+    // Получаем данные из draftPayload
     const draftPayload = (giveaway.draftPayload || {}) as {
       requiredSubscriptionChannelIds?: string[];
+      mascotId?: string;
     };
     const requiredSubIds = draftPayload.requiredSubscriptionChannelIds || [];
+    const mascotType = draftPayload.mascotId || null;
 
     // Загружаем информацию о каналах
     const channels = requiredSubIds.length > 0
@@ -358,6 +360,7 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
         winnersCount: giveaway.winnersCount,
         participantsCount: giveaway._count.participations,
         buttonText: giveaway.buttonText || '🎁 Участвовать',
+        mascotType,
         postTemplate: giveaway.postTemplate ? {
           text: giveaway.postTemplate.text,
           mediaType: giveaway.postTemplate.mediaType,

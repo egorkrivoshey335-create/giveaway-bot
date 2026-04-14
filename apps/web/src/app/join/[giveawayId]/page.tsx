@@ -1036,7 +1036,7 @@ export default function JoinGiveawayPage() {
           {/* Маскот */}
           <div className="flex justify-center mb-2">
             <Mascot 
-              type="wizard-results"
+              type={giveaway?.mascotType || 'wizard-results'}
               size={180}
               loop
               autoplay
@@ -1564,7 +1564,7 @@ export default function JoinGiveawayPage() {
           {/* Маскот */}
           <div className="flex justify-center mb-2">
             <Mascot 
-              type="wizard-results"
+              type={giveaway?.mascotType || 'wizard-results'}
               size={180}
               loop
               autoplay
