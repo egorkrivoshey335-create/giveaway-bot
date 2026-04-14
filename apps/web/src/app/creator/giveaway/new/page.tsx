@@ -471,14 +471,20 @@ export default function GiveawayWizardPage() {
             {t('success.description')}
           </p>
           
-          <a
-            href={botLink}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={() => {
+              const tg = window.Telegram?.WebApp;
+              if (tg) {
+                tg.openTelegramLink(botLink);
+                setTimeout(() => tg.close(), 300);
+              } else {
+                window.open(botLink, '_blank');
+              }
+            }}
             className="block w-full bg-tg-button text-tg-button-text rounded-lg py-4 font-medium text-lg mb-4"
           >
             <AppIcon name="icon-shield" size={16} /> {t('success.openBot')}
-          </a>
+          </button>
           
           <button
             onClick={() => router.push('/')}
@@ -1677,20 +1683,30 @@ export default function GiveawayWizardPage() {
                                     : 'bg-tg-secondary opacity-50'
                               }`}
                             >
-                              <span className={`w-4 h-4 rounded flex items-center justify-center text-xs ${
+                              <span className={`w-5 h-5 rounded flex items-center justify-center text-xs ${
                                 isSelected ? 'bg-tg-button text-tg-button-text' : 'bg-tg-bg'
                               }`}>
                                 {isSelected ? <AppIcon name="icon-success" size={14} /> : ''}
                               </span>
-                              <span className="truncate"><AppIcon name="icon-channel" size={14} /> {channel.title}</span>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={getChannelAvatarUrl(channel.id)}
+                                alt=""
+                                className="w-8 h-8 rounded-full flex-shrink-0 bg-tg-secondary object-cover"
+                                onError={(e) => { e.currentTarget.src = `/icons/brand/icon-channel.webp`; }}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <span className="truncate block">{channel.title}</span>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600">{t('subscriptions.channelBadge')}</span>
+                              </div>
                             </button>
                           );
                         })}
                       </div>
                     )}
                     {payload.boostEnabled && (payload.boostChannelIds || []).length === 0 && channels.filter(c => c.type === 'CHANNEL').length > 0 && (
-                      <p className="text-xs text-yellow-600 mt-2">
-                        <AppIcon name="icon-warning" size={14} /> {t('extras.selectAtLeastOneBoost')}
+                      <p className="text-xs text-yellow-600 mt-2 flex items-center gap-1.5">
+                        <AppIcon name="icon-info" size={14} /> {t('extras.selectAtLeastOneBoost')}
                       </p>
                     )}
                     {userTier === 'FREE' && (

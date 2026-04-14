@@ -363,7 +363,7 @@ export function PostsManager({
               exit={{ opacity: 0, y: 10 }}
               className="bg-tg-bg rounded-xl p-4 mt-3 border border-tg-secondary"
             >
-              <p className="text-sm text-tg-text mb-3">{t('addPopupDescription')}</p>
+              <p className="text-sm text-tg-text mb-3 text-center">{t('addPopupDescription')}</p>
               <div className="flex gap-2">
                 <button
                   onClick={confirmGoToBot}
