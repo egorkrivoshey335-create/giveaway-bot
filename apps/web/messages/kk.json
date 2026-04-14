@@ -858,6 +858,8 @@
     "member": "Бізбен {days} күн",
     "upgradePremium": "Премиум",
     "settings": "Параметрлер",
+    "notifOn": "қосу",
+    "notifOff": "өшіру",
     "stats": {
       "overall": "Жалпы статистика",
       "totalGiveaways": "Барлық ұтыс ойындары",

@@ -136,6 +136,11 @@ const MASCOT_PATHS: Record<string, string> = {
   'tier-plus': '/mascots/tiers/tier-plus.json',
   'tier-pro': '/mascots/tiers/tier-pro.json',
   'tier-business': '/mascots/tiers/tier-business.json',
+
+  // Dashboard card mascots
+  'dashboard-channels': '/mascots/creator/dashboard-channels.json',
+  'dashboard-posts': '/mascots/creator/dashboard-posts.json',
+  'dashboard-profile': '/mascots/creator/dashboard-profile.json',
 };
 
 /**

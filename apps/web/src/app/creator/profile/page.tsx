@@ -9,6 +9,31 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AppIcon } from '@/components/AppIcon';
 import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
 
+function ProfileAvatar({ firstName, lastName }: { firstName: string | null; lastName: string | null }) {
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [imgFailed, setImgFailed] = useState(false);
+
+  useEffect(() => {
+    try {
+      const url = window.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url;
+      if (url) setPhotoUrl(url);
+    } catch { /* not in Telegram context */ }
+  }, []);
+
+  const initials = `${(firstName || '?').charAt(0)}${lastName?.charAt(0) || ''}`;
+
+  return (
+    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-tg-button to-tg-button/60 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0 overflow-hidden relative">
+      {photoUrl && !imgFailed ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={photoUrl} alt="" className="w-full h-full object-cover" onError={() => setImgFailed(true)} />
+      ) : (
+        <span>{initials}</span>
+      )}
+    </div>
+  );
+}
+
 const BADGE_EMOJI: Record<string, React.ReactNode> = {
   newcomer: '🌱',
   activist: '🔥',
@@ -37,19 +62,14 @@ const BADGE_LABEL: Record<string, string> = {
  */
 export default function CreatorProfilePage() {
   const t = useTranslations('creatorProfile');
+  const tCommon = useTranslations('common');
   const router = useRouter();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [togglingNotif, setTogglingNotif] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const [showSubscription, setShowSubscription] = useState(false);
-
-  const showMessage = (msg: string) => {
-    setMessage(msg);
-    setTimeout(() => setMessage(null), 3000);
-  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -80,7 +100,6 @@ export default function CreatorProfilePage() {
       const res = await updateNotifications(newValue);
       if (res.ok) {
         setProfile((prev) => prev ? { ...prev, notificationsBlocked: newValue } : prev);
-        showMessage(newValue ? '🔕 Уведомления отключены' : '🔔 Уведомления включены');
       }
     } finally {
       setTogglingNotif(false);
@@ -96,8 +115,7 @@ export default function CreatorProfilePage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            layout
-            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
+            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <div className="sticky top-0 z-10 bg-tg-bg border-b border-tg-secondary">
               <div className="max-w-xl mx-auto px-4 py-3 flex items-center gap-3">
@@ -125,8 +143,7 @@ export default function CreatorProfilePage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            layout
-            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
+            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <div className="max-w-xl mx-auto py-12 text-center">
               <span className="text-6xl mb-4 block">😔</span>
@@ -146,8 +163,7 @@ export default function CreatorProfilePage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            layout
-            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
+            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             {(() => {
               const p = profile;
@@ -172,21 +188,15 @@ export default function CreatorProfilePage() {
                   : 'bg-amber-500/20 text-amber-600';
               return (
                 <>
-                  {message && (
-                    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-tg-text text-tg-bg text-sm px-4 py-2.5 rounded-full shadow-lg">
-                      {message}
-                    </div>
-                  )}
-
                   <div className="sticky top-0 z-10 bg-tg-bg border-b border-tg-secondary">
         <div className="max-w-xl mx-auto px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="p-2 rounded-lg hover:bg-tg-secondary transition-colors"
+            className="flex items-center gap-1 text-tg-link text-sm hover:opacity-70"
           >
-            <AppIcon name="icon-back" size={20} />
+            <AppIcon name="icon-back" size={16} /> {tCommon('back')}
           </button>
-          <h1 className="text-lg font-bold text-tg-text">{t('title')}</h1>
+          <h1 className="text-lg font-semibold text-tg-text flex-1">{t('title')}</h1>
         </div>
       </div>
 
@@ -194,10 +204,7 @@ export default function CreatorProfilePage() {
         {/* Профиль */}
         <div className="bg-tg-secondary rounded-xl p-4">
           <div className="flex items-start gap-4">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-tg-button to-tg-button/60 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
-              {(p.firstName || '?').charAt(0)}
-              {p.lastName?.charAt(0) || ''}
-            </div>
+            <ProfileAvatar firstName={p.firstName} lastName={p.lastName} />
             <div className="flex-1 min-w-0">
               <h2 className="text-xl font-semibold mb-1">
                 {p.firstName} {p.lastName}
@@ -207,7 +214,7 @@ export default function CreatorProfilePage() {
                 <p className="text-sm text-tg-hint mb-2">@{p.username}</p>
               )}
               <div className="flex flex-wrap items-center gap-2 text-xs text-tg-hint">
-                <span>📅 {t('member', { days: memberDays })}</span>
+                <span className="flex items-center gap-1"><AppIcon name="icon-calendar" size={14} /> {t('member', { days: memberDays })}</span>
                 <span className={`px-2 py-0.5 rounded-full font-medium ${subscriptionColor}`}>
                   {p.subscriptionTier === 'FREE' && 'FREE'}
                   {p.subscriptionTier === 'PLUS' && <><AppIcon name="icon-star" size={14} /> PLUS</>}
@@ -242,17 +249,25 @@ export default function CreatorProfilePage() {
                 ? 'Повысить до BUSINESS'
                 : t('upgradePremium')}
             </button>
-            <button
-              onClick={handleToggleNotifications}
-              disabled={togglingNotif}
-              className={`flex items-center justify-center gap-2 rounded-lg py-2 px-4 text-sm font-medium transition-colors ${
-                p.notificationsBlocked
-                  ? 'bg-red-500/10 text-red-500'
-                  : 'bg-tg-bg text-tg-text'
-              }`}
-            >
-              {p.notificationsBlocked ? '🔕 Уведомления выкл.' : '🔔 Уведомления вкл.'}
-            </button>
+            <AnimatePresence mode="wait">
+              <motion.button
+                key={p.notificationsBlocked ? 'off' : 'on'}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+                onClick={handleToggleNotifications}
+                disabled={togglingNotif}
+                className={`flex items-center justify-center gap-2 rounded-lg py-2 px-4 text-sm font-medium transition-colors ${
+                  p.notificationsBlocked
+                    ? 'bg-red-500/10 text-red-500'
+                    : 'bg-tg-bg text-tg-text'
+                }`}
+              >
+                <AppIcon name="icon-notification" size={14} />
+                {p.notificationsBlocked ? t('notifOff') : t('notifOn')}
+              </motion.button>
+            </AnimatePresence>
           </div>
         </div>
 

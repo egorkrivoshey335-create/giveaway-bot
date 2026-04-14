@@ -1091,6 +1091,8 @@
     "member": "С нами {days} дней",
     "upgradePremium": "Премиум",
     "settings": "Настройки",
+    "notifOn": "вкл.",
+    "notifOff": "выкл.",
     "stats": {
       "overall": "Общая статистика",
       "totalGiveaways": "Всего розыгрышей",

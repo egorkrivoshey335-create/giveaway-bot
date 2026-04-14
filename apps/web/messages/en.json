@@ -858,6 +858,8 @@
     "member": "Member for {days} days",
     "upgradePremium": "Premium",
     "settings": "Settings",
+    "notifOn": "on",
+    "notifOff": "off",
     "stats": {
       "overall": "Overall Statistics",
       "totalGiveaways": "Total Giveaways",

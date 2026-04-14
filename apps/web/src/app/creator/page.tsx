@@ -564,7 +564,7 @@ export default function CreatorDashboardPage() {
                 onClick={() => router.push('/creator/channels')}
                 className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors flex flex-col items-center text-center"
               >
-                <AppIcon name="icon-channel" variant="brand" size={28} className="mb-2" />
+                <Mascot type="dashboard-channels" size={56} loop className="mb-1" />
                 <div className="text-sm font-semibold">{t('channelsShort')}</div>
               </button>
 
@@ -572,7 +572,7 @@ export default function CreatorDashboardPage() {
                 onClick={() => router.push('/creator/posts')}
                 className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors flex flex-col items-center text-center"
               >
-                <AppIcon name="icon-edit" variant="brand" size={28} className="mb-2" />
+                <Mascot type="dashboard-posts" size={56} loop className="mb-1" />
                 <div className="text-sm font-semibold">{t('blocks.posts.short')}</div>
               </button>
 
@@ -580,7 +580,7 @@ export default function CreatorDashboardPage() {
                 onClick={() => router.push('/creator/profile')}
                 className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors flex flex-col items-center text-center col-span-2"
               >
-                <AppIcon name="icon-participant" variant="brand" size={28} className="mb-2" />
+                <Mascot type="dashboard-profile" size={56} loop className="mb-1" />
                 <div className="text-sm font-semibold">{t('profile')}</div>
               </button>
             </div>
