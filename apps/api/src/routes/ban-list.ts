@@ -55,9 +55,42 @@ export const banListRoutes: FastifyPluginAsync = async (fastify) => {
           },
         });
 
+        // Freeze all active participations of this user in creator's giveaways
+        const frozenCount = await prisma.participation.updateMany({
+          where: {
+            userId: targetUserId,
+            status: 'JOINED',
+            giveaway: { ownerUserId: user.id },
+          },
+          data: { status: 'BANNED' },
+        });
+
+        // Notify the banned user via Telegram bot
+        try {
+          const bannedUser = await prisma.user.findUnique({
+            where: { id: targetUserId },
+            select: { telegramUserId: true },
+          });
+          if (bannedUser) {
+            const { config } = await import('../config.js');
+            const botToken = config.botToken;
+            const msg = '⚠️ Вы были заблокированы создателем розыгрыша. Ваши билеты заморожены и не будут участвовать в розыгрыше.';
+            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: bannedUser.telegramUserId.toString(),
+                text: msg,
+              }),
+            }).catch(() => { /* user may have blocked bot */ });
+          }
+        } catch {
+          // Non-critical: notification failed
+        }
+
         fastify.log.info(
-          { creatorId: user.id, bannedUserId: targetUserId, giveawayId },
-          'User banned by creator'
+          { creatorId: user.id, bannedUserId: targetUserId, giveawayId, frozenParticipations: frozenCount.count },
+          'User banned by creator, participations frozen'
         );
 
         return reply.success({
@@ -65,6 +98,7 @@ export const banListRoutes: FastifyPluginAsync = async (fastify) => {
           bannedUserId: targetUserId,
           reason: ban.reason,
           createdAt: ban.createdAt.toISOString(),
+          frozenParticipations: frozenCount.count,
         });
       } catch (err: unknown) {
         // Unique constraint — уже в бан-листе
@@ -110,12 +144,22 @@ export const banListRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.notFound('Пользователь не найден в бан-листе');
       }
 
+      // Restore frozen participations in active giveaways
+      const restoredCount = await prisma.participation.updateMany({
+        where: {
+          userId: targetUserId,
+          status: 'BANNED',
+          giveaway: { ownerUserId: user.id, status: 'ACTIVE' },
+        },
+        data: { status: 'JOINED' },
+      });
+
       fastify.log.info(
-        { creatorId: user.id, unbannedUserId: targetUserId, giveawayId },
-        'User unbanned by creator'
+        { creatorId: user.id, unbannedUserId: targetUserId, giveawayId, restoredParticipations: restoredCount.count },
+        'User unbanned by creator, participations restored'
       );
 
-      return reply.success({ unbanned: true });
+      return reply.success({ unbanned: true, restoredParticipations: restoredCount.count });
     }
   );
 

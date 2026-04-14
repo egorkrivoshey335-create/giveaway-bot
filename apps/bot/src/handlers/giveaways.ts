@@ -230,10 +230,12 @@ export function registerGiveawayHandlers(bot: Bot): void {
 
     // Build post text: original template + goal/cancel/extend info
     let postText = postTemplate.text;
+    const hasEntities = Array.isArray(postTemplate.entities) && postTemplate.entities.length > 0;
     const goalParts: string[] = [];
 
     if (giveaway.minParticipants > 0) {
-      goalParts.push(`\n\n🎯 <b>${t(locale, 'giveawayPost.goal', { count: giveaway.minParticipants.toLocaleString() })}</b>`);
+      const goalLabel = t(locale, 'giveawayPost.goal', { count: giveaway.minParticipants.toLocaleString() });
+      goalParts.push(hasEntities ? `\n\n🎯 ${goalLabel}` : `\n\n🎯 <b>${goalLabel}</b>`);
 
       if (giveaway.cancelIfNotEnough) {
         goalParts.push(`⚠️ ${t(locale, 'giveawayPost.cancelWarning')}`);
@@ -253,6 +255,14 @@ export function registerGiveawayHandlers(bot: Bot): void {
       }
     }
 
+    // Determine formatting: use entities for custom emoji, otherwise HTML
+    const formatOpts = hasEntities
+      ? { entities: postTemplate.entities as import('grammy/types').MessageEntity[] }
+      : { parse_mode: 'HTML' as const };
+    const captionFormatOpts = hasEntities
+      ? { caption_entities: postTemplate.entities as import('grammy/types').MessageEntity[] }
+      : { parse_mode: 'HTML' as const };
+
     // Publish to all channels
     const publishedMessages: Array<{ channelId: string; telegramMessageId: number }> = [];
     const errors: string[] = [];
@@ -268,20 +278,20 @@ export function registerGiveawayHandlers(bot: Bot): void {
           const sent = await ctx.api.sendPhoto(chatId, postTemplate.telegramFileId, {
             caption: postText,
             reply_markup: postKb,
-            parse_mode: 'HTML',
+            ...captionFormatOpts,
           });
           messageId = sent.message_id;
         } else if (postTemplate.mediaType === 'VIDEO' && postTemplate.telegramFileId) {
           const sent = await ctx.api.sendVideo(chatId, postTemplate.telegramFileId, {
             caption: postText,
             reply_markup: postKb,
-            parse_mode: 'HTML',
+            ...captionFormatOpts,
           });
           messageId = sent.message_id;
         } else {
           const sent = await ctx.api.sendMessage(chatId, postText, {
             reply_markup: postKb,
-            parse_mode: 'HTML',
+            ...formatOpts,
           });
           messageId = sent.message_id;
         }

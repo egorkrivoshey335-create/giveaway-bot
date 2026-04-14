@@ -625,6 +625,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
               text: true,
               mediaType: true,
               telegramFileId: true,
+              entities: true,
             },
           },
           condition: {
@@ -707,6 +708,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
           text: giveaway.postTemplate.text,
           mediaType: giveaway.postTemplate.mediaType,
           telegramFileId: giveaway.postTemplate.telegramFileId,
+          entities: giveaway.postTemplate.entities || null,
         } : null,
         channels: {
           requiredSubscriptions: requiredSubIds.map(formatChannel).filter(Boolean),

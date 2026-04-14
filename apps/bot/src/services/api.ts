@@ -117,6 +117,7 @@ interface GiveawayFullResponse {
     text: string;
     mediaType: 'NONE' | 'PHOTO' | 'VIDEO';
     telegramFileId: string | null;
+    entities?: unknown[] | null;
   } | null;
   channels?: {
     requiredSubscriptions: GiveawayChannel[];
