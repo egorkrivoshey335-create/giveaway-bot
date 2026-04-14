@@ -338,12 +338,19 @@ export async function handlePostCreation(ctx: Context) {
   await ctx.reply(`👁 <b>${previewLabel}</b>`, { parse_mode: 'HTML' });
 
   try {
+    const hasEntities = Array.isArray(entities) && entities.length > 0;
     if (mediaType === 'NONE') {
-      await ctx.reply(text);
+      await ctx.reply(text, hasEntities ? { entities } : undefined);
     } else if (mediaType === 'PHOTO' && telegramFileId) {
-      await ctx.replyWithPhoto(telegramFileId, { caption: text });
+      await ctx.replyWithPhoto(telegramFileId, {
+        caption: text,
+        ...(hasEntities ? { caption_entities: entities } : {}),
+      });
     } else if (mediaType === 'VIDEO' && telegramFileId) {
-      await ctx.replyWithVideo(telegramFileId, { caption: text });
+      await ctx.replyWithVideo(telegramFileId, {
+        caption: text,
+        ...(hasEntities ? { caption_entities: entities } : {}),
+      });
     }
   } catch (error) {
     log.error({ error }, 'Preview send error');
