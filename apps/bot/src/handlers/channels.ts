@@ -379,7 +379,7 @@ function createChannelInfoKeyboard(channelId: string, type: 'CHANNEL' | 'GROUP',
   const backLabel = locale === 'en' ? 'Back' : locale === 'kk' ? 'Артқа' : 'Назад';
 
   return inlineKeyboard(
-    [btn(`🔄 ${refreshLabel}`, `refresh_channel:${channelId}`, undefined, 'primary'), btn(`🗑 ${deleteLabel}`, `delete_channel:${channelId}`, undefined, 'danger')],
+    [btn(`🔄 ${refreshLabel}`, `refresh_channel:${channelId}`, 'refresh', 'primary'), btn(`🗑 ${deleteLabel}`, `delete_channel:${channelId}`, 'delete', 'danger')],
     [btn(`◀️ ${backLabel}`, type === 'CHANNEL' ? 'list_channels' : 'list_groups', 'back', 'primary')],
   );
 }
