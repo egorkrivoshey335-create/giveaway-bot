@@ -6,7 +6,7 @@ import { ErrorCode, generateShortCode, TIER_LIMITS } from '@randombeast/shared';
 import { requireUser, getUser } from '../plugins/auth.js';
 import { createAuditLog, AuditAction, AuditEntityType } from '../lib/audit.js';
 import { getCache, setCache } from '../lib/redis.js';
-import { notifyCancelToAll } from '../scheduler/giveaway-lifecycle.js';
+import { notifyCancelToAll, updateCancelledPostButtons } from '../scheduler/giveaway-lifecycle.js';
 import { getUserTier, isTierAtLeast } from '../lib/subscription.js';
 
 // UUID validation regex
@@ -1228,8 +1228,11 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
 
     fastify.log.info({ giveawayId: id, userId: user.id }, 'Giveaway cancelled');
 
-    // Уведомляем создателя и участников об отмене (fire-and-forget)
+    // Уведомляем создателя и участников об отмене, обновляем пост (fire-and-forget)
     if (giveaway.status === GiveawayStatus.ACTIVE || giveaway.status === GiveawayStatus.SCHEDULED) {
+      updateCancelledPostButtons(id).catch(err =>
+        fastify.log.error({ err, giveawayId: id }, 'Error updating cancelled post buttons')
+      );
       notifyCancelToAll(id, giveaway.title, user.id).catch(err =>
         fastify.log.error({ err, giveawayId: id }, 'Error sending cancel notifications')
       );

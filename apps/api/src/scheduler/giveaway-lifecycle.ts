@@ -108,6 +108,9 @@ export async function processGiveawayLifecycle(): Promise<void> {
           where: { id: giveaway.id },
           data: { status: GiveawayStatus.CANCELLED },
         });
+        updateCancelledPostButtons(giveaway.id).catch(err =>
+          console.error('[Scheduler] Ошибка обновления поста при отмене:', err)
+        );
         notifyCancelToAll(giveaway.id, giveaway.title, giveaway.ownerUserId).catch(err =>
           console.error('[Scheduler] Ошибка уведомления об отмене:', err)
         );
@@ -120,6 +123,50 @@ export async function processGiveawayLifecycle(): Promise<void> {
     
   } catch (error) {
     console.error('[Scheduler] Ошибка обработки жизненного цикла:', error);
+  }
+}
+
+/**
+ * Обновить кнопку в канальных постах при отмене розыгрыша.
+ * Заменяет "Участвовать" на "Розыгрыш не состоялся".
+ */
+export async function updateCancelledPostButtons(giveawayId: string): Promise<void> {
+  try {
+    const messages = await prisma.giveawayMessage.findMany({
+      where: { giveawayId, kind: GiveawayMessageKind.START },
+      select: { channelId: true, telegramMessageId: true },
+    });
+
+    for (const msg of messages) {
+      const channel = await prisma.channel.findUnique({
+        where: { id: msg.channelId },
+        select: { telegramChatId: true },
+      });
+      if (!channel) continue;
+
+      try {
+        await fetch(`${config.apiUrl}/internal/edit-message-button`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Internal-Token': config.internalApiToken,
+          },
+          body: JSON.stringify({
+            chatId: channel.telegramChatId.toString(),
+            messageId: msg.telegramMessageId,
+            replyMarkup: {
+              inline_keyboard: [[
+                { text: '❌ Розыгрыш не состоялся', callback_data: 'noop' },
+              ]],
+            },
+          }),
+        });
+      } catch (err) {
+        console.error(`[Scheduler] Ошибка обновления кнопки при отмене:`, err);
+      }
+    }
+  } catch (err) {
+    console.error(`[Scheduler] Ошибка получения сообщений для отмены:`, err);
   }
 }
 
@@ -322,6 +369,12 @@ export async function finishGiveaway(giveawayId: string): Promise<{
         data: { status: GiveawayStatus.CANCELLED },
       });
       console.log(`[Scheduler] Розыгрыш ${giveawayId} отменён — нет допущенных участников`);
+      updateCancelledPostButtons(giveawayId).catch(err =>
+        console.error('[Scheduler] Ошибка обновления поста при отмене:', err)
+      );
+      notifyCancelToAll(giveawayId, giveaway.title, giveaway.owner.id).catch(err =>
+        console.error('[Scheduler] Ошибка уведомления об отмене (0 участников):', err)
+      );
       return { ok: true, winnersCount: 0 };
     }
 
