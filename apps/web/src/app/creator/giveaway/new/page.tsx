@@ -16,6 +16,7 @@ import {
   Channel,
   PostTemplate,
   GiveawayDraftPayload,
+  getChannelAvatarUrl,
 } from '@/lib/api';
 import { DateTimePicker } from '@/components/DateTimePicker';
 import { PostsManager } from '@/components/PostsManager';
@@ -821,9 +822,21 @@ export default function GiveawayWizardPage() {
                         }`}>
                           {isSelected ? <AppIcon name="icon-success" size={14} /> : ''}
                         </span>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={getChannelAvatarUrl(channel.id)}
+                          alt=""
+                          className="w-10 h-10 rounded-full flex-shrink-0 bg-tg-secondary object-cover"
+                          onError={(e) => { e.currentTarget.src = `/icons/brand/${channel.type === 'CHANNEL' ? 'icon-channel' : 'icon-group'}.webp`; }}
+                        />
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate">
-                            {channel.type === 'CHANNEL' ? <AppIcon name="icon-channel" size={14} /> : <AppIcon name="icon-group" size={14} />} {channel.title}
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium truncate">{channel.title}</span>
+                            <span className={`flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                              channel.type === 'CHANNEL' ? 'bg-blue-500/10 text-blue-500' : 'bg-violet-500/10 text-violet-500'
+                            }`}>
+                              {channel.type === 'CHANNEL' ? t('subscriptions.channelBadge') : t('subscriptions.groupBadge')}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
                             {channel.username && (
@@ -910,9 +923,21 @@ export default function GiveawayWizardPage() {
                         }`}>
                           {isSelected ? <AppIcon name="icon-success" size={14} /> : ''}
                         </span>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={getChannelAvatarUrl(channel.id)}
+                          alt=""
+                          className="w-10 h-10 rounded-full flex-shrink-0 bg-tg-secondary object-cover"
+                          onError={(e) => { e.currentTarget.src = `/icons/brand/${channel.type === 'CHANNEL' ? 'icon-channel' : 'icon-group'}.webp`; }}
+                        />
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate">
-                            {channel.type === 'CHANNEL' ? <AppIcon name="icon-channel" size={14} /> : <AppIcon name="icon-group" size={14} />} {channel.title}
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium truncate">{channel.title}</span>
+                            <span className={`flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                              channel.type === 'CHANNEL' ? 'bg-blue-500/10 text-blue-500' : 'bg-violet-500/10 text-violet-500'
+                            }`}>
+                              {channel.type === 'CHANNEL' ? t('subscriptions.channelBadge') : t('subscriptions.groupBadge')}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
                             {channel.username && (
@@ -987,9 +1012,21 @@ export default function GiveawayWizardPage() {
                       }`}>
                         {isSelected ? <AppIcon name="icon-success" size={14} /> : ''}
                       </span>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={getChannelAvatarUrl(channel.id)}
+                        alt=""
+                        className="w-10 h-10 rounded-full flex-shrink-0 bg-tg-secondary object-cover"
+                        onError={(e) => { e.currentTarget.src = `/icons/brand/${channel.type === 'CHANNEL' ? 'icon-channel' : 'icon-group'}.webp`; }}
+                      />
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">
-                          {channel.type === 'CHANNEL' ? <AppIcon name="icon-channel" size={14} /> : <AppIcon name="icon-group" size={14} />} {channel.title}
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium truncate">{channel.title}</span>
+                          <span className={`flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                            channel.type === 'CHANNEL' ? 'bg-blue-500/10 text-blue-500' : 'bg-violet-500/10 text-violet-500'
+                          }`}>
+                            {channel.type === 'CHANNEL' ? t('subscriptions.channelBadge') : t('subscriptions.groupBadge')}
+                          </span>
                         </div>
                       </div>
                     </button>
@@ -1298,22 +1335,22 @@ export default function GiveawayWizardPage() {
                 {(payload.minParticipants || 0) > 0 && (
                   <div className="mt-4 space-y-3">
                     {/* Отменить если не набралось */}
-                    <div className="flex items-center justify-between p-3 bg-tg-bg rounded-lg">
-                      <div>
+                    <button
+                      onClick={() => updatePayload({ cancelIfNotEnough: !payload.cancelIfNotEnough })}
+                      className={`w-full text-left p-3 rounded-lg flex items-center gap-3 ${
+                        payload.cancelIfNotEnough ? 'bg-red-500/10 border border-red-500' : 'bg-tg-bg'
+                      }`}
+                    >
+                      <span className={`w-5 h-5 rounded flex items-center justify-center text-xs ${
+                        payload.cancelIfNotEnough ? 'bg-red-500 text-white' : 'bg-tg-secondary'
+                      }`}>
+                        {payload.cancelIfNotEnough ? <AppIcon name="icon-success" size={14} /> : ''}
+                      </span>
+                      <div className="flex-1 min-w-0">
                         <div className="font-medium text-sm">{t('winners.cancelIfNotEnough')}</div>
                         <div className="text-xs text-tg-hint">{t('winners.cancelIfNotEnoughHint')}</div>
                       </div>
-                      <button
-                        onClick={() => updatePayload({ cancelIfNotEnough: !payload.cancelIfNotEnough })}
-                        className={`w-12 h-6 rounded-full transition-colors relative ${
-                          payload.cancelIfNotEnough ? 'bg-red-500' : 'bg-tg-secondary'
-                        }`}
-                      >
-                        <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                          payload.cancelIfNotEnough ? 'left-7' : 'left-1'
-                        }`} />
-                      </button>
-                    </div>
+                    </button>
 
                     {/* Автопродление если не отменяется */}
                     {!payload.cancelIfNotEnough && (

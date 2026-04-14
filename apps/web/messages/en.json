@@ -184,7 +184,9 @@
       "noChannels": "No channels. Add a channel in bot → My Channels",
       "channelLimit": "Channel limit",
       "limitReached": "Limit reached. Upgrade your subscription to add more channels.",
-      "subscribers": "subscribers"
+      "subscribers": "subscribers",
+      "channelBadge": "channel",
+      "groupBadge": "group"
     },
     "publish": {
       "description": "Select channels for publishing the giveaway:",
@@ -968,6 +970,9 @@
     "deleteCancelled": "Deletion cancelled",
     "noText": "No text",
     "characters": "characters",
+    "typeText": "Text",
+    "typePhoto": "Photo",
+    "typeVideo": "Video",
     "empty": {
       "title": "No Posts Found",
       "description": "Create your first post template for giveaways"

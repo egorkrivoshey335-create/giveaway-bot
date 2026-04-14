@@ -6,8 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BottomSheet } from './ui/BottomSheet';
 import { EmptyState } from './ui/EmptyState';
 import { InlineToast } from './Toast';
-import { getPostTemplates, deletePostTemplate, PostTemplate } from '@/lib/api';
+import { getPostTemplates, deletePostTemplate, getPostTemplateMediaUrl, PostTemplate } from '@/lib/api';
 import { hapticSuccess, hapticError, hapticSelect, hapticDelete } from '@/lib/haptic';
+import { AppIcon } from '@/components/AppIcon';
 import { Mascot } from '@/components/Mascot';
 
 // Bot username из env
@@ -193,12 +194,11 @@ export function PostsManager({
     }
   };
 
-  // Получить иконку типа медиа
-  const getMediaIcon = (mediaType: string) => {
+  const getMediaBadge = (mediaType: string) => {
     switch (mediaType) {
-      case 'PHOTO': return '🖼️';
-      case 'VIDEO': return '🎬';
-      default: return '📄';
+      case 'PHOTO': return { label: t('typePhoto'), className: 'bg-blue-500/15 text-blue-500' };
+      case 'VIDEO': return { label: t('typeVideo'), className: 'bg-purple-500/15 text-purple-500' };
+      default: return { label: t('typeText'), className: 'bg-gray-500/15 text-gray-500' };
     }
   };
 
@@ -254,10 +254,30 @@ export function PostsManager({
                       : 'bg-tg-secondary hover:bg-tg-secondary/80'
                   }`}
                 >
-                  <div className="flex items-start gap-3">
-                    {/* Миниатюра / Иконка типа медиа */}
-                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-tg-bg flex items-center justify-center text-2xl">
-                      {getMediaIcon(post.mediaType)}
+                  <div
+                    className={`flex items-start gap-3 ${mode === 'select' ? 'cursor-pointer' : ''}`}
+                    onClick={mode === 'select' ? () => handleSelectPost(post) : undefined}
+                  >
+                    {/* Миниатюра */}
+                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-tg-bg flex items-center justify-center overflow-hidden">
+                      {post.mediaType === 'VIDEO' ? (
+                        <video
+                          src={`${getPostTemplateMediaUrl(post.id)}#t=0.1`}
+                          className="w-full h-full object-cover"
+                          muted
+                          preload="metadata"
+                        />
+                      ) : post.mediaType === 'PHOTO' ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={getPostTemplateMediaUrl(post.id)}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                      ) : (
+                        <AppIcon name="icon-edit" size={20} />
+                      )}
                     </div>
 
                     {/* Контент */}
@@ -265,47 +285,43 @@ export function PostsManager({
                       <p className="text-sm text-tg-text line-clamp-2 mb-1">
                         {post.text || t('noText')}
                       </p>
-                      <p className="text-xs text-tg-hint">
-                        {post.mediaType !== 'NONE' && `${post.mediaType} • `}
-                        {post.text.length} {t('characters')}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const badge = getMediaBadge(post.mediaType);
+                          return (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${badge.className}`}>
+                              {badge.label}
+                            </span>
+                          );
+                        })()}
+                        <span className="text-xs text-tg-hint">{post.text.length} {t('characters')}</span>
+                      </div>
                     </div>
 
                     {/* Действия */}
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                       {mode === 'select' ? (
-                        // Режим выбора
-                        <button
-                          onClick={() => handleSelectPost(post)}
-                          className={`p-2 rounded-lg transition-colors ${
-                            isSelected
-                              ? 'bg-tg-button text-tg-button-text'
-                              : 'bg-tg-bg hover:bg-tg-bg/80'
-                          }`}
-                          title={isSelected ? t('selected') : t('select')}
-                        >
-                          {isSelected ? '✓' : '○'}
-                        </button>
+                        <span className={`w-5 h-5 rounded flex items-center justify-center text-xs ${
+                          isSelected ? 'bg-tg-button text-tg-button-text' : 'bg-tg-bg border border-tg-hint/30'
+                        }`}>
+                          {isSelected ? <AppIcon name="icon-success" size={14} /> : ''}
+                        </span>
                       ) : (
-                        // Режим управления
                         <>
-                          {/* Просмотр */}
                           <button
                             onClick={() => handleViewPost(post.id)}
                             className="p-2 rounded-lg bg-tg-bg hover:bg-tg-bg/80 transition-colors"
                             title={t('view')}
                           >
-                            👁️
+                            <AppIcon name="icon-view" size={14} />
                           </button>
-
-                          {/* Удалить */}
                           {!isDeleting && (
                             <button
                               onClick={() => handleDeletePost(post.id)}
                               className="p-2 rounded-lg bg-tg-bg hover:bg-red-500/20 transition-colors"
                               title={t('delete')}
                             >
-                              🗑️
+                              <AppIcon name="icon-delete" size={14} />
                             </button>
                           )}
                         </>

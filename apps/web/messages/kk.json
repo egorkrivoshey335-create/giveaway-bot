@@ -184,7 +184,9 @@
       "noChannels": "Арналар жоқ. Ботта арна қосыңыз → 📣 Менің арналарым",
       "channelLimit": "Арна шегі",
       "limitReached": "Шек жетті. Арналарды қосу үшін жазылымды жаңартыңыз.",
-      "subscribers": "жазылушы"
+      "subscribers": "жазылушы",
+      "channelBadge": "арна",
+      "groupBadge": "топ"
     },
     "publish": {
       "description": "Ұтыс ойынын жариялау үшін арналарды таңдаңыз:",
@@ -968,6 +970,9 @@
     "deleteCancelled": "✅ Жою болдырылды",
     "noText": "Мәтін жоқ",
     "characters": "таңба",
+    "typeText": "Мәтін",
+    "typePhoto": "Фото",
+    "typeVideo": "Бейне",
     "empty": {
       "title": "Посттар табылмады",
       "description": "Ұтыс ойыны үшін бірінші пост үлгісін жасаңыз"
