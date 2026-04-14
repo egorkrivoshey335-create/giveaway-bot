@@ -383,7 +383,23 @@ export function registerPostHandlers(bot: import('grammy').Bot) {
     if (!userId) return;
     
     const locale = getUserLocale(userId);
-    const { postCharLimit } = await apiService.getUserTier(userId);
+    const { tier, postCharLimit } = await apiService.getUserTier(userId);
+    const tierKey = (tier as 'FREE' | 'PLUS' | 'PRO' | 'BUSINESS') || 'FREE';
+
+    const templatesRes = await apiService.getUserPostTemplates(userId);
+    const currentCount = templatesRes.ok ? templatesRes.templates.length : 0;
+    const maxTemplates = TIER_LIMITS.maxPostTemplates[tierKey];
+
+    if (currentCount >= maxTemplates) {
+      await ctx.answerCallbackQuery();
+      const limitMsg = locale === 'en'
+        ? `⚠️ Post template limit reached: ${maxTemplates} (${tierKey}). Upgrade your subscription to create more.`
+        : locale === 'kk'
+        ? `⚠️ Жазба үлгілерінің шегіне жеттіңіз: ${maxTemplates} (${tierKey}). Көбірек жасау үшін жазылымыңызды жаңартыңыз.`
+        : `⚠️ Достигнут лимит шаблонов: ${maxTemplates} (${tierKey}). Повысьте подписку, чтобы создать больше.`;
+      await ctx.reply(limitMsg, { reply_markup: createPostsKeyboard(locale) });
+      return;
+    }
 
     setUserAwaitingPost(userId);
     await ctx.answerCallbackQuery();
