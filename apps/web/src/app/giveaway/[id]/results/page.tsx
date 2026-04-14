@@ -11,13 +11,13 @@ import {
   WinnerInfo,
 } from '@/lib/api';
 import { AppIcon } from '@/components/AppIcon';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function GiveawayResultsPage() {
   const params = useParams();
   const router = useRouter();
   const giveawayId = params.id as string;
   
-  // Переводы
   const t = useTranslations('results');
   const tCommon = useTranslations('common');
   const tErrors = useTranslations('errors');
@@ -25,7 +25,6 @@ export default function GiveawayResultsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Данные о розыгрыше
   const [title, setTitle] = useState<string>('');
   const [status, setStatus] = useState<string>('');
   const [winners, setWinners] = useState<WinnerInfo[]>([]);
@@ -33,23 +32,19 @@ export default function GiveawayResultsPage() {
   const [finishedAt, setFinishedAt] = useState<string | null>(null);
   const [prizeDeliveryMethod, setPrizeDeliveryMethod] = useState<'BOT_MESSAGE' | 'FORM' | 'DESCRIPTION' | null>(null);
   const [prizeDescription, setPrizeDescription] = useState<string | null>(null);
-  const [mascotType, setMascotType] = useState<string | null>(null);
   const [creatorUsername, setCreatorUsername] = useState<string | null>(null);
   
-  // Мой результат
   const [myResult, setMyResult] = useState<{
     participated: boolean;
     isWinner: boolean;
     place: number | null;
   } | null>(null);
 
-  // Анимации
   const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     async function loadData() {
       try {
-        // Загружаем победителей
         const winnersRes = await getGiveawayWinners(giveawayId);
         
         if (!winnersRes.ok) {
@@ -65,10 +60,8 @@ export default function GiveawayResultsPage() {
         setFinishedAt(winnersRes.finishedAt || null);
         setPrizeDeliveryMethod(winnersRes.prizeDeliveryMethod || null);
         setPrizeDescription(winnersRes.prizeDescription || null);
-        setMascotType(winnersRes.mascotType || null);
         setCreatorUsername(winnersRes.creatorUsername || null);
 
-        // Пробуем загрузить свой результат
         try {
           const myRes = await getMyResult(giveawayId);
           if (myRes.ok) {
@@ -78,13 +71,12 @@ export default function GiveawayResultsPage() {
               place: myRes.winner?.place || null,
             });
             
-            // Если победитель - запускаем конфетти
             if (myRes.isWinner) {
               setShowConfetti(true);
             }
           }
         } catch {
-          // Не авторизован — это нормально
+          // Not authorized
         }
 
         setLoading(false);
@@ -98,7 +90,6 @@ export default function GiveawayResultsPage() {
     loadData();
   }, [giveawayId, tErrors]);
 
-  // Форматирование имени пользователя
   const formatUserName = (user: WinnerInfo['user']): string => {
     if (user.firstName) {
       return user.lastName 
@@ -111,24 +102,22 @@ export default function GiveawayResultsPage() {
     return `User ${user.telegramUserId.slice(-4)}`;
   };
 
-  // Загрузка
   if (loading) {
     return (
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin w-10 h-10 border-3 border-tg-button border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-tg-hint">{t('loading')}</p>
+          <Mascot type="state-loading" size={120} loop autoplay />
+          <p className="text-tg-hint mt-2">{t('loading')}</p>
         </div>
       </main>
     );
   }
 
-  // Ошибка
   if (error) {
     return (
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
-          <div className="text-6xl mb-4"><AppIcon name="icon-error" size={14} /></div>
+          <Mascot type="state-error" size={140} loop autoplay className="mx-auto mb-4" />
           <h1 className="text-xl font-bold mb-2">{tCommon('error')}</h1>
           <p className="text-tg-hint mb-6">{error}</p>
           <button
@@ -142,12 +131,11 @@ export default function GiveawayResultsPage() {
     );
   }
 
-  // Розыгрыш ещё не завершён
   if (status !== 'FINISHED') {
     return (
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
-          <div className="text-6xl mb-4">⏳</div>
+          <Mascot type="state-loading" size={140} loop autoplay className="mx-auto mb-4" />
           <h1 className="text-xl font-bold mb-2">{title || t('giveaway')}</h1>
           <p className="text-tg-hint mb-6">
             {t('notFinished')}
@@ -163,240 +151,244 @@ export default function GiveawayResultsPage() {
     );
   }
 
+  const isWinner = myResult?.isWinner ?? false;
+  const isParticipant = myResult?.participated ?? false;
+
+  const placeColors = [
+    'from-yellow-400 to-amber-500 text-white shadow-amber-500/30',
+    'from-slate-300 to-slate-400 text-white shadow-slate-400/30',
+    'from-amber-600 to-amber-700 text-white shadow-amber-700/30',
+  ];
+
   return (
-    <main className="min-h-screen p-4">
-      {/* Конфетти для победителей */}
+    <main className="min-h-screen p-4 pb-8">
       <ConfettiOverlay trigger={showConfetti} />
       
-      <div className="max-w-md mx-auto">
-        {/* Заголовок */}
-        <div className="text-center mb-6">
-          <div className="text-5xl mb-3"><AppIcon name="icon-winner" size={14} /></div>
-          <h1 className="text-xl font-bold">{title}</h1>
-          <p className="text-tg-hint mt-1">{t('subtitle')}</p>
-        </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key="results"
+          className="max-w-md mx-auto"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+        >
+          {/* Hero Lottie */}
+          <div className="flex justify-center mb-2">
+            <Mascot 
+              type={isWinner ? 'participant-joined' : (isParticipant ? 'participant-lost' : 'participant-joined')} 
+              size={180} 
+              loop 
+              autoplay 
+            />
+          </div>
 
-        {/* Мой результат */}
-        {myResult && myResult.participated && (
-          <div className={`rounded-xl p-4 mb-6 ${
-            myResult.isWinner 
-              ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30' 
-              : 'bg-tg-secondary'
-          }`}>
-            {myResult.isWinner ? (
-              <div className="text-center">
-                {/* Радостный маскот для победителя */}
-                {mascotType && (
-                  <div className="mb-4 flex justify-center">
-                    <Mascot 
-                      type={mascotType as any} 
-                      size={100}
-                      className="mx-auto"
-                    />
-                  </div>
-                )}
-                
-                <div className="text-4xl mb-2">🎉</div>
-                <h2 className="text-lg font-bold text-yellow-500">{t('myResult.congratulations')}</h2>
-                <p className="text-sm mt-1">
-                  {t('myResult.place', { place: myResult.place ?? 1 })}
+          {/* Title block with dashed border */}
+          <div className="text-center mb-6">
+            <div className="border-2 border-dashed border-tg-hint/30 rounded-2xl p-4 relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-tg-bg px-3">
+                <span className="text-xs font-medium text-tg-hint uppercase tracking-wider">{t('subtitle')}</span>
+              </div>
+              <h1 className="text-xl font-bold mt-1">{title}</h1>
+              {finishedAt && (
+                <p className="text-xs text-tg-hint mt-2">
+                  {t('finishedAt')}: {new Date(finishedAt).toLocaleString()}
                 </p>
-                
-                {/* Информация о получении приза */}
-                {prizeDeliveryMethod && (
-                  <div className="mt-4 p-3 bg-tg-bg rounded-lg border border-yellow-500/20 text-left">
-                    <div className="flex items-start gap-2 mb-2">
-                      <span className="text-xl"><AppIcon name="icon-giveaway" size={16} /></span>
-                      <h3 className="font-semibold text-sm">{t('myResult.prizeInfo')}</h3>
+              )}
+            </div>
+          </div>
+
+          {/* Stats row */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="bg-tg-secondary rounded-xl p-3 text-center">
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <AppIcon name="icon-participant" size={16} />
+                <span className="text-2xl font-bold">{totalParticipants}</span>
+              </div>
+              <div className="text-xs text-tg-hint">{t('participants')}</div>
+            </div>
+            <div className="bg-tg-secondary rounded-xl p-3 text-center">
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <AppIcon name="icon-winner" size={16} />
+                <span className="text-2xl font-bold">{winners.length}</span>
+              </div>
+              <div className="text-xs text-tg-hint">{t('winnersCount')}</div>
+            </div>
+          </div>
+
+          {/* My result block */}
+          {isParticipant && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+              className="mb-6"
+            >
+              {isWinner ? (
+                <div className="rounded-2xl p-5 bg-gradient-to-br from-yellow-500/15 via-orange-500/10 to-amber-500/15 border border-yellow-500/25 relative overflow-hidden">
+                  <div className="text-center relative z-10">
+                    <div className="flex justify-center mb-3">
+                      <Mascot type="participant-winner" size={64} loop autoplay />
                     </div>
+                    <h2 className="text-lg font-bold bg-gradient-to-r from-yellow-500 to-orange-500 bg-clip-text text-transparent">
+                      {t('myResult.congratulations')}
+                    </h2>
+                    <p className="text-sm mt-1 text-tg-text">
+                      {t('myResult.place', { place: myResult?.place ?? 1 })}
+                    </p>
                     
-                    {prizeDeliveryMethod === 'BOT_MESSAGE' && (
-                      <p className="text-xs text-tg-hint">
-                        {t('myResult.prizeMethodBot')}
-                      </p>
+                    {prizeDeliveryMethod && (
+                      <div className="mt-4 p-3 bg-tg-bg/80 rounded-xl border border-yellow-500/15 text-left backdrop-blur-sm">
+                        <div className="flex items-start gap-2 mb-2">
+                          <AppIcon name="icon-giveaway" size={16} />
+                          <h3 className="font-semibold text-sm">{t('myResult.prizeInfo')}</h3>
+                        </div>
+                        
+                        {prizeDeliveryMethod === 'BOT_MESSAGE' && (
+                          <p className="text-xs text-tg-hint">
+                            {t('myResult.prizeMethodBot')}
+                          </p>
+                        )}
+                        
+                        {prizeDeliveryMethod === 'FORM' && (
+                          <div className="space-y-2">
+                            <p className="text-xs text-tg-hint mb-2">
+                              {t('myResult.prizeMethodForm')}
+                            </p>
+                            <button
+                              onClick={() => {
+                                alert('Форма получения приза будет реализована в Block 14');
+                              }}
+                              className="w-full bg-yellow-500 text-black text-sm rounded-lg py-2 font-medium hover:opacity-90"
+                            >
+                              {t('myResult.fillForm')}
+                            </button>
+                          </div>
+                        )}
+                        
+                        {prizeDeliveryMethod === 'DESCRIPTION' && prizeDescription && (
+                          <div className="text-xs text-tg-hint whitespace-pre-wrap">
+                            {prizeDescription}
+                          </div>
+                        )}
+                      </div>
                     )}
                     
-                    {prizeDeliveryMethod === 'FORM' && (
-                      <div className="space-y-2">
-                        <p className="text-xs text-tg-hint mb-2">
-                          {t('myResult.prizeMethodForm')}
-                        </p>
+                    <div className="mt-4 space-y-2">
+                      <button
+                        onClick={() => {
+                          const shareText = `🎉 Я выиграл в розыгрыше "${title}"! Участвуйте и вы!`;
+                          const shareUrl = `https://t.me/share/url?url=https://t.me/BeastRandomBot/participate?startapp=join_${giveawayId}&text=${encodeURIComponent(shareText)}`;
+                          
+                          if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
+                            (window as any).Telegram.WebApp.openTelegramLink(shareUrl);
+                          } else {
+                            window.open(shareUrl, '_blank');
+                          }
+                        }}
+                        className="w-full relative overflow-hidden bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                      >
+                        <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer-delayed_5s_ease-in-out_2.5s_infinite]" />
+                        <AppIcon name="icon-share" size={16} />
+                        <span>{t('myResult.shareVictory')}</span>
+                      </button>
+                      
+                      {creatorUsername && (
                         <button
                           onClick={() => {
-                            // TODO: открыть форму получения приза (Block 14)
-                            alert('Форма получения приза будет реализована в Block 14');
+                            const link = `https://t.me/${creatorUsername.replace('@', '')}`;
+                            if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
+                              (window as any).Telegram.WebApp.openTelegramLink(link);
+                            } else {
+                              window.open(link, '_blank');
+                            }
                           }}
-                          className="w-full bg-yellow-500 text-black text-sm rounded-lg py-2 font-medium hover:opacity-90"
+                          className="w-full bg-tg-secondary text-tg-text rounded-xl py-3 text-sm font-medium flex items-center justify-center gap-2"
                         >
-                          {t('myResult.fillForm')}
+                          <AppIcon name="icon-notification" size={16} />
+                          <span>{t('myResult.contactCreator')}</span>
                         </button>
-                      </div>
-                    )}
-                    
-                    {prizeDeliveryMethod === 'DESCRIPTION' && prizeDescription && (
-                      <div className="text-xs text-tg-hint whitespace-pre-wrap">
-                        {prizeDescription}
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                )}
-                
-                {/* Кнопки для победителя */}
-                <div className="mt-4 space-y-2">
-                  {/* Кнопка "Поделиться победой" */}
-                  <button
-                    onClick={() => {
-                      const shareText = `🎉 Я выиграл в розыгрыше "${title}"! Участвуйте и вы!`;
-                      const shareUrl = `https://t.me/share/url?url=https://t.me/BeastRandomBot/participate?startapp=join_${giveawayId}&text=${encodeURIComponent(shareText)}`;
-                      
-                      if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
-                        (window as any).Telegram.WebApp.openTelegramLink(shareUrl);
-                      } else {
-                        window.open(shareUrl, '_blank');
-                      }
-                    }}
-                    className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg py-2.5 text-sm font-medium flex items-center justify-center gap-2"
-                  >
-                    <span>🎉</span>
-                    <span>{t('myResult.shareVictory')}</span>
-                  </button>
-                  
-                  {/* Кнопка "Связаться с организатором" */}
-                  {creatorUsername && (
-                    <button
-                      onClick={() => {
-                        const link = `https://t.me/${creatorUsername.replace('@', '')}`;
-                        if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
-                          (window as any).Telegram.WebApp.openTelegramLink(link);
-                        } else {
-                          window.open(link, '_blank');
-                        }
-                      }}
-                      className="w-full bg-tg-button text-tg-button-text rounded-lg py-2.5 text-sm font-medium flex items-center justify-center gap-2"
-                    >
-                      <span>💬</span>
-                      <span>{t('myResult.contactCreator')}</span>
-                    </button>
-                  )}
                 </div>
-              </div>
-            ) : (
-              <div className="text-center">
-                {/* Грустный маскот для проигравшего */}
-                {mascotType && (
-                  <div className="mb-4 flex justify-center">
-                    <Mascot 
-                      type={mascotType as any} 
-                      size={80}
-                      className="mx-auto opacity-70"
-                    />
+              ) : (
+                <div className="rounded-2xl p-5 bg-tg-secondary text-center">
+                  <div className="flex justify-center mb-3">
+                    <Mascot type="participant-lost" size={80} loop autoplay className="opacity-80" />
                   </div>
-                )}
-                
-                <p className="text-tg-hint">{t('myResult.notWinner')}</p>
-                <p className="text-sm text-tg-hint mt-1">{t('myResult.goodLuck')} 🍀</p>
-                
-                {/* Кнопка "Другие розыгрыши" для проигравших */}
-                <button
-                  onClick={() => router.push('/catalog')}
-                  className="mt-4 w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg py-2.5 text-sm font-medium"
-                >
-                  <AppIcon name="icon-giveaway" size={16} /> {t('myResult.moreCatalog')}
-                </button>
+                  <p className="text-tg-text font-medium">{t('myResult.notWinner')}</p>
+                  <p className="text-sm text-tg-hint mt-1">{t('myResult.goodLuck')} 🍀</p>
+                  
+                  <button
+                    onClick={() => router.push('/catalog')}
+                    className="mt-4 w-full relative overflow-hidden bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                  >
+                    <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer-delayed_5s_ease-in-out_2.5s_infinite]" />
+                    <AppIcon name="icon-giveaway" size={16} />
+                    <span>{t('myResult.moreCatalog')}</span>
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Winners list */}
+          <div className="bg-tg-secondary rounded-2xl p-4 mb-6">
+            <h2 className="font-semibold mb-4 flex items-center gap-2">
+              <AppIcon name="icon-winner" size={16} />
+              <span>{t('winners')}</span>
+            </h2>
+            
+            {winners.length === 0 ? (
+              <p className="text-tg-hint text-center py-4">{t('noWinners')}</p>
+            ) : (
+              <div className="space-y-2">
+                {winners.map((winner) => {
+                  const colorClass = winner.place <= 3
+                    ? placeColors[winner.place - 1]
+                    : 'from-tg-button/80 to-tg-button text-tg-button-text shadow-tg-button/20';
+
+                  return (
+                    <div
+                      key={winner.place}
+                      className="flex items-center gap-3 bg-tg-bg rounded-xl p-3"
+                    >
+                      <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center font-bold text-lg shadow-lg flex-shrink-0`}>
+                        {winner.place}
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm flex items-center gap-1.5 truncate">
+                          <AppIcon name="icon-winner" size={14} />
+                          <span className="truncate">{formatUserName(winner.user)}</span>
+                        </div>
+                        {winner.user.username && winner.user.firstName && (
+                          <div className="text-xs text-tg-hint ml-[20px]">
+                            @{winner.user.username}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="text-right flex items-center gap-1 text-sm text-tg-hint">
+                        <AppIcon name="icon-ticket" size={14} />
+                        <span>{winner.ticketsUsed}</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
-        )}
 
-        {/* Статистика */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="bg-tg-secondary rounded-lg p-3 text-center">
-            <div className="text-2xl font-bold">{totalParticipants}</div>
-            <div className="text-xs text-tg-hint">{t('participants')}</div>
-          </div>
-          <div className="bg-tg-secondary rounded-lg p-3 text-center">
-            <div className="text-2xl font-bold">{winners.length}</div>
-            <div className="text-xs text-tg-hint">{t('winnersCount')}</div>
-          </div>
-        </div>
-
-        {/* Список победителей */}
-        <div className="bg-tg-secondary rounded-xl p-4 mb-6">
-          <h2 className="font-semibold mb-4 flex items-center gap-2">
-            <span><AppIcon name="icon-winner" size={14} /></span>
-            <span>{t('winners')}</span>
-          </h2>
-          
-          {winners.length === 0 ? (
-            <p className="text-tg-hint text-center py-4">{t('noWinners')}</p>
-          ) : (
-            <div className="space-y-3">
-              {winners.map((winner) => (
-                <div
-                  key={winner.place}
-                  className={`flex items-center gap-3 p-3 rounded-lg ${
-                    winner.place === 1 
-                      ? 'bg-yellow-500/10' 
-                      : winner.place === 2 
-                        ? 'bg-gray-400/10' 
-                        : winner.place === 3 
-                          ? 'bg-orange-600/10' 
-                          : 'bg-tg-bg'
-                  }`}
-                >
-                  {/* Место */}
-                  <div className="text-2xl">
-                    {winner.place === 1 && '🥇'}
-                    {winner.place === 2 && '🥈'}
-                    {winner.place === 3 && '🥉'}
-                    {winner.place > 3 && (
-                      <span className="text-lg font-bold text-tg-hint">
-                        #{winner.place}
-                      </span>
-                    )}
-                  </div>
-                  
-                  {/* Пользователь */}
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">
-                      {formatUserName(winner.user)}
-                    </div>
-                    {winner.user.username && winner.user.firstName && (
-                      <div className="text-xs text-tg-hint">
-                        @{winner.user.username}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Билеты */}
-                  <div className="text-right">
-                    <div className="text-sm text-tg-hint">
-                      <AppIcon name="icon-ticket" size={16} /> {winner.ticketsUsed}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Дата завершения */}
-        {finishedAt && (
-          <p className="text-center text-xs text-tg-hint mb-6">
-            {t('finishedAt')}: {new Date(finishedAt).toLocaleString()}
-          </p>
-        )}
-
-        {/* Кнопки */}
-        <div className="space-y-3">
+          {/* Home button */}
           <button
             onClick={() => router.push('/')}
-            className="w-full bg-tg-secondary text-tg-text rounded-lg py-3"
+            className="w-full bg-tg-secondary text-tg-text rounded-xl py-3 font-medium"
           >
             {tCommon('goHome')}
           </button>
-        </div>
-      </div>
+        </motion.div>
+      </AnimatePresence>
     </main>
   );
 }
