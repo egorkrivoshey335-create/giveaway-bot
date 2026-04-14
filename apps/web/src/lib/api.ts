@@ -395,6 +395,13 @@ export async function recheckChannel(id: string): Promise<ChannelResponse> {
   return response;
 }
 
+/**
+ * Get avatar URL for a channel (proxied from Telegram)
+ */
+export function getChannelAvatarUrl(channelId: string): string {
+  return `${API_URL}/channels/${channelId}/avatar`;
+}
+
 // =============================================================================
 // Post Templates API
 // =============================================================================

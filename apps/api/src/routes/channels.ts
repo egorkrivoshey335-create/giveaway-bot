@@ -470,4 +470,73 @@ export const channelsRoutes: FastifyPluginAsync = async (fastify) => {
 
     return reply.success(serializeChannel(updatedChannel));
   });
+
+  /**
+   * GET /channels/:id/avatar
+   * Проксирует аватарку канала/группы из Telegram.
+   * Использует getChat → photo.small_file_id → getFile → proxy binary.
+   */
+  fastify.get<{ Params: { id: string } }>('/channels/:id/avatar', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+
+    const { id } = request.params;
+
+    const channel = await prisma.channel.findFirst({
+      where: { id, addedByUserId: user.id },
+      select: { telegramChatId: true },
+    });
+
+    if (!channel) {
+      return reply.status(404).send({ ok: false, error: 'Channel not found' });
+    }
+
+    const botToken = config.botToken;
+    if (!botToken) {
+      return reply.status(500).send({ ok: false, error: 'Bot not configured' });
+    }
+
+    try {
+      const chatRes = await fetch(`https://api.telegram.org/bot${botToken}/getChat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: channel.telegramChatId.toString() }),
+      });
+      const chatData = await chatRes.json() as {
+        ok: boolean;
+        result?: { photo?: { small_file_id?: string; big_file_id?: string } };
+      };
+
+      const fileId = chatData.result?.photo?.big_file_id || chatData.result?.photo?.small_file_id;
+      if (!chatData.ok || !fileId) {
+        return reply.status(404).send({ ok: false, error: 'No avatar' });
+      }
+
+      const getFileRes = await fetch(
+        `https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`
+      );
+      const getFileData = await getFileRes.json() as { ok: boolean; result?: { file_path: string } };
+
+      if (!getFileData.ok || !getFileData.result?.file_path) {
+        return reply.status(404).send({ ok: false, error: 'File not found' });
+      }
+
+      const fileUrl = `https://api.telegram.org/file/bot${botToken}/${getFileData.result.file_path}`;
+      const fileRes = await fetch(fileUrl);
+
+      if (!fileRes.ok) {
+        return reply.status(502).send({ ok: false, error: 'Failed to fetch avatar' });
+      }
+
+      reply.header('Content-Type', 'image/jpeg');
+      reply.header('Cache-Control', 'public, max-age=86400');
+      reply.header('Access-Control-Allow-Origin', '*');
+
+      const buffer = Buffer.from(await fileRes.arrayBuffer());
+      return reply.send(buffer);
+    } catch (err) {
+      fastify.log.error({ err, channelId: id }, 'Failed to proxy channel avatar');
+      return reply.status(500).send({ ok: false, error: 'Failed to proxy avatar' });
+    }
+  });
 };

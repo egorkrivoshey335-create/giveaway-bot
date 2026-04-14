@@ -9,6 +9,7 @@ import {
   getChannels,
   getPostTemplates,
   getPostTemplateMediaUrl,
+  getChannelAvatarUrl,
   getMyEntitlements,
   deleteChannel,
   deletePostTemplate,
@@ -265,14 +266,31 @@ export function CreatorSection() {
               ) : (
                 <motion.div key="channels-list" {...contentMotion} className="space-y-3">
                   {channels.map((channel) => (
-                    <div key={channel.id} className="bg-tg-bg rounded-lg p-3 flex items-start justify-between">
+                    <div key={channel.id} className="bg-tg-bg rounded-lg p-3 flex items-start gap-3">
+                      {/* Аватарка канала */}
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-tg-secondary flex-shrink-0 flex items-center justify-center">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={getChannelAvatarUrl(channel.id)}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const parent = e.currentTarget.parentElement;
+                            if (parent && !parent.querySelector('.avatar-fallback')) {
+                              const fallback = document.createElement('div');
+                              fallback.className = 'avatar-fallback w-full h-full flex items-center justify-center';
+                              fallback.innerHTML = channel.type === 'CHANNEL'
+                                ? '<img src="/icons/brand/icon-channel.webp" width="20" height="20" alt="" />'
+                                : '<img src="/icons/brand/icon-group.webp" width="20" height="20" alt="" />';
+                              parent.appendChild(fallback);
+                            }
+                          }}
+                        />
+                      </div>
+
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          {channel.type === 'CHANNEL' ? (
-                            <AppIcon name="icon-channel" size={16} />
-                          ) : (
-                            <AppIcon name="icon-group" size={16} />
-                          )}
                           <span className="font-medium truncate">{channel.title}</span>
                           <span className={`flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded font-medium ${
                             channel.type === 'CHANNEL'
@@ -302,9 +320,10 @@ export function CreatorSection() {
                           </span>
                         </div>
                       </div>
+
                       <button
                         onClick={() => handleDeleteChannel(channel.id)}
-                        className="text-red-500 text-sm ml-2 p-1 inline-flex items-center justify-center"
+                        className="text-red-500 text-sm p-1 inline-flex items-center justify-center flex-shrink-0"
                         title={tCommon('delete')}
                       >
                         <AppIcon name="icon-delete" size={14} />
