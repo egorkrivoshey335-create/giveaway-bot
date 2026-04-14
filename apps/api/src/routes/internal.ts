@@ -327,6 +327,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
           text: true,
           mediaType: true,
           telegramFileId: true,
+          entities: true,
           createdAt: true,
         },
         orderBy: { createdAt: 'desc' },

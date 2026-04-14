@@ -489,9 +489,10 @@ export function registerPostHandlers(bot: import('grammy').Bot) {
     const backLabel = locale === 'en' ? 'Back' : locale === 'kk' ? 'Артқа' : 'Назад';
 
     const mediaIcon = (type: string) => type === 'PHOTO' ? '🖼' : type === 'VIDEO' ? '🎬' : '📝';
+    const mediaEmoji = (type: string) => type === 'PHOTO' ? 'my_posts_photo' : type === 'VIDEO' ? 'my_posts_video' : 'my_posts';
 
     const postButtons = result.templates.map(tpl => [
-      btn(`${mediaIcon(tpl.mediaType)} ${tpl.preview}`, `post_info:${tpl.id}`, undefined, 'primary'),
+      btn(`${mediaIcon(tpl.mediaType)} ${tpl.preview}`, `post_info:${tpl.id}`, mediaEmoji(tpl.mediaType), 'primary'),
     ]);
     postButtons.push([btn(`◀️ ${backLabel}`, 'back_to_posts', 'back', 'primary')]);
 
@@ -550,14 +551,21 @@ export function registerPostHandlers(bot: import('grammy').Bot) {
       await ctx.reply(infoMsg, { parse_mode: 'HTML', reply_markup: keyboard });
     }
 
-    // Send preview
+    // Send preview with original entities (links, custom emoji, formatting)
     try {
+      const ents = Array.isArray(template.entities) ? template.entities : undefined;
       if (template.mediaType === 'NONE' || !template.telegramFileId) {
-        await ctx.reply(template.text);
+        await ctx.reply(template.text, ents ? { entities: ents } : undefined);
       } else if (template.mediaType === 'PHOTO') {
-        await ctx.replyWithPhoto(template.telegramFileId, { caption: template.text });
+        await ctx.replyWithPhoto(template.telegramFileId, {
+          caption: template.text,
+          ...(ents ? { caption_entities: ents } : {}),
+        });
       } else if (template.mediaType === 'VIDEO') {
-        await ctx.replyWithVideo(template.telegramFileId, { caption: template.text });
+        await ctx.replyWithVideo(template.telegramFileId, {
+          caption: template.text,
+          ...(ents ? { caption_entities: ents } : {}),
+        });
       }
     } catch (error) {
       log.error({ error }, 'Post preview error');

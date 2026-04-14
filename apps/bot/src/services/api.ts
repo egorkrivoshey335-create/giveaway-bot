@@ -305,7 +305,7 @@ export class ApiService {
   /**
    * Get user's post templates
    */
-  async getUserPostTemplates(telegramUserId: number): Promise<{ ok: boolean; templates: { id: string; text: string; mediaType: string; telegramFileId: string | null; preview: string; createdAt: string }[]; error?: string }> {
+  async getUserPostTemplates(telegramUserId: number): Promise<{ ok: boolean; templates: { id: string; text: string; mediaType: string; telegramFileId: string | null; entities: any[] | null; preview: string; createdAt: string }[]; error?: string }> {
     try {
       const response = await this.fetchWithTimeout(`${this.baseUrl}/internal/post-templates/by-user/${telegramUserId}`, {
         method: 'GET',
@@ -373,15 +373,17 @@ export class ApiService {
       const response = await this.fetchWithTimeout(`${this.baseUrl}/internal/post-templates/${templateId}/delete`, {
         method: 'POST',
         headers: this.getHeaders(),
+        body: JSON.stringify({}),
       });
 
-      const data = (await response.json()) as { success: boolean; data?: { undoUntil: string }; error?: string };
+      const raw = (await response.json()) as any;
+      const errorMsg = typeof raw.error === 'string' ? raw.error : raw.error?.message || raw.message || 'API request failed';
 
-      if (!response.ok || !data.success) {
-        return { ok: false, error: data.error || 'API request failed' };
+      if (!response.ok || (!raw.success && !raw.ok)) {
+        return { ok: false, error: errorMsg };
       }
 
-      return { ok: true, undoUntil: data.data?.undoUntil };
+      return { ok: true, undoUntil: raw.data?.undoUntil };
     } catch (error) {
       log.error({ error }, 'API call failed');
       return { ok: false, error: this.mapNetworkError(error) };
@@ -396,12 +398,14 @@ export class ApiService {
       const response = await this.fetchWithTimeout(`${this.baseUrl}/internal/post-templates/${templateId}/undo-delete`, {
         method: 'POST',
         headers: this.getHeaders(),
+        body: JSON.stringify({}),
       });
 
-      const data = (await response.json()) as { success: boolean; error?: string };
+      const raw = (await response.json()) as any;
+      const errorMsg = typeof raw.error === 'string' ? raw.error : raw.error?.message || raw.message || 'API request failed';
 
-      if (!response.ok || !data.success) {
-        return { ok: false, error: data.error || 'API request failed' };
+      if (!response.ok || (!raw.success && !raw.ok)) {
+        return { ok: false, error: errorMsg };
       }
 
       return { ok: true };
