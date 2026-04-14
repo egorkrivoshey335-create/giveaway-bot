@@ -612,10 +612,14 @@ export function registerChannelHandlers(bot: import('grammy').Bot) {
       const updatedLabel = locale === 'en' ? '✅ Updated' : locale === 'kk' ? '✅ Жаңартылды' : '✅ Обновлено';
       
       await ctx.answerCallbackQuery({ text: updatedLabel });
-      await ctx.editMessageText(msg, {
-        parse_mode: 'HTML',
-        reply_markup: createChannelInfoKeyboard(channelId, type, locale),
-      });
+      try {
+        await ctx.editMessageText(msg, {
+          parse_mode: 'HTML',
+          reply_markup: createChannelInfoKeyboard(channelId, type, locale),
+        });
+      } catch (editErr: any) {
+        if (!editErr?.description?.includes('message is not modified')) throw editErr;
+      }
     } catch (error) {
       log.error({ error, channelId }, 'Refresh channel failed');
       const errLabel = locale === 'en' ? '❌ Could not refresh' : locale === 'kk' ? '❌ Жаңарту мүмкін болмады' : '❌ Не удалось обновить';

@@ -343,18 +343,22 @@ export class ApiService {
         }),
       });
 
-      const data = (await response.json()) as PostTemplateCreateResponse;
+      const raw = (await response.json()) as any;
 
-      if (!response.ok || !data.ok) {
+      const errorMsg = typeof raw.error === 'string'
+        ? raw.error
+        : raw.error?.message || 'API request failed';
+
+      if (!response.ok || (!raw.ok && !raw.success)) {
         return { 
           ok: false, 
-          error: data.error || 'API request failed',
-          maxLength: data.maxLength,
-          currentLength: data.currentLength,
+          error: errorMsg,
+          maxLength: raw.maxLength,
+          currentLength: raw.currentLength,
         };
       }
 
-      return { ok: true, template: data.template };
+      return { ok: true, template: raw.template };
     } catch (error) {
       log.error({ error }, 'API call failed');
       return { ok: false, error: this.mapNetworkError(error) };
