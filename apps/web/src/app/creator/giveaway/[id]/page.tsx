@@ -1010,7 +1010,7 @@ export default function GiveawayDetailsPage() {
                 className="bg-tg-secondary text-tg-text rounded-lg px-4 py-3 hover:opacity-80 transition-opacity flex items-center gap-1 text-sm whitespace-nowrap"
                 title="CSV"
               >
-                <AppIcon name="icon-download" size={16} />
+                <AppIcon name="icon-export" size={16} />
                 CSV
               </button>
             </div>
@@ -1114,11 +1114,12 @@ export default function GiveawayDetailsPage() {
                       {w.place === 1 ? '🥇' : w.place === 2 ? '🥈' : w.place === 3 ? '🥉' : `#${w.place}`}
                     </div>
                     <div className="flex-1">
-                      <div className="font-medium">
+                      <div className="font-medium flex items-center gap-1.5">
+                        <AppIcon name="icon-winner" size={16} />
                         {w.user.firstName || 'User'} {w.user.lastName || ''}
                       </div>
                       {w.user.username && (
-                        <div className="text-tg-hint text-sm">@{w.user.username}</div>
+                        <div className="text-tg-hint text-sm ml-[22px]">@{w.user.username}</div>
                       )}
                     </div>
                   </div>

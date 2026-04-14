@@ -33,11 +33,17 @@ export default function GiveawayThemePage() {
     setLoading(true);
     setError(null);
     try {
-      // Check tier first
-      const tierRes = await fetch('/api/users/me/entitlements', { credentials: 'include' });
-      const tierData = await tierRes.json() as { data?: { tier?: string } };
-      const tier = tierData?.data?.tier || 'FREE';
-      const hasBusiness = tier === 'BUSINESS';
+      let hasBusiness = false;
+      try {
+        const tierRes = await fetch('/api/users/me/entitlements', { credentials: 'include' });
+        if (tierRes.ok) {
+          const tierData = await tierRes.json() as { data?: { tier?: string } };
+          const tier = tierData?.data?.tier || 'FREE';
+          hasBusiness = tier === 'BUSINESS';
+        }
+      } catch {
+        // Entitlements check failed — default to FREE
+      }
       setIsPremium(hasBusiness);
 
       if (hasBusiness) {
