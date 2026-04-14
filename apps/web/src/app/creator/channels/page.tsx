@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   getChannels,
+  getChannelAvatarUrl,
   deleteChannel,
   recheckChannel,
   Channel,
@@ -105,18 +106,41 @@ function ChannelCard({
       {/* Информация о канале */}
       <div className="flex gap-3 mb-3">
         {/* Аватар */}
-        <div 
-          className="w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0"
-          style={{ backgroundColor: 'var(--brand-color, #f2b6b6)' }}
-        >
-          {channel.type === 'CHANNEL' ? <AppIcon name="icon-channel" size={14} /> : <AppIcon name="icon-group" size={14} />}
+        <div className="w-12 h-12 rounded-full overflow-hidden bg-tg-bg flex-shrink-0 flex items-center justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={getChannelAvatarUrl(channel.id)}
+            alt=""
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              const parent = e.currentTarget.parentElement;
+              if (parent && !parent.querySelector('.avatar-fallback')) {
+                const fallback = document.createElement('div');
+                fallback.className = 'avatar-fallback w-full h-full flex items-center justify-center';
+                fallback.innerHTML = channel.type === 'CHANNEL'
+                  ? '<img src="/icons/brand/icon-channel.webp" width="20" height="20" alt="" />'
+                  : '<img src="/icons/brand/icon-group.webp" width="20" height="20" alt="" />';
+                parent.appendChild(fallback);
+              }
+            }}
+          />
         </div>
         
         {/* Детали */}
         <div className="flex-1 min-w-0">
-          <h4 className="text-tg-text font-medium truncate">
-            {channel.title}
-          </h4>
+          <div className="flex items-center gap-2">
+            <h4 className="text-tg-text font-medium truncate">
+              {channel.title}
+            </h4>
+            <span className={`flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded font-medium ${
+              channel.type === 'CHANNEL'
+                ? 'bg-blue-500/10 text-blue-500'
+                : 'bg-violet-500/10 text-violet-500'
+            }`}>
+              {channel.type === 'CHANNEL' ? t('channel') : t('group')}
+            </span>
+          </div>
           {channel.username ? (
             <button
               onClick={openChannel}
@@ -128,8 +152,7 @@ function ChannelCard({
             <span className="text-tg-hint text-sm">{t('private')}</span>
           )}
           <div className="text-tg-hint text-xs mt-0.5">
-            {channel.type === 'CHANNEL' ? t('channel') : t('group')}
-            {channel.memberCount && ` · ${channel.memberCount.toLocaleString()} ${t('members')}`}
+            {channel.memberCount && `${channel.memberCount.toLocaleString()} ${t('members')}`}
           </div>
         </div>
       </div>
@@ -165,17 +188,24 @@ function ChannelCard({
         >
           {isRechecking ? '⏳' : <AppIcon name="icon-refresh" size={14} />} {t('recheckShort')}
         </button>
-        <button
-          onClick={handleDelete}
-          className={`px-3 py-2 text-sm rounded-lg transition-colors ${
-            showDeleteConfirm
-              ? 'bg-red-500 text-white'
-              : 'bg-tg-bg text-red-500 hover:bg-red-50'
-          }`}
-          title={t('delete')}
-        >
-          <AppIcon name="icon-delete" size={14} /> {showDeleteConfirm ? t('deleteConfirm') : t('deleteShort')}
-        </button>
+        <AnimatePresence mode="wait">
+          <motion.button
+            key={showDeleteConfirm ? 'confirm' : 'delete'}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            onClick={handleDelete}
+            className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+              showDeleteConfirm
+                ? 'bg-red-500 text-white'
+                : 'bg-tg-bg text-red-500 hover:bg-red-50'
+            }`}
+            title={t('delete')}
+          >
+            <AppIcon name="icon-delete" size={14} /> {showDeleteConfirm ? t('deleteConfirm') : t('deleteShort')}
+          </motion.button>
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -194,6 +224,7 @@ export default function ChannelsPage() {
   const [recheckingId, setRecheckingId] = useState<string | null>(null);
   const [userTier, setUserTier] = useState<'FREE' | 'PLUS' | 'PRO' | 'BUSINESS'>('FREE');
   const [showSubscription, setShowSubscription] = useState(false);
+  const [showAddConfirm, setShowAddConfirm] = useState(false);
 
   useEffect(() => {
     fetch('/api/users/me/entitlements', { credentials: 'include' })
@@ -225,8 +256,14 @@ export default function ChannelsPage() {
     loadChannels();
   }, [loadChannels]);
 
-  // Открыть бота для добавления канала
+  // Показать popup подтверждения перехода к боту
   const openBotAddChannel = () => {
+    setShowAddConfirm(true);
+  };
+
+  // Подтверждение — переход к боту
+  const confirmGoToBot = () => {
+    setShowAddConfirm(false);
     const botUrl = `https://t.me/${BOT_USERNAME}?start=add_channel`;
     const tg = window.Telegram?.WebApp;
     if (tg) {
@@ -311,9 +348,9 @@ export default function ChannelsPage() {
         <div className="max-w-xl mx-auto px-4 py-3 flex items-center gap-3">
           <button
             onClick={goBack}
-            className="text-tg-link text-sm hover:opacity-70"
+            className="flex items-center gap-1 text-tg-link text-sm hover:opacity-70"
           >
-            <AppIcon name="icon-back" size={20} /> {tCommon('back')}
+            <AppIcon name="icon-back" size={16} /> {tCommon('back')}
           </button>
           <h1 className="text-lg font-semibold text-tg-text flex-1">
             {t('title')}
@@ -405,6 +442,51 @@ export default function ChannelsPage() {
         isOpen={showSubscription}
         onClose={() => setShowSubscription(false)}
       />
+
+      {/* Popup подтверждения перехода к боту */}
+      <AnimatePresence>
+        {showAddConfirm && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/50 z-50"
+              onClick={() => setShowAddConfirm(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 bg-tg-bg rounded-2xl p-6 max-w-sm mx-auto shadow-xl"
+            >
+              <div className="text-center mb-4">
+                <AppIcon name="icon-add-channel" size={40} className="mx-auto mb-3" />
+                <h3 className="text-lg font-semibold mb-2">{t('addTitle')}</h3>
+                <p className="text-tg-hint text-sm">
+                  {t('addPopupDescription')}
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={confirmGoToBot}
+                  className="w-full py-3 bg-tg-button text-tg-button-text rounded-xl font-medium hover:opacity-90 transition-opacity"
+                >
+                  {t('goToBot')}
+                </button>
+                <button
+                  onClick={() => setShowAddConfirm(false)}
+                  className="w-full py-3 bg-tg-secondary text-tg-text rounded-xl font-medium hover:bg-tg-secondary/80 transition-colors"
+                >
+                  {tCommon('cancel')}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

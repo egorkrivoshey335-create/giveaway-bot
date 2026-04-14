@@ -562,12 +562,9 @@ export default function CreatorDashboardPage() {
             <div className="grid grid-cols-2 gap-3 mb-6">
               <button
                 onClick={() => router.push('/creator/channels')}
-                className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left"
+                className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors flex flex-col items-center text-center"
               >
-                <div className="flex items-center justify-between mb-2">
-                  <AppIcon name="icon-channel" variant="brand" size={28} />
-                  <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint" />
-                </div>
+                <AppIcon name="icon-channel" variant="brand" size={28} className="mb-2" />
                 <div className="text-sm font-semibold">{t('channelsShort')}</div>
               </button>
 
@@ -581,23 +578,17 @@ export default function CreatorDashboardPage() {
                     window.open(link, '_blank');
                   }
                 }}
-                className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left"
+                className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors flex flex-col items-center text-center"
               >
-                <div className="flex items-center justify-between mb-2">
-                  <AppIcon name="icon-edit" variant="brand" size={28} />
-                  <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint" />
-                </div>
-                <div className="text-sm font-semibold">{t('blocks.posts.title')}</div>
+                <AppIcon name="icon-edit" variant="brand" size={28} className="mb-2" />
+                <div className="text-sm font-semibold">{t('blocks.posts.short')}</div>
               </button>
 
               <button
                 onClick={() => router.push('/creator/profile')}
-                className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors text-left col-span-2"
+                className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors flex flex-col items-center text-center col-span-2"
               >
-                <div className="flex items-center justify-between mb-2">
-                  <AppIcon name="icon-participant" variant="brand" size={28} />
-                  <AppIcon name="icon-back" size={16} className="rotate-180 text-tg-hint" />
-                </div>
+                <AppIcon name="icon-participant" variant="brand" size={28} className="mb-2" />
                 <div className="text-sm font-semibold">{t('profile')}</div>
               </button>
             </div>

@@ -502,7 +502,9 @@
     "members": "subscribers",
     "lastChecked": "Checked",
     "statusUpdated": "Status updated",
-    "count": "Channels added: {count}"
+    "count": "Channels added: {count}",
+    "addPopupDescription": "To add a channel, you need to go to the bot. You can return here after adding.",
+    "goToBot": "Go to bot"
   },
   "dashboard": {
     "title": "My Giveaways",
@@ -519,6 +521,7 @@
       },
       "posts": {
         "title": "My Posts",
+        "short": "Posts",
         "subtitle": "Post templates"
       }
     },
@@ -809,6 +812,7 @@
     "logout": "Logout"
   },
   "errors": {
+    "error": "Error",
     "connectionError": "Connection error",
     "loadFailed": "Loading failed",
     "notFound": "Not found",

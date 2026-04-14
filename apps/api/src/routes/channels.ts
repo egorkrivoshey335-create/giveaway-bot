@@ -198,7 +198,7 @@ export const channelsRoutes: FastifyPluginAsync = async (fastify) => {
       request,
     });
 
-    return reply.success(serializeChannel(channel));
+    return reply.success({ channel: serializeChannel(channel) });
   });
 
   /**
@@ -262,7 +262,7 @@ export const channelsRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.notFound('Channel not found');
     }
 
-    return reply.success(serializeChannel(channel));
+    return reply.success({ channel: serializeChannel(channel) });
   });
 
   /**
@@ -468,7 +468,7 @@ export const channelsRoutes: FastifyPluginAsync = async (fastify) => {
       'Channel rechecked'
     );
 
-    return reply.success(serializeChannel(updatedChannel));
+    return reply.success({ channel: serializeChannel(updatedChannel) });
   });
 
   /**
