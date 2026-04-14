@@ -44,12 +44,12 @@ export default async function RootLayout({
         />
       </head>
       <body className={`${inter.className} bg-tg-bg text-tg-text`}>
-        <LoadingScreen />
         <FullscreenInit />
         <TelegramNavigation />
         <FloatingIcons count={10} opacity={0.08} />
         <ErrorBoundary>
           <NextIntlClientProvider locale={locale} messages={messages}>
+            <LoadingScreen />
             <SWRProvider>
               <NetworkErrorHandler>
                 {children}

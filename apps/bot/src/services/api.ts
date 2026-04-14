@@ -208,13 +208,13 @@ export class ApiService {
         body: JSON.stringify({ telegramUserId: telegramUserId.toString() }),
       });
 
-      const data = (await response.json()) as DraftResponse;
+      const data = (await response.json()) as { success: boolean; data?: { draft: Draft; created: boolean }; error?: string };
 
-      if (!response.ok || !data.ok) {
+      if (!response.ok || !data.success) {
         return { ok: false, error: data.error || 'API request failed' };
       }
 
-      return { ok: true, draft: data.draft ?? undefined, created: data.created };
+      return { ok: true, draft: data.data?.draft ?? undefined, created: data.data?.created };
     } catch (error) {
       log.error({ error }, 'API call failed');
       return { ok: false, error: this.mapNetworkError(error) };
@@ -260,15 +260,17 @@ export class ApiService {
    */
   async getUserChannels(telegramUserId: number, type?: 'CHANNEL' | 'GROUP'): Promise<{ ok: boolean; channels: Channel[]; error?: string }> {
     try {
-      const url = new URL(`${this.baseUrl}/internal/channels/by-user/${telegramUserId}`);
-      if (type) url.searchParams.set('type', type);
+      let url = `${this.baseUrl}/internal/channels/by-user/${telegramUserId}`;
+      if (type) url += `?type=${type}`;
 
-      const response = await this.fetchWithTimeout(url.toString(), {
+      const response = await this.fetchWithTimeout(url, {
+        method: 'GET',
         headers: this.getHeaders(),
       });
-      const data = await response.json() as { ok: boolean; data?: { channels: Channel[] }; error?: string };
+      const data = await response.json() as { success: boolean; data?: { channels: Channel[] }; error?: string };
 
-      if (!response.ok || !data.ok) {
+      if (!response.ok || !data.success) {
+        log.warn({ status: response.status, data }, 'getUserChannels: API error');
         return { ok: false, channels: [], error: data.error || 'API request failed' };
       }
 
@@ -288,9 +290,9 @@ export class ApiService {
         method: 'DELETE',
         headers: this.getHeaders(),
       });
-      const data = await response.json() as { ok: boolean; error?: string };
+      const data = await response.json() as { success: boolean; error?: string };
 
-      if (!response.ok || !data.ok) {
+      if (!response.ok || !data.success) {
         return { ok: false, error: data.error || 'API request failed' };
       }
       return { ok: true };
@@ -306,11 +308,13 @@ export class ApiService {
   async getUserPostTemplates(telegramUserId: number): Promise<{ ok: boolean; templates: { id: string; text: string; mediaType: string; telegramFileId: string | null; preview: string; createdAt: string }[]; error?: string }> {
     try {
       const response = await this.fetchWithTimeout(`${this.baseUrl}/internal/post-templates/by-user/${telegramUserId}`, {
+        method: 'GET',
         headers: this.getHeaders(),
       });
-      const data = await response.json() as { ok: boolean; data?: { templates: any[] }; error?: string };
+      const data = await response.json() as { success: boolean; data?: { templates: any[] }; error?: string };
 
-      if (!response.ok || !data.ok) {
+      if (!response.ok || !data.success) {
+        log.warn({ status: response.status, data }, 'getUserPostTemplates: API error');
         return { ok: false, templates: [], error: data.error || 'API request failed' };
       }
 
@@ -367,13 +371,13 @@ export class ApiService {
         headers: this.getHeaders(),
       });
 
-      const data = (await response.json()) as PostTemplateDeleteResponse;
+      const data = (await response.json()) as { success: boolean; data?: { undoUntil: string }; error?: string };
 
-      if (!response.ok || !data.ok) {
+      if (!response.ok || !data.success) {
         return { ok: false, error: data.error || 'API request failed' };
       }
 
-      return { ok: true, undoUntil: data.undoUntil };
+      return { ok: true, undoUntil: data.data?.undoUntil };
     } catch (error) {
       log.error({ error }, 'API call failed');
       return { ok: false, error: this.mapNetworkError(error) };
@@ -390,9 +394,9 @@ export class ApiService {
         headers: this.getHeaders(),
       });
 
-      const data = (await response.json()) as { ok: boolean; error?: string };
+      const data = (await response.json()) as { success: boolean; error?: string };
 
-      if (!response.ok || !data.ok) {
+      if (!response.ok || !data.success) {
         return { ok: false, error: data.error || 'API request failed' };
       }
 
@@ -440,13 +444,13 @@ export class ApiService {
         body: JSON.stringify({ publishedMessages }),
       });
 
-      const data = (await response.json()) as GiveawayAcceptResponse;
+      const data = (await response.json()) as { success: boolean; data?: { status: string }; error?: string };
 
-      if (!response.ok || !data.ok) {
+      if (!response.ok || !data.success) {
         return { ok: false, error: data.error || 'API request failed' };
       }
 
-      return data;
+      return { ok: true, status: data.data?.status };
     } catch (error) {
       log.error({ error }, 'API call failed');
       return { ok: false, error: this.mapNetworkError(error) };
@@ -464,9 +468,9 @@ export class ApiService {
         body: JSON.stringify({}),
       });
 
-      const data = (await response.json()) as GiveawayRejectResponse;
+      const data = (await response.json()) as { success: boolean; error?: string };
 
-      if (!response.ok || !data.ok) {
+      if (!response.ok || !data.success) {
         return { ok: false, error: data.error || 'API request failed' };
       }
 
