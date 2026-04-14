@@ -60,7 +60,7 @@ export function createChannelManagementKeyboard(locale: Locale = 'ru'): any {
 
   return inlineKeyboard(
     [btn(addChannel, 'add_channel', 'add', 'danger'), btn(addGroup, 'add_group', 'add', 'danger')],
-    [btn(myChannelsLabel, 'list_channels', 'channel', 'primary'), btn(myGroupsLabel, 'list_groups', 'channel', 'primary')],
+    [btn(myChannelsLabel, 'list_channels', 'channels', 'primary'), btn(myGroupsLabel, 'list_groups', 'channels', 'primary')],
   );
 }
 
@@ -585,7 +585,7 @@ export function registerChannelHandlers(bot: import('grammy').Bot) {
       } catch { /* optional */ }
 
       const chatInfo = await ctx.api.getChat(Number(chatId));
-      const title = 'title' in chatInfo ? chatInfo.title : channel.title;
+      const title = ('title' in chatInfo ? chatInfo.title : channel.title) || channel.title;
 
       await apiService.upsertChannel({
         telegramUserId: userId,
