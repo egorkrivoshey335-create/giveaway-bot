@@ -454,7 +454,7 @@ export function registerChannelHandlers(bot: import('grammy').Bot) {
     const backLabel = locale === 'en' ? 'Back' : locale === 'kk' ? 'Артқа' : 'Назад';
 
     const channelButtons = result.channels.map(ch => [
-      btn(`📢 ${ch.title}`, `channel_info:${ch.id}`, undefined, 'primary'),
+      btn(`📢 ${ch.title}`, `channel_info:${ch.id}`, 'channels', 'primary'),
     ]);
     channelButtons.push([btn(`◀️ ${backLabel}`, 'back_to_channels', 'back', 'primary')]);
 
@@ -509,7 +509,7 @@ export function registerChannelHandlers(bot: import('grammy').Bot) {
     const backLabel = locale === 'en' ? 'Back' : locale === 'kk' ? 'Артқа' : 'Назад';
 
     const groupButtons = result.channels.map(ch => [
-      btn(`👥 ${ch.title}`, `channel_info:${ch.id}`, undefined, 'primary'),
+      btn(`👥 ${ch.title}`, `channel_info:${ch.id}`, 'channels', 'primary'),
     ]);
     groupButtons.push([btn(`◀️ ${backLabel}`, 'back_to_channels', 'back', 'primary')]);
 
