@@ -199,7 +199,8 @@ bot.command('start', async (ctx) => {
         pushMenu(ctx.from.id, 'my_posts');
         clearAllUserStates(ctx.from.id);
       }
-      await safeReply(ctx, getPostsMessage(locale), {
+      const { postCharLimit } = userId ? await apiService.getUserTier(userId) : { postCharLimit: 1024 };
+      await safeReply(ctx, getPostsMessage(locale, postCharLimit), {
         parse_mode: 'HTML',
         reply_markup: createPostsKeyboard(locale),
       });
@@ -403,7 +404,8 @@ bot.hears(MENU.MY_POSTS, async (ctx) => {
     clearAllUserStates(ctx.from.id);
   }
 
-  await safeReply(ctx, getPostsMessage(locale), {
+  const { postCharLimit } = userId ? await apiService.getUserTier(userId) : { postCharLimit: 1024 };
+  await safeReply(ctx, getPostsMessage(locale, postCharLimit), {
     reply_markup: createPostsKeyboard(locale),
     parse_mode: 'HTML',
   });

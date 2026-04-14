@@ -88,6 +88,25 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   /**
+   * GET /internal/user-tier/:telegramUserId
+   * Returns subscription tier and limits for a user
+   */
+  fastify.get<{ Params: { telegramUserId: string } }>('/user-tier/:telegramUserId', async (request, reply) => {
+    try {
+      const telegramUserId = BigInt(request.params.telegramUserId);
+      const user = await prisma.user.findUnique({ where: { telegramUserId } });
+      if (!user) {
+        return reply.success({ tier: 'FREE', postCharLimit: TIER_LIMITS.postCharLimit.FREE });
+      }
+      const tier = await getUserTier(user.id);
+      return reply.success({ tier, postCharLimit: TIER_LIMITS.postCharLimit[tier] });
+    } catch (error) {
+      fastify.log.error(error, 'Internal user-tier error');
+      return reply.success({ tier: 'FREE', postCharLimit: TIER_LIMITS.postCharLimit.FREE });
+    }
+  });
+
+  /**
    * POST /internal/drafts/giveaway
    * Creates or gets draft for a user by telegramUserId
    */
@@ -369,10 +388,10 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
 
-      // Tier-based text length with media
-      const tierCharLimit = body.mediaType !== 'NONE' ? TIER_LIMITS.postCharLimit[tier] : POST_LIMITS.TEXT_MAX_LENGTH;
-      const maxLength = body.mediaType === 'NONE' 
-        ? POST_LIMITS.TEXT_MAX_LENGTH 
+      // Tier-based text length limit (applies to both text and media posts)
+      const tierCharLimit = TIER_LIMITS.postCharLimit[tier];
+      const maxLength = body.mediaType === 'NONE'
+        ? Math.min(tierCharLimit, POST_LIMITS.TEXT_MAX_LENGTH)
         : Math.min(tierCharLimit, POST_LIMITS.CAPTION_MAX_LENGTH);
 
       if (body.text.length > maxLength) {

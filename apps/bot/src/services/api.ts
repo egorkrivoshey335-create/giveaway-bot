@@ -260,6 +260,25 @@ export class ApiService {
   }
 
   /**
+   * Get user's subscription tier and post char limit
+   */
+  async getUserTier(telegramUserId: number): Promise<{ tier: string; postCharLimit: number }> {
+    try {
+      const response = await this.fetchWithTimeout(`${this.baseUrl}/internal/user-tier/${telegramUserId}`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      });
+      const data = await response.json() as { success: boolean; data?: { tier: string; postCharLimit: number } };
+      if (response.ok && data.success && data.data) {
+        return { tier: data.data.tier, postCharLimit: data.data.postCharLimit };
+      }
+    } catch (error) {
+      log.error({ error }, 'getUserTier failed');
+    }
+    return { tier: 'FREE', postCharLimit: 1024 };
+  }
+
+  /**
    * Get user's channels/groups
    */
   async getUserChannels(telegramUserId: number, type?: 'CHANNEL' | 'GROUP'): Promise<{ ok: boolean; channels: Channel[]; error?: string }> {

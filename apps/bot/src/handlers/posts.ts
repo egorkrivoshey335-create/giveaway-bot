@@ -1,5 +1,5 @@
 import type { Context } from 'grammy';
-import { POST_LIMITS } from '@randombeast/shared';
+import { POST_LIMITS, TIER_LIMITS } from '@randombeast/shared';
 import { config } from '../config.js';
 import { apiService } from '../services/api.js';
 import { createMainMenuKeyboard } from '../keyboards/mainMenu.js';
@@ -132,18 +132,21 @@ export function createUndoKeyboard(templateId: string, locale: Locale = 'ru'): a
 }
 
 /**
- * Get posts section message
+ * Get posts section message with tier-based limits
  */
-export function getPostsMessage(locale: Locale = 'ru'): string {
+export function getPostsMessage(locale: Locale = 'ru', postCharLimit?: number): string {
+  const textLimit = Math.min(postCharLimit || POST_LIMITS.TEXT_MAX_LENGTH, POST_LIMITS.TEXT_MAX_LENGTH);
+  const captionLimit = Math.min(postCharLimit || POST_LIMITS.CAPTION_MAX_LENGTH, POST_LIMITS.CAPTION_MAX_LENGTH);
+
   if (locale === 'en') {
     return `📝 <b>Post Templates</b>
 
 Here you can create a template for giveaway publication.
 
 <b>Supported formats:</b>
-• Text (up to ${POST_LIMITS.TEXT_MAX_LENGTH} characters)
-• Photo with caption (up to ${POST_LIMITS.CAPTION_MAX_LENGTH} characters)
-• Video with caption (up to ${POST_LIMITS.CAPTION_MAX_LENGTH} characters)`;
+• Text (up to ${textLimit} characters)
+• Photo with caption (up to ${captionLimit} characters)
+• Video with caption (up to ${captionLimit} characters)`;
   }
   
   if (locale === 'kk') {
@@ -152,9 +155,9 @@ Here you can create a template for giveaway publication.
 Мұнда ұтыс ойынына жариялау үшін үлгі жасай аласыз.
 
 <b>Қолдау көрсетілетін форматтар:</b>
-• Мәтін (${POST_LIMITS.TEXT_MAX_LENGTH} таңбаға дейін)
-• Жазуы бар фото (${POST_LIMITS.CAPTION_MAX_LENGTH} таңбаға дейін)
-• Жазуы бар бейне (${POST_LIMITS.CAPTION_MAX_LENGTH} таңбаға дейін)`;
+• Мәтін (${textLimit} таңбаға дейін)
+• Жазуы бар фото (${captionLimit} таңбаға дейін)
+• Жазуы бар бейне (${captionLimit} таңбаға дейін)`;
   }
   
   return `📝 <b>Шаблоны постов</b>
@@ -162,22 +165,25 @@ Here you can create a template for giveaway publication.
 Здесь вы можете создать шаблон для публикации в розыгрыше.
 
 <b>Поддерживаемые форматы:</b>
-• Текст (до ${POST_LIMITS.TEXT_MAX_LENGTH} символов)
-• Фото с подписью (до ${POST_LIMITS.CAPTION_MAX_LENGTH} символов)
-• Видео с подписью (до ${POST_LIMITS.CAPTION_MAX_LENGTH} символов)`;
+• Текст (до ${textLimit} символов)
+• Фото с подписью (до ${captionLimit} символов)
+• Видео с подписью (до ${captionLimit} символов)`;
 }
 
 /**
- * Get waiting for post message
+ * Get waiting for post message with tier-based limits
  */
-export function getWaitingForPostMessage(locale: Locale = 'ru'): string {
+export function getWaitingForPostMessage(locale: Locale = 'ru', postCharLimit?: number): string {
+  const textLimit = Math.min(postCharLimit || POST_LIMITS.TEXT_MAX_LENGTH, POST_LIMITS.TEXT_MAX_LENGTH);
+  const captionLimit = Math.min(postCharLimit || POST_LIMITS.CAPTION_MAX_LENGTH, POST_LIMITS.CAPTION_MAX_LENGTH);
+
   if (locale === 'en') {
     return `📝 <b>Creating Template</b>
 
 Send:
-• Text message (up to ${POST_LIMITS.TEXT_MAX_LENGTH} characters)
-• Photo with caption (up to ${POST_LIMITS.CAPTION_MAX_LENGTH} characters)
-• Video with caption (up to ${POST_LIMITS.CAPTION_MAX_LENGTH} characters)
+• Text message (up to ${textLimit} characters)
+• Photo with caption (up to ${captionLimit} characters)
+• Video with caption (up to ${captionLimit} characters)
 
 <i>Send /cancel to abort</i>`;
   }
@@ -186,9 +192,9 @@ Send:
     return `📝 <b>Үлгі жасау</b>
 
 Жіберіңіз:
-• Мәтіндік хабар (${POST_LIMITS.TEXT_MAX_LENGTH} таңбаға дейін)
-• Жазуы бар фото (${POST_LIMITS.CAPTION_MAX_LENGTH} таңбаға дейін)
-• Жазуы бар бейне (${POST_LIMITS.CAPTION_MAX_LENGTH} таңбаға дейін)
+• Мәтіндік хабар (${textLimit} таңбаға дейін)
+• Жазуы бар фото (${captionLimit} таңбаға дейін)
+• Жазуы бар бейне (${captionLimit} таңбаға дейін)
 
 <i>Бас тарту үшін /cancel жіберіңіз</i>`;
   }
@@ -196,9 +202,9 @@ Send:
   return `📝 <b>Создание шаблона</b>
 
 Отправьте:
-• Текстовое сообщение (до ${POST_LIMITS.TEXT_MAX_LENGTH} символов)
-• Фото с подписью (до ${POST_LIMITS.CAPTION_MAX_LENGTH} символов)
-• Видео с подписью (до ${POST_LIMITS.CAPTION_MAX_LENGTH} символов)
+• Текстовое сообщение (до ${textLimit} символов)
+• Фото с подписью (до ${captionLimit} символов)
+• Видео с подписью (до ${captionLimit} символов)
 
 <i>Отправьте /cancel для отмены</i>`;
 }
@@ -246,10 +252,11 @@ export async function handlePostCreation(ctx: Context) {
     return;
   }
 
-  // Validate text length
-  const maxLength = mediaType === 'NONE' 
-    ? POST_LIMITS.TEXT_MAX_LENGTH 
-    : POST_LIMITS.CAPTION_MAX_LENGTH;
+  // Get user's tier-based char limit
+  const { postCharLimit } = await apiService.getUserTier(userId);
+  const tierTextLimit = Math.min(postCharLimit, POST_LIMITS.TEXT_MAX_LENGTH);
+  const tierCaptionLimit = Math.min(postCharLimit, POST_LIMITS.CAPTION_MAX_LENGTH);
+  const maxLength = mediaType === 'NONE' ? tierTextLimit : tierCaptionLimit;
 
   if (text.length > maxLength) {
     const yourText = t(locale, 'posts.yourText');
@@ -376,10 +383,11 @@ export function registerPostHandlers(bot: import('grammy').Bot) {
     if (!userId) return;
     
     const locale = getUserLocale(userId);
+    const { postCharLimit } = await apiService.getUserTier(userId);
 
     setUserAwaitingPost(userId);
     await ctx.answerCallbackQuery();
-    await ctx.reply(getWaitingForPostMessage(locale), {
+    await ctx.reply(getWaitingForPostMessage(locale, postCharLimit), {
       parse_mode: 'HTML',
       reply_markup: createPostCancelKeyboard(locale),
     });
@@ -585,15 +593,16 @@ export function registerPostHandlers(bot: import('grammy').Bot) {
   bot.callbackQuery('back_to_posts', async (ctx) => {
     const userId = ctx.from?.id;
     const locale = userId ? getUserLocale(userId) : 'ru';
+    const { postCharLimit } = userId ? await apiService.getUserTier(userId) : { postCharLimit: TIER_LIMITS.postCharLimit.FREE };
 
     await ctx.answerCallbackQuery();
     try {
-      await ctx.editMessageText(getPostsMessage(locale), {
+      await ctx.editMessageText(getPostsMessage(locale, postCharLimit), {
         parse_mode: 'HTML',
         reply_markup: createPostsKeyboard(locale),
       });
     } catch {
-      await ctx.reply(getPostsMessage(locale), {
+      await ctx.reply(getPostsMessage(locale, postCharLimit), {
         parse_mode: 'HTML',
         reply_markup: createPostsKeyboard(locale),
       });
