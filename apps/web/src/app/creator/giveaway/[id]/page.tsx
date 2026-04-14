@@ -137,6 +137,7 @@ export default function GiveawayDetailsPage() {
   const [showStartModal, setShowStartModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [banTarget, setBanTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Subscription tier (for stats gating & CSV export)
   const [userTier, setUserTier] = useState<'FREE' | 'PLUS' | 'PRO' | 'BUSINESS'>('FREE');
@@ -1028,9 +1029,24 @@ export default function GiveawayDetailsPage() {
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-tg-button/20 flex items-center justify-center text-lg font-bold text-tg-button">
-                          {(p.user.firstName || 'U')[0].toUpperCase()}
-                        </div>
+                        {(() => {
+                          const avatarColors = [
+                            'from-rose-400 to-pink-500',
+                            'from-violet-400 to-purple-500',
+                            'from-blue-400 to-indigo-500',
+                            'from-cyan-400 to-teal-500',
+                            'from-emerald-400 to-green-500',
+                            'from-amber-400 to-orange-500',
+                            'from-red-400 to-rose-500',
+                            'from-fuchsia-400 to-pink-600',
+                          ];
+                          const colorIdx = parseInt(p.user.telegramUserId.slice(-2), 10) % avatarColors.length;
+                          return (
+                            <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatarColors[colorIdx]} flex items-center justify-center text-white text-lg font-bold flex-shrink-0 shadow-sm`}>
+                              {(p.user.firstName || 'U')[0].toUpperCase()}
+                            </div>
+                          );
+                        })()}
                         <div>
                           <div className="font-semibold text-sm">
                             {p.user.firstName || 'User'} {p.user.lastName || ''}
@@ -1041,21 +1057,11 @@ export default function GiveawayDetailsPage() {
                         </div>
                       </div>
                       <button
-                        onClick={async () => {
-                          if (!confirm(`Забанить ${p.user.firstName || 'пользователя'}?`)) return;
-                          const res = await banParticipant(giveawayId, p.user.id);
-                          if (res.ok) {
-                            setMessage('Пользователь забанен');
-                            loadParticipants();
-                          } else {
-                            setMessage(res.error || 'Ошибка');
-                          }
-                          setTimeout(() => setMessage(null), 3000);
-                        }}
+                        onClick={() => setBanTarget({ id: p.user.id, name: p.user.firstName || 'пользователя' })}
                         className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
                         title="Забанить"
                       >
-                        <AppIcon name="icon-cancel" size={16} />
+                        <AppIcon name="icon-delete" size={16} />
                       </button>
                     </div>
 
@@ -1424,6 +1430,64 @@ export default function GiveawayDetailsPage() {
           </div>
         </div>
       )}
+
+      {/* Модалка: Забанить участника */}
+      <AnimatePresence>
+        {banTarget && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-50"
+              onClick={() => setBanTarget(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 bg-tg-bg rounded-2xl p-6 max-w-sm mx-auto shadow-2xl"
+            >
+              <div className="text-center mb-5">
+                <div className="flex justify-center mb-3">
+                  <div className="w-14 h-14 rounded-full bg-red-500/15 flex items-center justify-center">
+                    <AppIcon name="icon-delete" size={28} />
+                  </div>
+                </div>
+                <h3 className="font-bold text-lg mb-2">Заблокировать участника?</h3>
+                <p className="text-tg-hint text-sm">
+                  <span className="font-medium text-tg-text">{banTarget.name}</span> будет добавлен в ваш бан-лист и не сможет участвовать в ваших розыгрышах.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setBanTarget(null)}
+                  className="flex-1 bg-tg-secondary text-tg-text rounded-xl px-4 py-3 font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  {tCommon('cancel')}
+                </button>
+                <button
+                  onClick={async () => {
+                    const res = await banParticipant(giveawayId, banTarget.id);
+                    if (res.ok) {
+                      setMessage('Пользователь заблокирован');
+                      loadParticipants();
+                    } else {
+                      setMessage(res.error || 'Ошибка');
+                    }
+                    setBanTarget(null);
+                    setTimeout(() => setMessage(null), 3000);
+                  }}
+                  className="flex-1 bg-red-600 text-white rounded-xl px-4 py-3 font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  Заблокировать
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* BottomSheet: Поделиться */}
       <ShareBottomSheet
