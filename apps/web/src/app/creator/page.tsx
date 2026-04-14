@@ -53,20 +53,20 @@ function getStatusLabel(status: string, tGiveaway: ReturnType<typeof useTranslat
 function StatusIcon({ status }: { status: string }) {
   const iconName = STATUS_ICON_MAP[status];
   if (!iconName) return null;
-  return <AppIcon name={iconName} size={14} className="inline-block mr-1" />;
+  return <AppIcon name={iconName} size={12} className="flex-shrink-0" />;
 }
 
 // Получить CSS класс для бейджа статуса
 function getStatusBadgeClass(status: string): string {
   switch (status) {
-    case 'DRAFT': return 'bg-gray-500/20 text-gray-600';
-    case 'PENDING_CONFIRM': return 'bg-yellow-500/20 text-yellow-600';
-    case 'SCHEDULED': return 'bg-blue-500/20 text-blue-600';
-    case 'ACTIVE': return 'bg-green-500/20 text-green-600';
-    case 'FINISHED': return 'bg-purple-500/20 text-purple-600';
-    case 'CANCELLED': return 'bg-red-500/20 text-red-600';
-    case 'ERROR': return 'bg-orange-500/20 text-orange-600';
-    default: return 'bg-gray-500/20 text-gray-600';
+    case 'DRAFT': return 'bg-gray-500/15 text-gray-500 border border-gray-500/20';
+    case 'PENDING_CONFIRM': return 'bg-amber-500/15 text-amber-500 border border-amber-500/20';
+    case 'SCHEDULED': return 'bg-blue-500/15 text-blue-500 border border-blue-500/20';
+    case 'ACTIVE': return 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/20';
+    case 'FINISHED': return 'bg-violet-500/15 text-violet-500 border border-violet-500/20';
+    case 'CANCELLED': return 'bg-red-500/15 text-red-400 border border-red-500/20';
+    case 'ERROR': return 'bg-orange-500/15 text-orange-500 border border-orange-500/20';
+    default: return 'bg-gray-500/15 text-gray-500 border border-gray-500/20';
   }
 }
 
@@ -160,7 +160,7 @@ function GiveawayCard({
             )}
             <h3 className="font-semibold text-lg line-clamp-2">{giveaway.title || tCard('noTitle')}</h3>
           </div>
-          <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap flex items-center ${getStatusBadgeClass(giveaway.status)}`}>
+          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap flex items-center gap-1 ${getStatusBadgeClass(giveaway.status)}`}>
             <StatusIcon status={giveaway.status} />
             {getStatusLabel(giveaway.status, tGiveaway)}
           </span>
@@ -222,84 +222,91 @@ function GiveawayCard({
           >
             ⋮
           </button>
-          {menuOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMenuOpen(false);
-                }}
-              />
-              <div className="absolute right-0 bottom-full mb-1 bg-tg-bg rounded-lg shadow-lg z-20 min-w-[180px] overflow-hidden">
-                {/* Редактировать — для черновиков */}
-                {giveaway.status === 'DRAFT' && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMenuOpen(false);
-                      onEdit(giveaway.id);
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm text-tg-text hover:bg-tg-secondary"
-                  >
-                    {t('menu.edit')}
-                  </button>
-                )}
-                {/* Опубликовать — для ожидающих подтверждения */}
-                {giveaway.status === 'PENDING_CONFIRM' && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMenuOpen(false);
-                      onEdit(giveaway.id);
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm text-tg-text hover:bg-tg-secondary"
-                  >
-                    {t('menu.publish')}
-                  </button>
-                )}
-                {/* Поделиться — для активных и запланированных */}
-                {(giveaway.status === 'ACTIVE' || giveaway.status === 'SCHEDULED') && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMenuOpen(false);
-                      onCopyLink(giveaway.id);
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm text-tg-text hover:bg-tg-secondary"
-                  >
-                    {t('menu.share')}
-                  </button>
-                )}
-                {/* Результаты — для завершённых */}
-                {giveaway.status === 'FINISHED' && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMenuOpen(false);
-                      onOpenDetails(giveaway.id);
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm text-tg-text hover:bg-tg-secondary"
-                  >
-                    {t('menu.results')}
-                  </button>
-                )}
-                {/* Удалить — для черновиков, ожидающих и отменённых */}
-                {(giveaway.status === 'DRAFT' || giveaway.status === 'PENDING_CONFIRM' || giveaway.status === 'CANCELLED') && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMenuOpen(false);
-                      onDelete(giveaway.id);
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm text-red-500 hover:bg-tg-secondary"
-                  >
-                    {t('menu.delete')}
-                  </button>
-                )}
-              </div>
-            </>
-          )}
+          <AnimatePresence>
+            {menuOpen && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="fixed inset-0 z-10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                  }}
+                />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 4 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 4 }}
+                  transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  className="absolute right-0 bottom-full mb-1 bg-tg-bg rounded-lg shadow-lg z-20 min-w-[180px] overflow-hidden origin-bottom-right"
+                >
+                  {giveaway.status === 'DRAFT' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpen(false);
+                        onEdit(giveaway.id);
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-tg-text hover:bg-tg-secondary transition-colors"
+                    >
+                      {t('menu.edit')}
+                    </button>
+                  )}
+                  {giveaway.status === 'PENDING_CONFIRM' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpen(false);
+                        onEdit(giveaway.id);
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-tg-text hover:bg-tg-secondary transition-colors"
+                    >
+                      {t('menu.publish')}
+                    </button>
+                  )}
+                  {(giveaway.status === 'ACTIVE' || giveaway.status === 'SCHEDULED') && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpen(false);
+                        onCopyLink(giveaway.id);
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-tg-text hover:bg-tg-secondary transition-colors"
+                    >
+                      {t('menu.share')}
+                    </button>
+                  )}
+                  {giveaway.status === 'FINISHED' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpen(false);
+                        onOpenDetails(giveaway.id);
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-tg-text hover:bg-tg-secondary transition-colors"
+                    >
+                      {t('menu.results')}
+                    </button>
+                  )}
+                  {(giveaway.status === 'DRAFT' || giveaway.status === 'PENDING_CONFIRM' || giveaway.status === 'CANCELLED') && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpen(false);
+                        onDelete(giveaway.id);
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-red-500 hover:bg-tg-secondary transition-colors"
+                    >
+                      {t('menu.delete')}
+                    </button>
+                  )}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>
@@ -461,6 +468,7 @@ export default function CreatorDashboardPage() {
     { key: 'SCHEDULED', label: t('filters.scheduled'), icon: 'icon-calendar' },
     { key: 'FINISHED',  label: t('filters.finished'),  icon: 'icon-completed' },
     { key: 'DRAFT',     label: t('filters.draft'),     icon: 'icon-edit' },
+    { key: 'CANCELLED', label: t('filters.cancelled'), icon: 'icon-cancelled' },
     ...(counts['ERROR'] ? [{ key: 'ERROR' as StatusFilter, label: 'Ошибка', icon: 'icon-warning' }] : []),
   ];
 

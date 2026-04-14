@@ -557,8 +557,9 @@
       "all": "All",
       "draft": "Drafts",
       "active": "Active",
-      "scheduled": "Scheduled",
-      "finished": "Finished"
+      "scheduled": "Upcoming",
+      "finished": "Finished",
+      "cancelled": "Cancelled"
     },
     "menu": {
       "edit": "Edit",
