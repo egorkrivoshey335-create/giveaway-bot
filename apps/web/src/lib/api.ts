@@ -2207,34 +2207,31 @@ export interface GiveawayThemeSettings {
 
 export async function getGiveawayTheme(
   giveawayId: string
-): Promise<{ ok: boolean; theme: GiveawayThemeSettings | null; error?: string }> {
-  const res = await fetch(`${API_URL}/giveaways/${giveawayId}/theme`, {
+): Promise<{ ok: boolean; theme?: GiveawayThemeSettings | null; error?: string }> {
+  return apiFetch(`${API_URL}/giveaways/${giveawayId}/theme`, {
     credentials: 'include',
   });
-  return res.json();
 }
 
 export async function saveGiveawayTheme(
   giveawayId: string,
   theme: GiveawayThemeSettings
 ): Promise<{ ok: boolean; theme?: GiveawayThemeSettings; error?: string }> {
-  const res = await fetch(`${API_URL}/giveaways/${giveawayId}/theme`, {
+  return apiFetch(`${API_URL}/giveaways/${giveawayId}/theme`, {
     method: 'PUT',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(theme),
   });
-  return res.json();
 }
 
 export async function deleteGiveawayTheme(
   giveawayId: string
 ): Promise<{ ok: boolean; error?: string }> {
-  const res = await fetch(`${API_URL}/giveaways/${giveawayId}/theme`, {
+  return apiFetch(`${API_URL}/giveaways/${giveawayId}/theme`, {
     method: 'DELETE',
     credentials: 'include',
   });
-  return res.json();
 }
 
 // ====================================

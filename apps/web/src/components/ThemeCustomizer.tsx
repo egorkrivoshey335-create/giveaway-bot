@@ -47,6 +47,10 @@ export interface ThemeCustomizerProps {
    * Доступна ли эта фича (для платной подписки)
    */
   isPremium?: boolean;
+  /**
+   * Callback when user wants to upgrade subscription
+   */
+  onUpgrade?: () => void;
 }
 
 const DEFAULT_THEME: ThemeSettings = {
@@ -91,6 +95,7 @@ export function ThemeCustomizer({
   onSave,
   onCancel,
   isPremium = false,
+  onUpgrade,
 }: ThemeCustomizerProps) {
   const [theme, setTheme] = useState<ThemeSettings>({
     ...DEFAULT_THEME,
@@ -152,19 +157,21 @@ export function ThemeCustomizer({
   // Если не Premium, показываем заглушку
   if (!isPremium) {
     return (
-      <Card className="p-6 text-center">
+      <div className="py-6 text-center">
         <div className="flex justify-center mb-2">
           <Mascot type="state-locked" size={120} loop autoplay />
         </div>
         <h3 className="text-lg font-semibold mb-2">Кастомизация темы</h3>
-        <p className="text-tg-hint mb-4">
-          Настройка темы доступна для пользователей с подпиской PRO или Business
+        <p className="text-tg-hint text-sm mb-6">
+          Настройка темы доступна с подпиской BUSINESS. Измените цвета, стиль кнопок, иконки и фон вашего розыгрыша.
         </p>
-        <Button variant="primary">
-          <AppIcon name="crown" variant="lucide" size={16} className="mr-2" />
-          Повысить статус
-        </Button>
-      </Card>
+        <button
+          onClick={() => onUpgrade?.()}
+          className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl px-6 py-3 font-semibold transition-all hover:scale-105 active:scale-95 shadow-lg"
+        >
+          ⭐ Повысить до BUSINESS
+        </button>
+      </div>
     );
   }
 

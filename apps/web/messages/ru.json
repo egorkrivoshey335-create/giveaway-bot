@@ -27,7 +27,9 @@
     "statusWarning": "Внимание",
     "statusInfo": "Инфо",
     "finishing": "Завершается...",
-    "participate": "Участвовать"
+    "participate": "Участвовать",
+    "copy": "Копировать",
+    "copied": "Скопировано"
   },
   "nav": {
     "participant": "Участник",

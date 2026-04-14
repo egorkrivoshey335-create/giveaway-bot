@@ -27,7 +27,9 @@
     "statusWarning": "Warning",
     "statusInfo": "Info",
     "finishing": "Finishing...",
-    "participate": "Participate"
+    "participate": "Participate",
+    "copy": "Copy",
+    "copied": "Copied"
   },
   "nav": {
     "participant": "Participant",

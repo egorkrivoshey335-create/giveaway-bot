@@ -27,7 +27,9 @@
     "statusWarning": "Назар",
     "statusInfo": "Ақпарат",
     "finishing": "Аяқталуда...",
-    "participate": "🎁 Қатысу"
+    "participate": "🎁 Қатысу",
+    "copy": "Көшіру",
+    "copied": "Көшірілді"
   },
   "nav": {
     "participant": "🎫 Қатысушы",

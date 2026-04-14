@@ -99,7 +99,9 @@ export function ShareBottomSheet({
 
         {/* Сообщение */}
         {message && (
-          <div className="text-center text-sm text-tg-hint">{message}</div>
+          <div className="bg-green-500/15 border border-green-500/30 rounded-xl px-4 py-2.5 text-green-500 text-sm text-center flex items-center justify-center gap-2">
+            ✅ {message}
+          </div>
         )}
 
         {/* Таб: Команды */}

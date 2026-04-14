@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { ThemeCustomizer, ThemeSettings } from '@/components/ThemeCustomizer';
 import { getGiveawayTheme, saveGiveawayTheme, deleteGiveawayTheme, GiveawayThemeSettings } from '@/lib/api';
 import { AppIcon } from '@/components/AppIcon';
+import { Mascot } from '@/components/Mascot';
+import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
 
 /**
  * Страница кастомизации темы розыгрыша (задача 9.6)
@@ -22,21 +24,24 @@ export default function GiveawayThemePage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isPremium, setIsPremium] = useState<boolean | null>(null);
   const [currentTheme, setCurrentTheme] = useState<Partial<ThemeSettings> | undefined>(undefined);
+  const [showSubscription, setShowSubscription] = useState(false);
 
   const loadTheme = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await getGiveawayTheme(giveawayId);
-      if (res.ok) {
-        setIsPremium(true);
-        if (res.theme) {
+      // Check tier first
+      const tierRes = await fetch('/api/users/me/entitlements', { credentials: 'include' });
+      const tierData = await tierRes.json() as { data?: { tier?: string } };
+      const tier = tierData?.data?.tier || 'FREE';
+      const hasBusiness = tier === 'BUSINESS';
+      setIsPremium(hasBusiness);
+
+      if (hasBusiness) {
+        const res = await getGiveawayTheme(giveawayId);
+        if (res.ok && res.theme) {
           setCurrentTheme(apiThemeToSettings(res.theme));
         }
-      } else if (res.error?.includes('subscription') || res.error?.includes('403')) {
-        setIsPremium(false);
-      } else {
-        setError(res.error || 'Ошибка загрузки');
       }
     } catch {
       setError('Не удалось загрузить данные');
@@ -86,8 +91,9 @@ export default function GiveawayThemePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-tg-bg flex items-center justify-center">
-        <div className="animate-spin w-10 h-10 border-4 border-tg-button border-t-transparent rounded-full" />
+      <main className="min-h-screen bg-tg-bg flex flex-col items-center justify-center">
+        <Mascot type="state-loading" size={100} loop autoplay />
+        <p className="text-tg-hint text-sm mt-2">Загрузка...</p>
       </main>
     );
   }
@@ -98,12 +104,12 @@ export default function GiveawayThemePage() {
       <div className="sticky top-0 z-10 bg-tg-bg/95 backdrop-blur border-b border-tg-secondary/20 px-4 py-3 flex items-center gap-3">
         <button
           onClick={() => router.back()}
-          className="p-2 rounded-full hover:bg-tg-secondary/20 transition-colors"
-          aria-label="Назад"
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-tg-secondary/60"
         >
-          <AppIcon name="icon-back" size={20} />
+          <AppIcon name="icon-back" size={18} />
         </button>
-        <h1 className="text-base font-semibold flex-1">🎨 Кастомизация темы</h1>
+        <AppIcon name="icon-theme" size={20} />
+        <h1 className="text-base font-semibold flex-1">Кастомизация темы</h1>
         {isPremium && currentTheme && (
           <button
             onClick={handleReset}
@@ -140,8 +146,14 @@ export default function GiveawayThemePage() {
           isPremium={isPremium ?? false}
           onSave={handleSave}
           onCancel={() => router.back()}
+          onUpgrade={() => setShowSubscription(true)}
         />
       </div>
+
+      <SubscriptionBottomSheet
+        isOpen={showSubscription}
+        onClose={() => setShowSubscription(false)}
+      />
     </main>
   );
 }

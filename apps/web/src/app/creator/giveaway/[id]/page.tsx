@@ -463,21 +463,18 @@ export default function GiveawayDetailsPage() {
     <main className="min-h-screen p-4">
       <div className="max-w-xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
+        <div className="sticky top-0 z-10 bg-tg-bg/95 backdrop-blur border-b border-tg-secondary/20 -mx-4 px-4 py-3 flex items-center gap-3 mb-4">
           <button
             onClick={() => router.push('/creator')}
-            className="text-tg-link text-sm mb-2 flex items-center gap-1"
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-tg-secondary/60"
           >
-            <AppIcon name="icon-back" size={16} /> {t('backToList')}
+            <AppIcon name="icon-back" size={18} />
           </button>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold">{giveaway.title}</h1>
-              <p className="text-tg-hint text-sm mt-1">
-                {t('giveawayId')}: #{giveaway.id.slice(0, 8)}
-              </p>
-              <p className="text-tg-hint mt-1 flex items-center"><StatusIcon status={giveaway.status} />{getStatusLabel(giveaway.status, t)}</p>
-            </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base font-semibold truncate">{giveaway.title}</h1>
+            <p className="text-tg-hint text-xs flex items-center gap-1">
+              <StatusIcon status={giveaway.status} />{getStatusLabel(giveaway.status, t)}
+            </p>
           </div>
         </div>
 
@@ -567,7 +564,13 @@ export default function GiveawayDetailsPage() {
         {/* Кнопки шаринга и статистики */}
         <div className="mb-6 flex gap-3 animate-fadeIn" style={{ animationDelay: '0.1s' }}>
           <button
-            onClick={() => setShowShareSheet(true)}
+            onClick={() => {
+              if (userTier === 'FREE') {
+                setShowSubscription(true);
+              } else {
+                setShowShareSheet(true);
+              }
+            }}
             className="flex-1 bg-tg-secondary text-tg-text rounded-lg px-4 py-3 font-medium transition-all hover:scale-105 active:scale-95 hover:bg-opacity-80 flex items-center justify-center gap-2"
           >
             <AppIcon name="icon-share" variant="brand" size={18} />
@@ -586,7 +589,7 @@ export default function GiveawayDetailsPage() {
         <InlineToast message={message} onClose={() => setMessage(null)} />
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 justify-center">
           {tabs.filter(tab => tab.show).map((tab) => (
             <button
               key={tab.key}
@@ -925,7 +928,7 @@ export default function GiveawayDetailsPage() {
             )}
 
             {/* Действия */}
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3 justify-center">
               <button
                 onClick={handleCopyLink}
                 className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2"

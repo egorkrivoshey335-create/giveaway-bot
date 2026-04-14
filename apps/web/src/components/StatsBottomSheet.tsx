@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { BottomSheet } from './ui/BottomSheet';
 import { getGiveawayStats, type GiveawayStats } from '@/lib/api';
 import { SubscriptionBottomSheet } from './SubscriptionBottomSheet';
+import { Mascot } from './Mascot';
 
 interface StatsBottomSheetProps {
   isOpen: boolean;
@@ -65,19 +66,21 @@ export function StatsBottomSheet({
           <p className="text-tg-hint">{tCommon('loading')}</p>
         </div>
       ) : !hasAccess ? (
-        <div className="py-8 text-center animate-fadeIn">
-          <div className="text-4xl mb-4 animate-bounce">📊</div>
+        <div className="py-6 text-center animate-fadeIn">
+          <div className="flex justify-center mb-2">
+            <Mascot type="state-locked" size={120} loop autoplay />
+          </div>
           <div className="text-lg font-medium mb-2">
             {t('stats.plusRequired')}
           </div>
-          <p className="text-tg-hint mb-6">
+          <p className="text-tg-hint text-sm mb-6">
             {t('stats.plusDescription')}
           </p>
           <button
             onClick={() => setShowSubscription(true)}
-            className="bg-tg-button text-tg-button-text rounded-lg px-6 py-3 font-medium transition-all hover:scale-105 active:scale-95"
+            className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl px-6 py-3 font-semibold transition-all hover:scale-105 active:scale-95 shadow-lg"
           >
-            {t('stats.upgradeButton')}
+            ⭐ {t('stats.upgradeButton')}
           </button>
         </div>
       ) : loading ? (
