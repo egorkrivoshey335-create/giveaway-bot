@@ -99,6 +99,7 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
               vat_code: 1,
               payment_subject: 'service',
               payment_mode: 'full_payment',
+              measure: 'piece',
             }],
           },
         });

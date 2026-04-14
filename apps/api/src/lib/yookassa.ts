@@ -17,6 +17,7 @@ export interface ReceiptItem {
   vat_code: number;
   payment_subject?: string;
   payment_mode?: string;
+  measure?: string;
 }
 
 export interface CreatePaymentParams {
