@@ -167,9 +167,11 @@ export function ThemeCustomizer({
         </p>
         <button
           onClick={() => onUpgrade?.()}
-          className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl px-6 py-3 font-semibold transition-all hover:scale-105 active:scale-95 shadow-lg"
+          className="relative w-full rounded-xl py-3 px-4 font-medium hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white overflow-hidden"
         >
-          ⭐ Повысить до BUSINESS
+          <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer_3s_ease-in-out_infinite]" />
+          <AppIcon name="icon-diamond" size={18} className="relative z-10 drop-shadow-sm" />
+          <span className="relative z-10">Повысить до BUSINESS</span>
         </button>
       </div>
     );

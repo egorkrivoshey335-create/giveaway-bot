@@ -86,7 +86,7 @@ export function ShareBottomSheet({
 
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title={t('share.title')}>
-      <div className="space-y-4">
+      <div className="px-4 pb-6 space-y-4">
         {/* Табы */}
         <Tabs
           tabs={[

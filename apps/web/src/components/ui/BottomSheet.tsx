@@ -81,7 +81,7 @@ export function BottomSheet({
             )}
 
             {/* Контент */}
-            <div className="overflow-y-auto px-4 pb-6" style={{ maxHeight: `calc(${maxHeight} - 100px)` }}>
+            <div className="overflow-y-auto" style={{ maxHeight: `calc(${maxHeight} - 100px)` }}>
               {children}
             </div>
           </motion.div>

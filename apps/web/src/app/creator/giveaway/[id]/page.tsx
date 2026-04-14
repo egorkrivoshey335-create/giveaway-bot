@@ -420,63 +420,80 @@ export default function GiveawayDetailsPage() {
     setTimeout(() => setMessage(null), 3000);
   };
 
-  if (loading) {
-    return (
-      <main className="min-h-screen p-4">
-        <div className="max-w-xl mx-auto text-center py-12">
-          <Mascot type="state-loading" size={100} loop autoplay />
-          <p className="text-tg-hint mt-2">{tCommon('loading')}</p>
-        </div>
-      </main>
-    );
-  }
-
-  if (error || !giveaway) {
-    return (
-      <main className="min-h-screen p-4">
-        <div className="max-w-xl mx-auto text-center py-12">
-          <div className="flex justify-center mb-2">
-            <Mascot type="state-error" size={120} loop autoplay />
-          </div>
-          <p className="text-tg-hint mb-4">{error || tErrors('giveawayNotFound')}</p>
-          <button
-            onClick={() => router.push('/creator')}
-            className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2"
-          >
-            {t('backToList')}
-          </button>
-        </div>
-      </main>
-    );
-  }
-
   // Табы
-  const tabs: { key: TabType; icon: string; label: string; count?: number; show: boolean }[] = [
+  const tabs: { key: TabType; icon: string; label: string; count?: number; show: boolean }[] = giveaway ? [
     { key: 'overview',     icon: 'icon-analytics', label: t('tabs.overview'),                                    show: true },
     { key: 'participants', icon: 'icon-participant', label: t('tabs.participants'), count: giveaway.participantsCount, show: true },
     { key: 'winners',      icon: 'icon-winner',     label: t('tabs.winners'),      count: giveaway.winners.length, show: giveaway.status === 'FINISHED' && giveaway.winners.length > 0 },
     { key: 'stories',      icon: 'icon-story',      label: t('tabs.stories'),                                    show: giveaway.condition?.storiesEnabled || false },
     { key: 'liveness',     icon: 'icon-verify',      label: 'Liveness',      count: livenessStats?.pending,       show: giveaway.condition?.livenessEnabled || false },
-  ];
+  ] : [];
 
   return (
-    <main className="min-h-screen p-4">
-      <div className="max-w-xl mx-auto">
-        {/* Header */}
-        <div className="sticky top-0 z-10 bg-tg-bg/95 backdrop-blur border-b border-tg-secondary/20 -mx-4 px-4 py-3 flex items-center gap-3 mb-4">
+    <div className="min-h-screen bg-tg-bg">
+      {/* Header */}
+      <header className="sticky top-0 z-10 bg-tg-bg border-b border-tg-secondary">
+        <div className="max-w-xl mx-auto px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => router.push('/creator')}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-tg-secondary/60"
+            className="flex items-center gap-1 text-tg-link text-sm hover:opacity-70"
           >
-            <AppIcon name="icon-back" size={18} />
+            <AppIcon name="icon-back" size={16} /> {tCommon('back')}
           </button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-base font-semibold truncate">{giveaway.title}</h1>
-            <p className="text-tg-hint text-xs flex items-center gap-1">
-              <StatusIcon status={giveaway.status} />{getStatusLabel(giveaway.status, t)}
-            </p>
-          </div>
+          {giveaway && (
+            <div className="flex-1 min-w-0">
+              <h1 className="text-base font-semibold truncate">{giveaway.title}</h1>
+              <p className="text-tg-hint text-xs flex items-center gap-1">
+                <StatusIcon status={giveaway.status} />{getStatusLabel(giveaway.status, t)}
+              </p>
+            </div>
+          )}
         </div>
+      </header>
+
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div
+            key="loading"
+            className="max-w-xl mx-auto text-center py-12"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.4 }}
+          >
+            <Mascot type="state-loading" size={100} loop autoplay />
+            <p className="text-tg-hint mt-2">{tCommon('loading')}</p>
+          </motion.div>
+        ) : (error || !giveaway) ? (
+          <motion.div
+            key="error"
+            className="max-w-xl mx-auto text-center py-12"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.4 }}
+          >
+            <div className="flex justify-center mb-2">
+              <Mascot type="state-error" size={120} loop autoplay />
+            </div>
+            <p className="text-tg-hint mb-4">{error || tErrors('giveawayNotFound')}</p>
+            <button
+              onClick={() => router.push('/creator')}
+              className="bg-tg-button text-tg-button-text rounded-lg px-4 py-2"
+            >
+              {t('backToList')}
+            </button>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="content"
+            className="p-4"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.4 }}
+          >
+      <div className="max-w-xl mx-auto">
 
         {/* Управление (кнопки для SCHEDULED/PENDING_CONFIRM) */}
         {(giveaway.status === 'SCHEDULED' || giveaway.status === 'PENDING_CONFIRM') && (
@@ -1382,6 +1399,9 @@ export default function GiveawayDetailsPage() {
         isOpen={showSubscription}
         onClose={() => setShowSubscription(false)}
       />
-    </main>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

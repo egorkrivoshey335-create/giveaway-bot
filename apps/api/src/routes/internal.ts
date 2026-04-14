@@ -534,6 +534,75 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   /**
+   * GET /internal/giveaways/by-code/:shortCode
+   * Look up a giveaway by its shortCode (used by bot /repost command)
+   */
+  fastify.get<{ Params: { shortCode: string } }>('/giveaways/by-code/:shortCode', async (request, reply) => {
+    try {
+      const { shortCode } = request.params;
+      const giveaway = await prisma.giveaway.findUnique({
+        where: { shortCode },
+        include: { postTemplate: { select: { text: true } } },
+      });
+      if (!giveaway) {
+        return reply.notFound('Giveaway not found');
+      }
+      return reply.send({
+        id: giveaway.id,
+        title: giveaway.title,
+        shortCode: giveaway.shortCode,
+        status: giveaway.status,
+        postTemplate: giveaway.postTemplate ? { text: giveaway.postTemplate.text } : undefined,
+      });
+    } catch (error) {
+      fastify.log.error(error, 'Internal giveaway by-code error');
+      return reply.error(ErrorCode.INTERNAL_ERROR, 'Internal server error');
+    }
+  });
+
+  /**
+   * GET /internal/giveaways/search
+   * Search giveaways by title (used by bot inline mode)
+   */
+  fastify.get<{ Querystring: { q?: string; limit?: string } }>('/giveaways/search', async (request, reply) => {
+    try {
+      const { q = '', limit = '10' } = request.query;
+      const take = Math.min(parseInt(limit) || 10, 50);
+
+      const where: Prisma.GiveawayWhereInput = {
+        status: GiveawayStatus.ACTIVE,
+        ...(q ? { title: { contains: q, mode: 'insensitive' as const } } : {}),
+      };
+
+      const giveaways = await prisma.giveaway.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take,
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          shortCode: true,
+          endAt: true,
+          totalParticipants: true,
+        },
+      });
+
+      return reply.send(giveaways.map(g => ({
+        id: g.id,
+        title: g.title || 'Розыгрыш',
+        status: g.status,
+        shortCode: g.shortCode,
+        participantCount: g.totalParticipants,
+        endsAt: g.endAt?.toISOString() || '',
+      })));
+    } catch (error) {
+      fastify.log.error(error, 'Internal giveaway search error');
+      return reply.send([]);
+    }
+  });
+
+  /**
    * GET /internal/giveaways/:id/full
    * Returns full giveaway info for bot confirmation flow
    */

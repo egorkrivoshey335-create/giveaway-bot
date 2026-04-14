@@ -6,6 +6,7 @@ import { BottomSheet } from './ui/BottomSheet';
 import { getGiveawayStats, type GiveawayStats } from '@/lib/api';
 import { SubscriptionBottomSheet } from './SubscriptionBottomSheet';
 import { Mascot } from './Mascot';
+import { AppIcon } from './AppIcon';
 
 interface StatsBottomSheetProps {
   isOpen: boolean;
@@ -60,6 +61,7 @@ export function StatsBottomSheet({
   return (
     <>
     <BottomSheet isOpen={isOpen} onClose={onClose} title={t('stats.title')}>
+      <div className="px-4 pb-6">
       {hasAccess === null ? (
         <div className="py-8 text-center">
           <div className="inline-block w-12 h-12 border-4 border-tg-button border-t-transparent rounded-full animate-spin mb-4" />
@@ -78,9 +80,11 @@ export function StatsBottomSheet({
           </p>
           <button
             onClick={() => setShowSubscription(true)}
-            className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl px-6 py-3 font-semibold transition-all hover:scale-105 active:scale-95 shadow-lg"
+            className="relative w-full rounded-xl py-3 px-4 font-medium hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white overflow-hidden"
           >
-            ⭐ {t('stats.upgradeButton')}
+            <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer_3s_ease-in-out_infinite]" />
+            <AppIcon name="icon-diamond" size={18} className="relative z-10 drop-shadow-sm" />
+            <span className="relative z-10">{t('stats.upgradeButton')}</span>
           </button>
         </div>
       ) : loading ? (
@@ -191,6 +195,7 @@ export function StatsBottomSheet({
           {t('stats.noData')}
         </div>
       )}
+      </div>
     </BottomSheet>
     <SubscriptionBottomSheet
       isOpen={showSubscription}
