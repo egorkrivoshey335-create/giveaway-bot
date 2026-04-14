@@ -343,7 +343,7 @@ export default function CreatorSubscriptionPage() {
       <SubscriptionBottomSheet
         isOpen={showSubscriptionSheet}
         onClose={() => setShowSubscriptionSheet(false)}
-        currentTier={currentTier === 'free' ? null : currentTier}
+        currentTier={currentTier}
       />
           </motion.div>
         )}

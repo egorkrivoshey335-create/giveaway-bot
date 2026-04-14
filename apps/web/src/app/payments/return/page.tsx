@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { checkPaymentStatus } from '@/lib/api';
 import { AppIcon } from '@/components/AppIcon';
+import { Mascot } from '@/components/Mascot';
 
 type PaymentStatus = 'loading' | 'success' | 'pending' | 'error';
 
@@ -82,7 +83,9 @@ function PaymentReturnContent() {
         {/* Успех */}
         {status === 'success' && (
           <div className="text-center bg-tg-secondary rounded-2xl p-6">
-            <div className="text-6xl mb-4"><AppIcon name="icon-success" size={14} /></div>
+            <div className="flex justify-center mb-4">
+              <Mascot type="state-success" size={180} loop autoplay />
+            </div>
             <h2 className="text-xl font-bold mb-2">{t('success')}</h2>
             <p className="text-tg-hint mb-2">
               {productTitle || t('catalogAccess')} {t('activated')}

@@ -181,7 +181,10 @@ function TierCard({
         <Image src="/icons/brand/icon-star.webp" alt="stars" width={12} height={12} className="inline-block" />
       </div>
       {isCurrent && (
-        <div className="mt-1 text-xs text-green-600 font-medium">{t('current')}</div>
+        <div className="mt-1.5 inline-flex items-center gap-1 bg-green-500/15 text-green-600 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+          <AppIcon name="icon-success" size={10} />
+          {t('current')}
+        </div>
       )}
     </button>
   );

@@ -35,12 +35,12 @@ function ProfileAvatar({ firstName, lastName }: { firstName: string | null; last
 }
 
 const BADGE_EMOJI: Record<string, React.ReactNode> = {
-  newcomer: '🌱',
+  newcomer: <AppIcon name="icon-participant" size={14} />,
   activist: '🔥',
   veteran: '⚔️',
   winner: <AppIcon name="icon-winner" size={14} />,
   multi_winner: '🥇',
-  champion: '👑',
+  champion: <AppIcon name="icon-crown" size={14} />,
   friend: '🤝',
   patron: <AppIcon name="icon-diamond" size={14} />,
 };
@@ -274,7 +274,7 @@ export default function CreatorProfilePage() {
         {/* Бейджи */}
         {p.badges.length > 0 && (
           <div className="bg-tg-secondary rounded-xl p-4">
-            <h3 className="text-lg font-semibold mb-3">🏅 Мои достижения</h3>
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2"><AppIcon name="icon-crown" size={18} /> Мои достижения</h3>
             <div className="flex flex-wrap gap-2">
               {p.badges.map((badge) => (
                 <div

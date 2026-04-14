@@ -2406,6 +2406,7 @@ export default function GiveawayWizardPage() {
         isOpen={showSubscription}
         onClose={() => setShowSubscription(false)}
         defaultTier={nextTier as 'plus' | 'pro' | 'business'}
+        currentTier={userTier === 'FREE' ? 'free' : userTier.toLowerCase() as 'plus' | 'pro' | 'business'}
       />
     </main>
   );

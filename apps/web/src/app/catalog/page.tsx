@@ -208,16 +208,16 @@ function CatalogFilters({
   ];
 
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-      {options.map(o => (
+    <div className="grid grid-cols-2 gap-2">
+      {options.map((o, i) => (
         <button
           key={o.key}
           onClick={() => onSortChange(o.key)}
-          className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-1 ${
+          className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 flex items-center justify-center gap-1.5 ${
             sortBy === o.key
               ? 'bg-tg-button text-tg-button-text'
               : 'bg-tg-secondary text-tg-hint'
-          }`}
+          } ${options.length % 2 !== 0 && i === options.length - 1 ? 'col-span-2 max-w-[50%] mx-auto w-full' : ''}`}
         >
           <AppIcon name={o.icon} size={14} />
           {o.label}
@@ -244,6 +244,7 @@ export default function CatalogPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [sortBy, setSortBy] = useState<SortKey>('totalParticipants');
   const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [userTier, setUserTier] = useState<'FREE' | 'PLUS' | 'PRO' | 'BUSINESS'>('FREE');
 
   const loadCatalog = useCallback(async (append = false, newCursor?: string) => {
     if (!append) setLoading(true);
@@ -277,6 +278,16 @@ export default function CatalogPage() {
     setCursor(undefined);
     loadCatalog(false, undefined);
   }, [loadCatalog]);
+
+  useEffect(() => {
+    fetch('/api/users/me/entitlements', { credentials: 'include' })
+      .then(r => r.json())
+      .then((data: { ok?: boolean; data?: { tier?: string } }) => {
+        const tier = data?.data?.tier as typeof userTier;
+        if (tier) setUserTier(tier);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleLoadMore = () => {
     loadCatalog(true, cursor);
@@ -458,6 +469,7 @@ export default function CatalogPage() {
         onClose={() => setShowModal(false)}
         defaultTab="participants"
         defaultTier="plus"
+        currentTier={userTier === 'FREE' ? 'free' : userTier.toLowerCase() as 'plus' | 'pro' | 'business'}
       />
     </div>
   );

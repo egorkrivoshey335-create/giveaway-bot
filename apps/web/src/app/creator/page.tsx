@@ -696,6 +696,7 @@ export default function CreatorDashboardPage() {
       <SubscriptionBottomSheet
         isOpen={showSubscription}
         onClose={() => setShowSubscription(false)}
+        currentTier={userTier === 'FREE' ? 'free' : userTier.toLowerCase() as 'plus' | 'pro' | 'business'}
       />
     </main>
   );

@@ -14,6 +14,8 @@ import { InlineToast } from '@/components/Toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppIcon } from '@/components/AppIcon';
 import { Mascot } from '@/components/Mascot';
+import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
+import { TIER_LIMITS } from '@randombeast/shared';
 
 const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
 
@@ -138,6 +140,8 @@ export default function PostsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [undoState, setUndoState] = useState<UndoState | null>(null);
   const [showAddConfirm, setShowAddConfirm] = useState(false);
+  const [userTier, setUserTier] = useState<'FREE' | 'PLUS' | 'PRO' | 'BUSINESS'>('FREE');
+  const [showSubscription, setShowSubscription] = useState(false);
 
   const loadPosts = useCallback(async () => {
     try {
@@ -156,6 +160,13 @@ export default function PostsPage() {
 
   useEffect(() => {
     loadPosts();
+    fetch('/api/users/me/entitlements', { credentials: 'include' })
+      .then(r => r.json())
+      .then((data: { ok?: boolean; data?: { tier?: string } }) => {
+        const tier = data?.data?.tier as typeof userTier;
+        if (tier) setUserTier(tier);
+      })
+      .catch(() => {});
   }, [loadPosts]);
 
   const handleDelete = async (id: string) => {
@@ -275,18 +286,42 @@ export default function PostsPage() {
               )}
 
               {/* Секция добавления */}
-              <div className="bg-tg-secondary rounded-xl p-4 mb-6">
-                <h3 className="text-tg-text font-medium mb-2">{t('addTitle')}</h3>
-                <p className="text-tg-hint text-sm mb-4">
-                  {t('addDescription')}
-                </p>
-                <button
-                  onClick={openBotAddPost}
-                  className="w-full px-4 py-3 bg-tg-button text-tg-button-text rounded-xl font-medium hover:opacity-90 transition-opacity"
-                >
-                  {t('addButton')}
-                </button>
-              </div>
+              {(() => {
+                const maxPosts = TIER_LIMITS.maxPostTemplates[userTier];
+                const limitReached = posts.length >= maxPosts;
+                return (
+                  <div className="bg-tg-secondary rounded-xl p-4 mb-6">
+                    <h3 className="text-tg-text font-medium mb-2">{t('addTitle')}</h3>
+                    <p className="text-tg-hint text-sm mb-2">
+                      {t('addDescription')}
+                    </p>
+                    <p className="text-xs text-tg-hint mb-4">
+                      {`${posts.length} / ${maxPosts === Infinity ? '∞' : maxPosts} (${userTier})`}
+                    </p>
+                    {limitReached ? (
+                      <>
+                        <p className="text-xs text-orange-500 mb-3">
+                          <AppIcon name="icon-warning" size={12} className="inline mr-1" />
+                          {`Достигнут лимит шаблонов: ${maxPosts}`}
+                        </p>
+                        <button
+                          onClick={() => setShowSubscription(true)}
+                          className="w-full px-4 py-3 bg-tg-button text-tg-button-text rounded-xl font-medium hover:opacity-90 transition-opacity"
+                        >
+                          Повысить подписку
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={openBotAddPost}
+                        className="w-full px-4 py-3 bg-tg-button text-tg-button-text rounded-xl font-medium hover:opacity-90 transition-opacity"
+                      >
+                        {t('addButton')}
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Ошибка */}
               {error && (
@@ -375,6 +410,12 @@ export default function PostsPage() {
           </>
         )}
       </AnimatePresence>
+
+      <SubscriptionBottomSheet
+        isOpen={showSubscription}
+        onClose={() => setShowSubscription(false)}
+        currentTier={userTier === 'FREE' ? 'free' : userTier.toLowerCase() as 'plus' | 'pro' | 'business'}
+      />
     </div>
   );
 }

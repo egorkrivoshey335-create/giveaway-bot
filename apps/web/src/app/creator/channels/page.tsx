@@ -442,6 +442,7 @@ export default function ChannelsPage() {
       <SubscriptionBottomSheet
         isOpen={showSubscription}
         onClose={() => setShowSubscription(false)}
+        currentTier={userTier === 'FREE' ? 'free' : userTier.toLowerCase() as 'plus' | 'pro' | 'business'}
       />
 
       {/* Popup подтверждения перехода к боту */}

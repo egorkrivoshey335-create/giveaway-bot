@@ -26,6 +26,7 @@ export default function GiveawayThemePage() {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isPremium, setIsPremium] = useState<boolean | null>(null);
+  const [userTier, setUserTier] = useState<'FREE' | 'PLUS' | 'PRO' | 'BUSINESS'>('FREE');
   const [currentTheme, setCurrentTheme] = useState<Partial<ThemeSettings> | undefined>(undefined);
   const [showSubscription, setShowSubscription] = useState(false);
 
@@ -38,7 +39,8 @@ export default function GiveawayThemePage() {
         const tierRes = await fetch('/api/users/me/entitlements', { credentials: 'include' });
         if (tierRes.ok) {
           const tierData = await tierRes.json() as { data?: { tier?: string } };
-          const tier = tierData?.data?.tier || 'FREE';
+          const tier = (tierData?.data?.tier || 'FREE') as typeof userTier;
+          setUserTier(tier);
           hasBusiness = tier === 'BUSINESS';
         }
       } catch {
@@ -179,6 +181,8 @@ export default function GiveawayThemePage() {
       <SubscriptionBottomSheet
         isOpen={showSubscription}
         onClose={() => setShowSubscription(false)}
+        currentTier={userTier === 'FREE' ? 'free' : userTier.toLowerCase() as 'plus' | 'pro' | 'business'}
+        defaultTier="business"
       />
     </div>
   );
