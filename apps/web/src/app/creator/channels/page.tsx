@@ -268,6 +268,7 @@ export default function ChannelsPage() {
     const tg = window.Telegram?.WebApp;
     if (tg) {
       tg.openTelegramLink(botUrl);
+      tg.close();
     } else {
       window.open(botUrl, '_blank');
     }
