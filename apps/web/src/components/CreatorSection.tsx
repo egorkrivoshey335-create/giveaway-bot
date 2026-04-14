@@ -268,7 +268,7 @@ export function CreatorSection() {
                   {channels.map((channel) => (
                     <div key={channel.id} className="bg-tg-bg rounded-lg p-3 flex items-start gap-3">
                       {/* Аватарка канала */}
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-tg-secondary flex-shrink-0 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full overflow-hidden bg-tg-secondary flex-shrink-0 flex items-center justify-center">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={getChannelAvatarUrl(channel.id)}
