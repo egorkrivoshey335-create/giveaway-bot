@@ -964,24 +964,35 @@ export default function GiveawayDetailsPage() {
                   <p className="text-sm text-tg-hint text-center py-2">{t('topInviters.empty')}</p>
                 ) : (
                   <div className="space-y-2">
-                    {topInviters.map((inv) => (
-                      <div key={inv.userId} className="flex items-center gap-3">
-                        <span className="text-lg font-bold text-tg-hint w-6 text-center">
-                          {inv.rank === 1 ? '🥇' : inv.rank === 2 ? '🥈' : inv.rank === 3 ? '🥉' : `${inv.rank}.`}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-sm font-medium truncate block">
-                            {inv.firstName}{inv.lastName ? ` ${inv.lastName}` : ''}
+                    {topInviters.map((inv) => {
+                      const placeColors = [
+                        'from-yellow-400 to-amber-500 text-white shadow-amber-500/30',
+                        'from-slate-300 to-slate-400 text-white shadow-slate-400/30',
+                        'from-amber-600 to-amber-700 text-white shadow-amber-700/30',
+                      ];
+                      const colorClass = inv.rank <= 3
+                        ? placeColors[inv.rank - 1]
+                        : 'from-tg-button/80 to-tg-button text-tg-button-text shadow-tg-button/20';
+
+                      return (
+                        <div key={inv.userId} className="flex items-center gap-3">
+                          <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center font-bold text-xs shadow flex-shrink-0`}>
+                            {inv.rank}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium truncate block">
+                              {inv.firstName}{inv.lastName ? ` ${inv.lastName}` : ''}
+                            </span>
+                            {inv.username && (
+                              <span className="text-xs text-tg-hint">@{inv.username}</span>
+                            )}
+                          </div>
+                          <span className="text-sm font-semibold text-tg-button">
+                            {inv.inviteCount} {t('topInviters.invites')}
                           </span>
-                          {inv.username && (
-                            <span className="text-xs text-tg-hint">@{inv.username}</span>
-                          )}
                         </div>
-                        <span className="text-sm font-semibold text-tg-button">
-                          {inv.inviteCount} {t('topInviters.invites')}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
