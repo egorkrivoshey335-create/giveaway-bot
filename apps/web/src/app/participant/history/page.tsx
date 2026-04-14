@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { getMyParticipations, MyParticipation } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppIcon } from '@/components/AppIcon';
@@ -9,12 +10,12 @@ import { Mascot } from '@/components/Mascot';
 
 type FilterStatus = 'all' | 'active' | 'finished' | 'won';
 
-const FILTER_LABELS: Record<FilterStatus, React.ReactNode> = {
-  all: <><AppIcon name="icon-ticket" size={16} /> Все</>,
-  active: <>🟢 Активные</>,
-  finished: <><AppIcon name="icon-success" size={14} /> Завершённые</>,
-  won: <><AppIcon name="icon-winner" size={14} /> Победы</>,
-};
+const FILTER_CONFIG: { key: FilterStatus; icon: string }[] = [
+  { key: 'all', icon: 'icon-ticket' },
+  { key: 'active', icon: 'icon-active' },
+  { key: 'finished', icon: 'icon-completed' },
+  { key: 'won', icon: 'icon-winner' },
+];
 
 const PAGE_SIZE = 20;
 
@@ -31,6 +32,8 @@ const GIVEAWAY_STATUS_BADGE: Record<string, { label: string; className: string }
  */
 export default function ParticipationHistoryPage() {
   const router = useRouter();
+  const tCommon = useTranslations('common');
+  const t = useTranslations('history');
 
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [participations, setParticipations] = useState<MyParticipation[]>([]);
@@ -97,40 +100,42 @@ export default function ParticipationHistoryPage() {
   return (
     <main className="min-h-screen bg-tg-bg pb-safe">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-tg-bg/95 backdrop-blur border-b border-tg-secondary">
-        <div className="max-w-xl mx-auto px-4 pt-4 pb-3">
-          <div className="flex items-center gap-3 mb-3">
-            <button
-              onClick={() => router.back()}
-              className="p-2 -ml-2 rounded-full hover:bg-tg-secondary transition-colors"
-            >
-              <AppIcon name="icon-back" size={20} />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold">📜 История участий</h1>
-              {total > 0 && <p className="text-xs text-tg-hint">{total} розыгрышей</p>}
-            </div>
-          </div>
+      <header className="sticky top-0 z-10 bg-tg-bg border-b border-tg-secondary">
+        <div className="max-w-xl mx-auto px-4 py-3 flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-1 text-tg-link text-sm hover:opacity-70"
+          >
+            <AppIcon name="icon-back" size={16} /> {tCommon('back')}
+          </button>
+          <h1 className="text-lg font-semibold text-tg-text flex-1">
+            <AppIcon name="icon-giveaway" size={18} className="inline-block align-text-bottom mr-1" />
+            {t('title')}
+          </h1>
+          {total > 0 && <span className="text-xs text-tg-hint">{total}</span>}
+        </div>
+      </header>
 
-          {/* Filter tabs */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-none pb-0.5">
-            {(['all', 'active', 'finished', 'won'] as FilterStatus[]).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${
-                  filter === f
-                    ? 'bg-tg-button text-tg-button-text'
-                    : 'bg-tg-secondary text-tg-hint hover:bg-tg-secondary/80'
-                }`}
-              >
-                {FILTER_LABELS[f]}
-                {f !== 'all' && counts[f] > 0 && (
-                  <span className="ml-1 opacity-70">({counts[f]})</span>
-                )}
-              </button>
-            ))}
-          </div>
+      {/* Filter grid 2×2 */}
+      <div className="max-w-xl mx-auto px-4 pt-3">
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          {FILTER_CONFIG.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                filter === f.key
+                  ? 'bg-tg-button text-tg-button-text'
+                  : 'bg-tg-secondary text-tg-text hover:bg-tg-secondary/80'
+              }`}
+            >
+              <span className="mr-1 inline-flex items-center align-middle"><AppIcon name={f.icon} variant="brand" size={18} /></span>
+              {t(`filters.${f.key}`)}
+              {f.key !== 'all' && counts[f.key] > 0 && (
+                <span className="ml-1 opacity-70">({counts[f.key]})</span>
+              )}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -144,8 +149,7 @@ export default function ParticipationHistoryPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              layout
-              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
               {[1, 2, 3, 4, 5].map((i) => (
                 <div key={i} className="bg-tg-secondary rounded-xl p-4 animate-pulse">
@@ -161,17 +165,16 @@ export default function ParticipationHistoryPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              layout
-              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
               <Mascot type="state-empty" size={120} loop autoplay />
-              <p className="font-semibold mb-1 mt-2">Здесь пусто</p>
+              <p className="font-semibold mb-1 mt-2">{t('emptyTitle')}</p>
               <p className="text-tg-hint text-sm">
                 {filter === 'all'
-                  ? 'Вы ещё не участвовали ни в одном розыгрыше'
+                  ? t('emptyAll')
                   : filter === 'won'
-                  ? 'У вас пока нет побед'
-                  : 'Нет участий с таким статусом'}
+                  ? t('emptyWon')
+                  : t('emptyDefault')}
               </p>
             </motion.div>
           ) : (
@@ -180,12 +183,12 @@ export default function ParticipationHistoryPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              layout
-              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
               <div className="space-y-3">
                 {participations.map((p) => {
-                  const statusInfo = GIVEAWAY_STATUS_BADGE[p.giveaway.status];
+                  const statusKey = p.giveaway.status as string;
+                  const statusInfo = GIVEAWAY_STATUS_BADGE[statusKey];
                   return (
                     <div
                       key={p.id}
@@ -197,7 +200,7 @@ export default function ParticipationHistoryPage() {
                           <div className="flex items-center gap-2 mb-1">
                             {p.isWinner && (
                               <span className="text-xs font-bold text-yellow-500">
-                                <AppIcon name="icon-winner" size={14} /> {p.winnerPlace ? `#${p.winnerPlace}` : 'Победитель'}
+                                <AppIcon name="icon-winner" size={14} /> {p.winnerPlace ? `#${p.winnerPlace}` : t('winner')}
                               </span>
                             )}
                             {statusInfo && (
@@ -210,16 +213,16 @@ export default function ParticipationHistoryPage() {
                             {p.giveaway.title}
                           </h3>
                           <div className="flex items-center gap-3 mt-1.5 text-xs text-tg-hint">
-                            <span><AppIcon name="icon-ticket" size={16} /> {p.totalTickets} билет{p.totalTickets !== 1 ? (p.totalTickets < 5 ? 'а' : 'ов') : ''}</span>
+                            <span><AppIcon name="icon-ticket" size={16} /> {p.totalTickets} {t('tickets')}</span>
                             {p.ticketsExtra > 0 && (
-                              <span className="text-green-500">+{p.ticketsExtra} бонус</span>
+                              <span className="text-green-500">+{p.ticketsExtra} {t('bonus')}</span>
                             )}
                             <span><AppIcon name="icon-calendar" size={14} /> {formatDate(p.joinedAt)}</span>
                           </div>
                         </div>
                         <div className="text-right text-xs text-tg-hint flex-shrink-0">
-                          <div>{p.giveaway.participantsCount} уч.</div>
-                          <div><AppIcon name="icon-group" size={14} /> {p.giveaway.winnersCount} победит.</div>
+                          <div>{p.giveaway.participantsCount} {t('participants')}</div>
+                          <div><AppIcon name="icon-group" size={14} /> {p.giveaway.winnersCount} {t('winners')}</div>
                         </div>
                       </div>
                     </div>
@@ -234,7 +237,7 @@ export default function ParticipationHistoryPage() {
                     disabled={loadingMore}
                     className="px-6 py-2.5 bg-tg-secondary rounded-xl text-sm font-medium hover:bg-tg-secondary/80 transition-colors disabled:opacity-50"
                   >
-                    {loadingMore ? 'Загрузка...' : 'Загрузить ещё'}
+                    {loadingMore ? t('loadingMore') : t('loadMore')}
                   </button>
                 </div>
               )}

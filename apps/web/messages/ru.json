@@ -1282,5 +1282,40 @@
       "FAKE_GIVEAWAY": "Не выдали приз",
       "OTHER": "Другое"
     }
+  },
+  "history": {
+    "title": "История участий",
+    "filters": {
+      "all": "Все",
+      "active": "Активные",
+      "finished": "Завершённые",
+      "won": "Победы"
+    },
+    "emptyAll": "Вы ещё не участвовали ни в одном розыгрыше",
+    "emptyWon": "У вас пока нет побед",
+    "emptyDefault": "Нет участий с таким статусом",
+    "emptyTitle": "Здесь пусто",
+    "loadMore": "Загрузить ещё",
+    "loadingMore": "Загрузка...",
+    "tickets": "билет",
+    "bonus": "бонус",
+    "participants": "уч.",
+    "winners": "победит.",
+    "winner": "Победитель",
+    "statusActive": "Активен",
+    "statusFinished": "Завершён",
+    "statusCancelled": "Отменён",
+    "statusScheduled": "Запланирован"
+  },
+  "banList": {
+    "title": "Бан-лист",
+    "subtitle": "Заблокированные пользователи",
+    "emptyTitle": "Бан-лист пуст",
+    "emptySubtitle": "Заблокированных пользователей нет",
+    "count": "{count} заблокировано",
+    "reason": "Причина: {reason}",
+    "unban": "Разбанить",
+    "unbanned": "Пользователь разбанен",
+    "confirmUnban": "Разбанить {name}?"
   }
 }

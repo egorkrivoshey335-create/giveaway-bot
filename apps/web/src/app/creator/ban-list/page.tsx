@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { getBanList, deleteBanEntry, BanEntry } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppIcon } from '@/components/AppIcon';
@@ -13,14 +14,10 @@ import { Mascot } from '@/components/Mascot';
  */
 export default function BanListPage() {
   const router = useRouter();
+  const t = useTranslations('banList');
+  const tCommon = useTranslations('common');
   const [entries, setEntries] = useState<BanEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState<string | null>(null);
-
-  const showMessage = (msg: string) => {
-    setMessage(msg);
-    setTimeout(() => setMessage(null), 3000);
-  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -39,42 +36,30 @@ export default function BanListPage() {
   }, [load]);
 
   async function handleUnban(entryId: string, name: string) {
-    if (!confirm(`Разбанить ${name}?`)) return;
+    if (!confirm(t('confirmUnban', { name }))) return;
     const res = await deleteBanEntry(entryId);
     if (res.ok) {
-      showMessage('Пользователь разбанен');
       setEntries((prev) => prev.filter((e) => e.id !== entryId));
-    } else {
-      showMessage(res.error || 'Ошибка');
     }
   }
 
   return (
     <main className="min-h-screen bg-tg-bg pb-safe">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-tg-bg/95 backdrop-blur border-b border-tg-secondary">
-        <div className="max-w-xl mx-auto px-4 pt-4 pb-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.back()}
-              className="p-2 -ml-2 rounded-full hover:bg-tg-secondary transition-colors"
-            >
-              <AppIcon name="icon-back" size={20} />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold">🚫 Бан-лист</h1>
-              <p className="text-xs text-tg-hint">Заблокированные пользователи</p>
-            </div>
-          </div>
+      <header className="sticky top-0 z-10 bg-tg-bg border-b border-tg-secondary">
+        <div className="max-w-xl mx-auto px-4 py-3 flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-1 text-tg-link text-sm hover:opacity-70"
+          >
+            <AppIcon name="icon-back" size={16} /> {tCommon('back')}
+          </button>
+          <h1 className="text-lg font-semibold text-tg-text flex-1">
+            <AppIcon name="icon-cancel" size={18} className="inline-block align-text-bottom mr-1" />
+            {t('title')}
+          </h1>
         </div>
-      </div>
-
-      {/* Toast */}
-      {message && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-tg-text text-tg-bg text-sm px-4 py-2.5 rounded-full shadow-lg">
-          {message}
-        </div>
-      )}
+      </header>
 
       <div className="max-w-xl mx-auto px-4 py-4">
         <AnimatePresence mode="wait">
@@ -85,11 +70,10 @@ export default function BanListPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              layout
-              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
               <Mascot type="state-loading" size={100} loop autoplay />
-              <p className="text-tg-hint text-sm mt-2">Загрузка...</p>
+              <p className="text-tg-hint text-sm mt-2">{tCommon('loading')}</p>
             </motion.div>
           ) : entries.length === 0 ? (
             <motion.div
@@ -98,12 +82,11 @@ export default function BanListPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              layout
-              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
               <Mascot type="state-empty" size={120} loop autoplay />
-              <p className="font-semibold mb-1 mt-2">Бан-лист пуст</p>
-              <p className="text-tg-hint text-sm">Заблокированных пользователей нет</p>
+              <p className="font-semibold mb-1 mt-2">{t('emptyTitle')}</p>
+              <p className="text-tg-hint text-sm">{t('emptySubtitle')}</p>
             </motion.div>
           ) : (
             <motion.div
@@ -112,10 +95,9 @@ export default function BanListPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              layout
-              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
-              <p className="text-tg-hint text-sm px-1 mb-3">{entries.length} пользователей заблокировано</p>
+              <p className="text-tg-hint text-sm px-1 mb-3">{t('count', { count: entries.length })}</p>
               {entries.map((entry) => {
                 const name = [entry.bannedUser.firstName, entry.bannedUser.lastName]
                   .filter(Boolean)
@@ -132,14 +114,14 @@ export default function BanListPage() {
                         <div className="text-tg-hint text-xs">@{entry.bannedUser.username}</div>
                       )}
                       {entry.reason && (
-                        <div className="text-tg-hint text-xs mt-0.5">Причина: {entry.reason}</div>
+                        <div className="text-tg-hint text-xs mt-0.5">{t('reason', { reason: entry.reason })}</div>
                       )}
                     </div>
                     <button
                       onClick={() => handleUnban(entry.id, name)}
                       className="text-sm text-tg-button font-medium hover:underline"
                     >
-                      Разбанить
+                      {t('unban')}
                     </button>
                   </div>
                 );

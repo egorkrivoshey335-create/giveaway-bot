@@ -989,5 +989,40 @@
       "FAKE_GIVEAWAY": "Жүлде берілмеді",
       "OTHER": "Басқа"
     }
+  },
+  "history": {
+    "title": "Қатысу тарихы",
+    "filters": {
+      "all": "Барлығы",
+      "active": "Белсенді",
+      "finished": "Аяқталған",
+      "won": "Жеңістер"
+    },
+    "emptyAll": "Сіз әлі ешбір ұтыс ойынына қатысқан жоқсыз",
+    "emptyWon": "Сізде әлі жеңістер жоқ",
+    "emptyDefault": "Мұндай мәртебемен қатысу жоқ",
+    "emptyTitle": "Бос",
+    "loadMore": "Тағы жүктеу",
+    "loadingMore": "Жүктелуде...",
+    "tickets": "билет",
+    "bonus": "бонус",
+    "participants": "қат.",
+    "winners": "жеңімп.",
+    "winner": "Жеңімпаз",
+    "statusActive": "Белсенді",
+    "statusFinished": "Аяқталды",
+    "statusCancelled": "Бас тартылды",
+    "statusScheduled": "Жоспарланған"
+  },
+  "banList": {
+    "title": "Бан тізімі",
+    "subtitle": "Бұғатталған пайдаланушылар",
+    "emptyTitle": "Бан тізімі бос",
+    "emptySubtitle": "Бұғатталған пайдаланушылар жоқ",
+    "count": "{count} бұғатталған",
+    "reason": "Себебі: {reason}",
+    "unban": "Бұғаттан шығару",
+    "unbanned": "Пайдаланушы бұғаттан шығарылды",
+    "confirmUnban": "{name} бұғаттан шығару керек пе?"
   }
 }

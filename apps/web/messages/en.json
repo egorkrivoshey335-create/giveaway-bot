@@ -989,5 +989,40 @@
       "FAKE_GIVEAWAY": "Prize Not Delivered",
       "OTHER": "Other"
     }
+  },
+  "history": {
+    "title": "Participation History",
+    "filters": {
+      "all": "All",
+      "active": "Active",
+      "finished": "Finished",
+      "won": "Won"
+    },
+    "emptyAll": "You haven't participated in any giveaways yet",
+    "emptyWon": "You have no wins yet",
+    "emptyDefault": "No participations with this status",
+    "emptyTitle": "Nothing here",
+    "loadMore": "Load more",
+    "loadingMore": "Loading...",
+    "tickets": "ticket",
+    "bonus": "bonus",
+    "participants": "part.",
+    "winners": "winners",
+    "winner": "Winner",
+    "statusActive": "Active",
+    "statusFinished": "Finished",
+    "statusCancelled": "Cancelled",
+    "statusScheduled": "Scheduled"
+  },
+  "banList": {
+    "title": "Ban List",
+    "subtitle": "Blocked users",
+    "emptyTitle": "Ban list is empty",
+    "emptySubtitle": "No blocked users",
+    "count": "{count} blocked",
+    "reason": "Reason: {reason}",
+    "unban": "Unban",
+    "unbanned": "User unbanned",
+    "confirmUnban": "Unban {name}?"
   }
 }
