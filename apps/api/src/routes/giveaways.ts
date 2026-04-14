@@ -248,6 +248,15 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
         );
       }
 
+      if (validatedPayload.inviteEnabled && validatedPayload.inviteMax) {
+        const maxInvites = TIER_LIMITS.maxInvites[tier];
+        if (validatedPayload.inviteMax > maxInvites) {
+          return reply.forbidden(
+            `Лимит приглашений для тарифа ${tier}: ${maxInvites}.`
+          );
+        }
+      }
+
       // Map string values to Prisma enums
       const giveawayTypeMap: Record<string, GiveawayType> = {
         STANDARD: GiveawayType.STANDARD,
@@ -1385,13 +1394,19 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
 
     const data = parsed.data;
 
-    if (data.livenessEnabled || data.captchaMode === 'ALL') {
+    if (data.livenessEnabled || data.captchaMode === 'ALL' || data.inviteMax) {
       const editTier = await getUserTier(user.id);
       if (data.livenessEnabled && editTier !== 'BUSINESS') {
         return reply.forbidden('Liveness Check доступен только для BUSINESS подписки.');
       }
       if (data.captchaMode === 'ALL' && !isTierAtLeast(editTier, 'PLUS')) {
         return reply.forbidden('Режим капчи «Для всех» доступен с подпиской PLUS и выше.');
+      }
+      if (data.inviteMax) {
+        const maxInvites = TIER_LIMITS.maxInvites[editTier];
+        if (data.inviteMax > maxInvites) {
+          return reply.forbidden(`Лимит приглашений для тарифа ${editTier}: ${maxInvites}.`);
+        }
       }
     }
 
