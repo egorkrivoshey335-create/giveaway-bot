@@ -41,6 +41,48 @@ import { redis } from '../lib/redis.js';
 import { awardParticipationBadges } from '../lib/badges.js';
 import { notifyCatalogCandidate } from '../lib/admin-notify.js';
 
+/**
+ * Check if a Telegram user is a member of a channel/chat via Bot API directly.
+ * Avoids internal HTTP roundtrip which can fail behind reverse proxies.
+ */
+async function checkTelegramSubscription(
+  telegramUserId: string,
+  telegramChatId: string,
+): Promise<{ isMember: boolean; status: string }> {
+  const botToken = config.botToken;
+  if (!botToken) return { isMember: false, status: 'bot_not_configured' };
+
+  const cacheKey = `subscription:${telegramUserId}:${telegramChatId}`;
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch { /* ignore */ }
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/getChatMember`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: telegramChatId, user_id: telegramUserId }),
+    });
+
+    const data = await res.json() as { ok: boolean; result?: { status: string }; description?: string };
+
+    if (!data.ok || !data.result) {
+      return { isMember: false, status: 'error' };
+    }
+
+    const memberStatus = data.result.status;
+    const isMember = ['member', 'administrator', 'creator'].includes(memberStatus);
+    const result = { isMember, status: memberStatus };
+
+    try { await redis.setex(cacheKey, 30, JSON.stringify(result)); } catch { /* ignore */ }
+
+    return result;
+  } catch {
+    return { isMember: false, status: 'error' };
+  }
+}
+
 // =========================================================================
 // Генерация уникального короткого реферального кода (URL-безопасный, без ambiguous chars)
 // =========================================================================
@@ -406,30 +448,19 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
 
     for (const channel of channels) {
       try {
-        // Вызываем internal endpoint для проверки подписки
-        const response = await fetch(`${config.apiUrl}/internal/check-subscription`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Internal-Token': config.internalApiToken,
-          },
-          body: JSON.stringify({
-            telegramUserId: user.telegramUserId.toString(),
-            telegramChatId: channel.telegramChatId.toString(),
-          }),
-        });
-
-        const data = await response.json() as { ok: boolean; isMember: boolean };
-        const subscribed = data.ok && data.isMember;
+        const { isMember } = await checkTelegramSubscription(
+          user.telegramUserId.toString(),
+          channel.telegramChatId.toString(),
+        );
 
         results.push({
           id: channel.id,
           title: channel.title,
           username: channel.username ? `@${channel.username}` : null,
-          subscribed,
+          subscribed: isMember,
         });
 
-        if (!subscribed) {
+        if (!isMember) {
           allSubscribed = false;
         }
       } catch (error) {
@@ -600,20 +631,11 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
 
       for (const channel of channels) {
         try {
-          const response = await fetch(`${config.apiUrl}/internal/check-subscription`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Internal-Token': config.internalApiToken,
-            },
-            body: JSON.stringify({
-              telegramUserId: user.telegramUserId.toString(),
-              telegramChatId: channel.telegramChatId.toString(),
-            }),
-          });
-
-          const data = await response.json() as { ok: boolean; isMember: boolean };
-          if (!data.ok || !data.isMember) {
+          const { isMember } = await checkTelegramSubscription(
+            user.telegramUserId.toString(),
+            channel.telegramChatId.toString(),
+          );
+          if (!isMember) {
             return reply.status(400).send({
               ok: false,
               error: `Вы не подписаны на канал: ${channel.title}`,

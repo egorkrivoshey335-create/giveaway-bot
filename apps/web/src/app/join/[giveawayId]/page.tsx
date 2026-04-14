@@ -846,7 +846,9 @@ export default function JoinGiveawayPage() {
         <div className="max-w-md mx-auto">
           {/* Заголовок */}
           <div className="text-center mb-6">
-            <div className="text-5xl mb-3"><AppIcon name="icon-giveaway" size={16} /></div>
+            <div className="flex justify-center mb-2">
+              <Mascot type="state-loading" size={150} loop autoplay />
+            </div>
             <h1 className="text-xl font-bold">{giveaway.title}</h1>
           </div>
 
@@ -924,7 +926,9 @@ export default function JoinGiveawayPage() {
       <main className="min-h-screen p-4">
         <div className="max-w-md mx-auto">
           <div className="text-center mb-6">
-            <div className="text-5xl mb-3"><AppIcon name="icon-channel" size={14} /></div>
+            <div className="flex justify-center mb-2">
+              <Mascot type="state-locked" size={120} loop autoplay />
+            </div>
             <h1 className="text-xl font-bold">{t('checkSubscription.title')}</h1>
             <p className="text-tg-hint mt-2">{t('checkSubscription.description')}</p>
           </div>
