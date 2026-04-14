@@ -19,6 +19,55 @@ const FRAUD_SCORE_THRESHOLD = 80;
 // Максимальная длина Telegram-сообщения
 const TG_MAX_MESSAGE_LENGTH = 4096;
 
+// ── Telegram Bot API helpers (direct calls, no internal HTTP) ──────────────
+async function tgSendMessage(chatId: string, text: string, opts?: { parse_mode?: string; reply_markup?: unknown }): Promise<number | null> {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${config.botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: opts?.parse_mode, reply_markup: opts?.reply_markup }),
+    });
+    const data = await res.json() as { ok: boolean; result?: { message_id: number } };
+    return data.ok ? data.result?.message_id ?? null : null;
+  } catch { return null; }
+}
+
+async function tgEditMessageText(chatId: string, messageId: number, text: string, opts?: { parse_mode?: string; reply_markup?: unknown }): Promise<boolean> {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${config.botToken}/editMessageText`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, message_id: messageId, text, parse_mode: opts?.parse_mode, reply_markup: opts?.reply_markup }),
+    });
+    const data = await res.json() as { ok: boolean };
+    return data.ok;
+  } catch { return false; }
+}
+
+async function tgEditMessageCaption(chatId: string, messageId: number, caption: string, opts?: { parse_mode?: string; reply_markup?: unknown }): Promise<boolean> {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${config.botToken}/editMessageCaption`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, message_id: messageId, caption, parse_mode: opts?.parse_mode, reply_markup: opts?.reply_markup }),
+    });
+    const data = await res.json() as { ok: boolean };
+    return data.ok;
+  } catch { return false; }
+}
+
+async function tgEditReplyMarkup(chatId: string, messageId: number, reply_markup: unknown): Promise<boolean> {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${config.botToken}/editMessageReplyMarkup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, message_id: messageId, reply_markup }),
+    });
+    const data = await res.json() as { ok: boolean };
+    return data.ok;
+  } catch { return false; }
+}
+
 // ============================================================================
 // (Winner selection logic is in ../utils/winners.ts — imported above)
 // ============================================================================
@@ -298,24 +347,19 @@ async function checkAutoExtend(now: Date): Promise<void> {
         const newText = originalPostText + extMsg;
         const finalText = newText.length > maxLen ? newText.slice(0, maxLen - 3) + '...' : newText;
 
-        const requestBody: Record<string, unknown> = {
-          chatId: channel.telegramChatId.toString(),
-          messageId: msg.telegramMessageId,
-          parseMode: 'HTML',
-        };
+        const chatId = channel.telegramChatId.toString();
+        let ok: boolean;
         if (hasMedia) {
-          requestBody.caption = finalText;
+          ok = await tgEditMessageCaption(chatId, msg.telegramMessageId, finalText, { parse_mode: 'HTML' });
         } else {
-          requestBody.text = finalText;
+          ok = await tgEditMessageText(chatId, msg.telegramMessageId, finalText, { parse_mode: 'HTML' });
         }
 
-        await fetch(`${config.apiUrl}/internal/edit-message`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Internal-Token': config.internalApiToken },
-          body: JSON.stringify(requestBody),
-        });
-
-        console.log(`[AutoExtend] Отредактирован пост в канале для розыгрыша "${giveaway.title}"`);
+        if (ok) {
+          console.log(`[AutoExtend] Отредактирован пост в канале для розыгрыша "${giveaway.title}"`);
+        } else {
+          console.error(`[AutoExtend] Ошибка редактирования поста для "${giveaway.title}"`);
+        }
       } catch (err) {
         console.error(`[AutoExtend] Ошибка редактирования поста:`, err);
       }
@@ -957,34 +1001,16 @@ async function publishRandomizerTeaser(giveaway: GiveawayWithRelations): Promise
 
   for (const channel of channels) {
     try {
-      const response = await fetch(`${config.apiUrl}/internal/send-message`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Internal-Token': config.internalApiToken,
-        },
-        body: JSON.stringify({
-          chatId: channel.telegramChatId.toString(),
-          text: teaserText,
-          parseMode: 'HTML',
-          replyMarkup: {
-            inline_keyboard: [[
-              { text: '🎲 Смотреть рандомайзер', url: randomizerUrl },
-            ]],
-          },
-        }),
-      });
+      const replyMarkup = { inline_keyboard: [[ { text: '🎲 Смотреть рандомайзер', url: randomizerUrl } ]] };
+      const msgId = await tgSendMessage(channel.telegramChatId.toString(), teaserText, { parse_mode: 'HTML', reply_markup: replyMarkup });
 
-      const data = await response.json() as { ok: boolean; messageId?: number };
-
-      if (data.ok && data.messageId) {
-        // Сохраняем тизер-сообщение (kind: RESULTS, чтобы потом обновить)
+      if (msgId) {
         await prisma.giveawayMessage.create({
           data: {
             giveawayId: giveaway.id,
             channelId: channel.id,
             kind: GiveawayMessageKind.RESULTS,
-            telegramMessageId: data.messageId,
+            telegramMessageId: msgId,
           },
         });
         console.log(`[PublishResults] RANDOMIZER: Тизер отправлен в ${channel.title}`);
@@ -994,34 +1020,16 @@ async function publishRandomizerTeaser(giveaway: GiveawayWithRelations): Promise
     }
   }
 
-  // Обновляем кнопку в оригинальных постах — убираем "Участвовать"
+  // Обновляем кнопку в оригинальных постах
   for (const msg of giveaway.messages) {
     if (msg.kind !== GiveawayMessageKind.START) continue;
-    
-    const channel = await prisma.channel.findUnique({
-      where: { id: msg.channelId },
-      select: { telegramChatId: true },
-    });
-
+    const channel = await prisma.channel.findUnique({ where: { id: msg.channelId }, select: { telegramChatId: true } });
     if (!channel) continue;
 
     try {
       const waitUrl = `https://t.me/${BOT_USERNAME}/participate?startapp=results_${giveaway.id}`;
-      await fetch(`${config.apiUrl}/internal/edit-message-button`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Internal-Token': config.internalApiToken,
-        },
-        body: JSON.stringify({
-          chatId: channel.telegramChatId.toString(),
-          messageId: msg.telegramMessageId,
-          replyMarkup: {
-            inline_keyboard: [[
-              { text: '🎲 Ожидайте объявления победителей', url: waitUrl }
-            ]]
-          },
-        }),
+      await tgEditReplyMarkup(channel.telegramChatId.toString(), msg.telegramMessageId, {
+        inline_keyboard: [[ { text: '🎲 Ожидайте объявления победителей', url: waitUrl } ]]
       });
     } catch (error) {
       console.error(`[PublishResults] RANDOMIZER: Ошибка обновления кнопки:`, error);
@@ -1076,30 +1084,19 @@ async function publishResultsSamePost(giveaway: GiveawayWithRelations): Promise<
     if (!channel) continue;
 
     try {
-      const requestBody: Record<string, unknown> = {
-        chatId: channel.telegramChatId.toString(),
-        messageId: msg.telegramMessageId,
-        parseMode: 'HTML',
-        replyMarkup,
-      };
+      const chatId = channel.telegramChatId.toString();
+      let ok: boolean;
 
       if (hasMedia) {
-        requestBody.caption = newText;
+        ok = await tgEditMessageCaption(chatId, msg.telegramMessageId, newText, { parse_mode: 'HTML', reply_markup: replyMarkup });
       } else {
-        requestBody.text = newText;
+        ok = await tgEditMessageText(chatId, msg.telegramMessageId, newText, { parse_mode: 'HTML', reply_markup: replyMarkup });
       }
 
-      const response = await fetch(`${config.apiUrl}/internal/edit-message`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Internal-Token': config.internalApiToken },
-        body: JSON.stringify(requestBody),
-      });
-
-      const data = await response.json() as { ok: boolean; error?: string };
-      if (data.ok) {
+      if (ok) {
         console.log(`[PublishResults] Отредактирован пост в канале ${channel.title}`);
       } else {
-        console.error(`[PublishResults] Ошибка редактирования в ${channel.title}: ${data.error}`);
+        console.error(`[PublishResults] Ошибка редактирования в ${channel.title}`);
       }
     } catch (error) {
       console.error(`[PublishResults] Ошибка редактирования:`, error);
@@ -1134,35 +1131,16 @@ async function publishResultsSeparatePosts(giveaway: GiveawayWithRelations): Pro
   
   for (const channel of channels) {
     try {
-      // Отправляем новое сообщение
-      const response = await fetch(`${config.apiUrl}/internal/send-message`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Internal-Token': config.internalApiToken,
-        },
-        body: JSON.stringify({
-          chatId: channel.telegramChatId.toString(),
-          text: resultsText,
-          parseMode: 'HTML',
-          replyMarkup: {
-            inline_keyboard: [[
-              { text: '🏆 Подробнее', url: resultsUrl }
-            ]]
-          },
-        }),
-      });
+      const replyMarkup = { inline_keyboard: [[ { text: '🏆 Подробнее', url: resultsUrl } ]] };
+      const msgId = await tgSendMessage(channel.telegramChatId.toString(), resultsText, { parse_mode: 'HTML', reply_markup: replyMarkup });
       
-      const data = await response.json() as { ok: boolean; messageId?: number };
-      
-      if (data.ok && data.messageId) {
-        // Сохраняем сообщение с результатами
+      if (msgId) {
         await prisma.giveawayMessage.create({
           data: {
             giveawayId: giveaway.id,
             channelId: channel.id,
             kind: GiveawayMessageKind.RESULTS,
-            telegramMessageId: data.messageId,
+            telegramMessageId: msgId,
           },
         });
         console.log(`[PublishResults] Отправлен пост в канал ${channel.title}`);
@@ -1176,30 +1154,12 @@ async function publishResultsSeparatePosts(giveaway: GiveawayWithRelations): Pro
   
   // Обновляем кнопку в оригинальных постах
   for (const msg of giveaway.messages) {
-    const channel = await prisma.channel.findUnique({
-      where: { id: msg.channelId },
-      select: { telegramChatId: true },
-    });
-    
+    const channel = await prisma.channel.findUnique({ where: { id: msg.channelId }, select: { telegramChatId: true } });
     if (!channel) continue;
     
     try {
-      // Меняем кнопку на "Результаты"
-      await fetch(`${config.apiUrl}/internal/edit-message-button`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Internal-Token': config.internalApiToken,
-        },
-        body: JSON.stringify({
-          chatId: channel.telegramChatId.toString(),
-          messageId: msg.telegramMessageId,
-          replyMarkup: {
-            inline_keyboard: [[
-              { text: '🏆 Результаты', url: resultsUrl }
-            ]]
-          },
-        }),
+      await tgEditReplyMarkup(channel.telegramChatId.toString(), msg.telegramMessageId, {
+        inline_keyboard: [[ { text: '🏆 Результаты', url: resultsUrl } ]]
       });
     } catch (error) {
       console.error(`[PublishResults] Ошибка обновления кнопки:`, error);

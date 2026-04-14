@@ -67,6 +67,7 @@ export const lifecycleRoutes: FastifyPluginAsync = async (fastify) => {
         totalParticipants: true,
         updatedAt: true,
         winners: {
+          where: { isReserve: false },
           orderBy: { place: 'asc' },
           include: {
             user: {

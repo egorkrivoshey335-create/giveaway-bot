@@ -369,6 +369,7 @@
     },
     "finished": {
       "title": "Giveaway finished",
+      "viewResults": "View results",
       "goHome": "Go home"
     },
     "info": {

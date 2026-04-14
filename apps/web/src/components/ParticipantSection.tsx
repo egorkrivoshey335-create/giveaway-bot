@@ -44,7 +44,7 @@ function ParticipationCard({ participation }: { participation: MyParticipation }
   return (
     <div
       className="bg-tg-secondary rounded-xl overflow-hidden cursor-pointer hover:bg-tg-secondary/80 transition-colors relative"
-      onClick={() => router.push(`/join/${giveaway.id}`)}
+      onClick={() => router.push(giveaway.status === 'FINISHED' ? `/giveaway/${giveaway.id}/results` : `/join/${giveaway.id}`)}
     >
       {/* Бейдж победителя */}
       {isWinner && winnerPlace !== null && (

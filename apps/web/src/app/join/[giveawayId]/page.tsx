@@ -709,24 +709,32 @@ export default function JoinGiveawayPage() {
     );
   }
 
-  // Розыгрыш завершён
+  // Розыгрыш завершён — перенаправляем на результаты
   if (screen === 'finished') {
     return (
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
           <div className="flex justify-center mb-2">
-            <Mascot type="state-empty" size={120} loop autoplay />
+            <Mascot type="state-success" size={120} loop autoplay />
           </div>
           <h1 className="text-xl font-bold mb-2">{t('finished.title')}</h1>
-          <p className="text-tg-hint mb-6">
+          <p className="text-tg-hint mb-4">
             {giveaway?.title}
           </p>
-          <button
-            onClick={() => router.push('/')}
-            className="bg-tg-secondary text-tg-text rounded-lg px-6 py-3"
-          >
-            {t('finished.goHome')}
-          </button>
+          <div className="space-y-3">
+            <button
+              onClick={() => router.push(`/giveaway/${giveaway?.id}/results`)}
+              className="w-full bg-tg-button text-tg-button-text rounded-lg px-6 py-3 font-medium"
+            >
+              🏆 {t('finished.viewResults') || 'Посмотреть результаты'}
+            </button>
+            <button
+              onClick={() => router.push('/')}
+              className="w-full bg-tg-secondary text-tg-text rounded-lg px-6 py-3"
+            >
+              {t('finished.goHome')}
+            </button>
+          </div>
         </div>
       </main>
     );
