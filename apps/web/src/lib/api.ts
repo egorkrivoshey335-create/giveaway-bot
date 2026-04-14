@@ -27,7 +27,8 @@ async function apiFetch(input, init?) {
       : apiError;
     return {
       ok: success === true,
-      ...(data && typeof data === 'object' ? data : {}),
+      ...(data && typeof data === 'object' && !Array.isArray(data) ? data : {}),
+      ...(Array.isArray(data) ? { data } : {}),
       ...(meta && typeof meta === 'object' ? { meta } : {}),
       ...rest,
       ...(errorMsg ? { error: typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg) } : {}),

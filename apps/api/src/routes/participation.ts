@@ -2104,11 +2104,17 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       };
     });
 
-    return reply.paginated(result, {
-      page: Math.floor(offsetNum / limitNum) + 1,
-      limit: limitNum,
+    return reply.success({
+      participations: result,
       total,
       hasMore: offsetNum + limitNum < total,
+      counts: {
+        all: allCount,
+        active: activeCount,
+        finished: finishedCount,
+        won: wonCount,
+        cancelled: cancelledCount,
+      },
     });
   });
 };

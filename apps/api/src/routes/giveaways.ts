@@ -478,8 +478,8 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
       totalAll += c._count;
     }
 
-    return reply.paginated(
-      giveaways.map(g => ({
+    return reply.success({
+      giveaways: giveaways.map(g => ({
         id: g.id,
         status: g.status,
         title: g.title,
@@ -496,19 +496,20 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
           mediaType: g.postTemplate.mediaType,
           hasMedia: g.postTemplate.mediaType !== 'NONE' && !!g.postTemplate.telegramFileId,
         } : null,
-        counts: {
-          all: totalAll,
-          draft: countByStatus.DRAFT || 0,
-          pendingConfirm: countByStatus.PENDING_CONFIRM || 0,
-          scheduled: countByStatus.SCHEDULED || 0,
-          active: countByStatus.ACTIVE || 0,
-          finished: countByStatus.FINISHED || 0,
-          cancelled: countByStatus.CANCELLED || 0,
-          error: countByStatus.ERROR || 0,
-        },
       })),
-      { total, hasMore: offset + giveaways.length < total }
-    );
+      total,
+      hasMore: offset + giveaways.length < total,
+      counts: {
+        all: totalAll,
+        draft: countByStatus.DRAFT || 0,
+        pendingConfirm: countByStatus.PENDING_CONFIRM || 0,
+        scheduled: countByStatus.SCHEDULED || 0,
+        active: countByStatus.ACTIVE || 0,
+        finished: countByStatus.FINISHED || 0,
+        cancelled: countByStatus.CANCELLED || 0,
+        error: countByStatus.ERROR || 0,
+      },
+    });
   });
 
   /**
