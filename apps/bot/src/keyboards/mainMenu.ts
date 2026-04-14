@@ -161,7 +161,7 @@ export function getLanguageSettingsMessage(locale: Locale): string {
 
 export function getNotificationSettingsMessage(locale: Locale, notificationMode: string): string {
   const modeLabels: Record<string, Record<string, string>> = {
-    MILESTONE: { ru: 'Вехи (10/50/100/500)', en: 'Milestones (10/50/100/500)', kk: 'Белестер (10/50/100/500)' },
+    MILESTONE: { ru: 'Вехи (при 10, 50, 100, 500 участниках)', en: 'Milestones (at 10, 50, 100, 500 participants)', kk: 'Белестер (10, 50, 100, 500 қатысушыда)' },
     DAILY: { ru: 'Ежедневная сводка', en: 'Daily summary', kk: 'Күнделікті жиынтық' },
     OFF: { ru: 'Выключены', en: 'Disabled', kk: 'Өшірулі' },
   };
