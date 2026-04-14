@@ -569,15 +569,7 @@ export default function CreatorDashboardPage() {
               </button>
 
               <button
-                onClick={() => {
-                  const tg = window.Telegram?.WebApp;
-                  const link = `https://t.me/${BOT_USERNAME}?start=posts`;
-                  if (tg) {
-                    tg.openTelegramLink(link);
-                  } else {
-                    window.open(link, '_blank');
-                  }
-                }}
+                onClick={() => router.push('/creator/posts')}
                 className="bg-tg-secondary rounded-xl p-4 hover:bg-tg-secondary/80 transition-colors flex flex-col items-center text-center"
               >
                 <AppIcon name="icon-edit" variant="brand" size={28} className="mb-2" />

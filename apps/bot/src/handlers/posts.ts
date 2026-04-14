@@ -85,12 +85,14 @@ export function getRecentTemplate(userId: number): RecentTemplate | null {
 export function createPostsKeyboard(locale: Locale = 'ru'): any {
   const createPost = t(locale, 'posts.createPostBtn');
   const myPostsLabel = locale === 'en' ? 'My Posts' : locale === 'kk' ? 'Менің жазбаларым' : 'Мои посты';
+  const openApp = locale === 'en' ? '📱 Open App' : locale === 'kk' ? '📱 Қолданбаны ашу' : '📱 Открыть приложение';
   const back = t(locale, 'posts.backBtn');
   const toMenu = t(locale, 'posts.toMenuBtn');
 
   return inlineKeyboard(
     [btn(createPost, 'create_post', 'posts', 'danger')],
     [btn(`📋 ${myPostsLabel}`, 'list_posts', 'my_posts', 'primary')],
+    [webAppBtn(openApp, config.webappUrl + '/creator/posts', 'app', 'danger')],
     [btn(back, 'back_to_menu', 'back', 'primary'), btn(toMenu, 'go_to_menu', 'home', 'primary')],
   );
 }
@@ -114,7 +116,7 @@ export function createPostCreatedKeyboard(templateId: string, locale: Locale = '
   const deleteBtn = t(locale, 'posts.deleteBtn');
 
   return inlineKeyboard(
-    [webAppBtn(openApp, config.webappUrl, 'app', 'danger')],
+    [webAppBtn(openApp, config.webappUrl + '/creator/posts', 'app', 'danger')],
     [btn(createMore, 'create_post', 'posts', 'danger'), btn(deleteBtn, `delete_template:${templateId}`, 'delete', 'danger')],
   );
 }

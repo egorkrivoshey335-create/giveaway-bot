@@ -506,6 +506,26 @@
     "addPopupDescription": "To add a channel, you need to go to the bot. You can return here after adding.",
     "goToBot": "Go to bot"
   },
+  "postsPage": {
+    "title": "My Posts",
+    "addTitle": "Add Post",
+    "addDescription": "To create a post, go to the bot. Text, photo and video with captions are supported.",
+    "addButton": "Add Post",
+    "addFirst": "Create first post",
+    "addPopupDescription": "To create a post, you need to go to the bot. You can return here after creating.",
+    "goToBot": "Go to bot",
+    "emptyTitle": "No posts yet",
+    "emptySubtitle": "Create a post template for publishing in a giveaway.",
+    "count": "Total posts: {count}",
+    "typeText": "Text",
+    "typePhoto": "Photo",
+    "typeVideo": "Video",
+    "view": "View",
+    "deleteConfirm": "Delete?",
+    "deleted": "Post deleted",
+    "restored": "Post restored",
+    "undo": "Undo"
+  },
   "dashboard": {
     "title": "My Giveaways",
     "subtitle": "Giveaways you have created",

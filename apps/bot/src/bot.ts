@@ -1,6 +1,7 @@
 import { Bot } from 'grammy';
 import { config, isUserAllowed } from './config.js';
 import { createLogger } from './lib/logger.js';
+import { apiService } from './services/api.js';
 import {
   MENU,
   createMainMenuKeyboard,
@@ -190,6 +191,60 @@ bot.command('start', async (ctx) => {
           [webAppBtn(openApp, config.webappUrl + '/creator/channels', 'app', 'danger')],
         ),
       });
+      return;
+    }
+
+    if (startParam === 'posts') {
+      if (ctx.from) {
+        pushMenu(ctx.from.id, 'my_posts');
+        clearAllUserStates(ctx.from.id);
+      }
+      const openApp = t(locale, 'bot.openAppBtn');
+      await safeReply(ctx, getPostsMessage(locale), {
+        parse_mode: 'HTML',
+        reply_markup: inlineKeyboard(
+          ...createPostsKeyboard(locale).inline_keyboard,
+          [webAppBtn(openApp, config.webappUrl + '/creator/posts', 'app', 'danger')],
+        ),
+      });
+      return;
+    }
+
+    if (startParam.startsWith('preview_post_')) {
+      const templateId = startParam.replace('preview_post_', '');
+      if (userId) {
+        const result = await apiService.getUserPostTemplates(userId);
+        const template = result.templates.find((tp: any) => tp.id === templateId);
+        if (template) {
+          const openApp = t(locale, 'bot.openAppBtn');
+          try {
+            const ents = Array.isArray(template.entities) ? template.entities : undefined;
+            if (template.mediaType === 'NONE' || !template.telegramFileId) {
+              await ctx.reply(template.text, ents ? { entities: ents } : undefined);
+            } else if (template.mediaType === 'PHOTO') {
+              await ctx.replyWithPhoto(template.telegramFileId, {
+                caption: template.text,
+                ...(ents ? { caption_entities: ents } : {}),
+              });
+            } else if (template.mediaType === 'VIDEO') {
+              await ctx.replyWithVideo(template.telegramFileId, {
+                caption: template.text,
+                ...(ents ? { caption_entities: ents } : {}),
+              });
+            }
+          } catch (error) {
+            log.error({ error }, 'Preview post error');
+          }
+          await safeReply(ctx, '👆', {
+            reply_markup: inlineKeyboard(
+              [webAppBtn(openApp, config.webappUrl + '/creator/posts', 'app', 'danger')],
+            ),
+          });
+          return;
+        }
+      }
+      const notFound = locale === 'en' ? '❌ Post not found' : locale === 'kk' ? '❌ Жазба табылмады' : '❌ Пост не найден';
+      await safeReply(ctx, notFound, {});
       return;
     }
   }
