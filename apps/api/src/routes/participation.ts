@@ -1476,27 +1476,39 @@ export const participationRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
-    // Проверяем бусты через internal API
+    // Проверяем бусты напрямую через Telegram Bot API
     let actualBoostCount = 0;
     try {
-      const response = await fetch(`${config.apiUrl}/internal/check-boosts`, {
+      const botToken = config.botToken;
+      if (!botToken) {
+        return reply.status(500).send({ ok: false, error: 'Bot not configured' });
+      }
+
+      const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/getUserChatBoosts`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Internal-Token': config.internalApiToken,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          telegramUserId: user.telegramUserId.toString(),
-          telegramChatId: channel.telegramChatId.toString(),
+          chat_id: channel.telegramChatId.toString(),
+          user_id: user.telegramUserId.toString(),
         }),
       });
 
-      const data = await response.json() as { ok: boolean; count: number; boosts: Array<{ boostId: string }> };
-      if (data.ok) {
-        actualBoostCount = data.count;
+      const tgData = await tgRes.json() as {
+        ok: boolean;
+        result?: { boosts: Array<{ boost_id: string; add_date: number; expiration_date: number }> };
+        description?: string;
+      };
+
+      if (tgData.ok && tgData.result) {
+        actualBoostCount = tgData.result.boosts.length;
+      } else {
+        fastify.log.warn(
+          { userId: user.telegramUserId, chatId: channel.telegramChatId, error: tgData.description },
+          'Telegram getUserChatBoosts failed'
+        );
       }
     } catch (error) {
-      fastify.log.error(error, 'Failed to check boosts');
+      fastify.log.error(error, 'Failed to check boosts via Telegram API');
       return reply.status(500).send({
         ok: false,
         error: 'Не удалось проверить бусты',

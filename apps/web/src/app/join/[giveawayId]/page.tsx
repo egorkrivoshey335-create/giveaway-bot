@@ -846,7 +846,7 @@ export default function JoinGiveawayPage() {
           {/* Сообщение о приглашении */}
           {referrerUserId && (
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-4 text-center">
-              <span className="text-blue-600">👋 {t('info.invitedByFriend')}</span>
+              <span className="text-blue-600 flex items-center justify-center gap-1.5"><AppIcon name="icon-add-channel" size={16} /> {t('info.invitedByFriend')}</span>
             </div>
           )}
 
@@ -1067,7 +1067,7 @@ export default function JoinGiveawayPage() {
           {/* Сообщение о приглашении */}
           {referrerUserId && (
             <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 mb-4 text-center">
-              <span className="text-green-600 text-sm">👋 {t('info.invitedByFriend')}</span>
+              <span className="text-green-600 text-sm flex items-center justify-center gap-1.5"><AppIcon name="icon-add-channel" size={16} /> {t('info.invitedByFriend')}</span>
             </div>
           )}
 
@@ -1102,16 +1102,7 @@ export default function JoinGiveawayPage() {
                   </div>
                 </div>
                 <button
-                  onClick={() => {
-                    const shareText = `🎁 Участвуйте в розыгрыше "${giveaway.title}"!`;
-                    const shareUrl = `https://t.me/share/url?url=https://t.me/${BOT_USERNAME}/participate?startapp=join_${giveawayId}&text=${encodeURIComponent(shareText)}`;
-                    
-                    if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
-                      (window as any).Telegram.WebApp.openTelegramLink(shareUrl);
-                    } else {
-                      window.open(shareUrl, '_blank');
-                    }
-                  }}
+                  onClick={handleShareToTelegram}
                   className="relative overflow-hidden bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl px-4 py-2.5 text-sm font-medium flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
                 >
                   <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer-delayed_5s_ease-in-out_2.5s_infinite]" />
@@ -1631,16 +1622,7 @@ export default function JoinGiveawayPage() {
                   </div>
                 </div>
                 <button
-                  onClick={() => {
-                    const shareText = `🎁 Участвуйте в розыгрыше "${giveaway.title}"!`;
-                    const shareUrl = `https://t.me/share/url?url=https://t.me/${BOT_USERNAME}/participate?startapp=join_${giveawayId}&text=${encodeURIComponent(shareText)}`;
-                    
-                    if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
-                      (window as any).Telegram.WebApp.openTelegramLink(shareUrl);
-                    } else {
-                      window.open(shareUrl, '_blank');
-                    }
-                  }}
+                  onClick={handleShareToTelegram}
                   className="relative overflow-hidden bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl px-4 py-2.5 text-sm font-medium flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
                 >
                   <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer-delayed_5s_ease-in-out_2.5s_infinite]" />
