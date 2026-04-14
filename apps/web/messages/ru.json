@@ -202,6 +202,7 @@
       "limitReached": "Достигнут лимит для вашей подписки"
     },
     "resultsStep": {
+      "channelLimit": "Лимит каналов",
       "description": "Выберите каналы для публикации итогов:",
       "publishModeLabel": "Способ публикации итогов:",
       "separatePosts": "Отдельные посты",

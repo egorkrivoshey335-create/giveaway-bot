@@ -824,18 +824,21 @@ export default function GiveawayWizardPage() {
                 <div className="space-y-2">
                   {channels.map((channel) => {
                     const isSelected = (payload.requiredSubscriptionChannelIds || []).includes(channel.id);
+                    const canSelect = isSelected || (payload.requiredSubscriptionChannelIds || []).length < subscriptionChannelLimit;
                     return (
                       <button
                         key={channel.id}
                         onClick={() => {
+                          if (!canSelect) return;
                           const current = payload.requiredSubscriptionChannelIds || [];
                           const updated = isSelected
                             ? current.filter(id => id !== channel.id)
                             : [...current, channel.id];
                           updatePayload({ requiredSubscriptionChannelIds: updated });
                         }}
+                        disabled={!canSelect}
                         className={`w-full text-left p-3 rounded-lg flex items-center gap-3 ${
-                          isSelected ? 'bg-tg-button/10 border border-tg-button' : 'bg-tg-bg'
+                          isSelected ? 'bg-tg-button/10 border border-tg-button' : !canSelect ? 'bg-tg-bg opacity-40' : 'bg-tg-bg'
                         }`}
                       >
                         <span className={`w-5 h-5 rounded flex items-center justify-center text-xs ${
@@ -925,18 +928,21 @@ export default function GiveawayWizardPage() {
                 <div className="space-y-2">
                   {channels.filter(c => c.botIsAdmin).map((channel) => {
                     const isSelected = (payload.publishChannelIds || []).includes(channel.id);
+                    const canSelect = isSelected || (payload.publishChannelIds || []).length < subscriptionChannelLimit;
                     return (
                       <button
                         key={channel.id}
                         onClick={() => {
+                          if (!canSelect) return;
                           const current = payload.publishChannelIds || [];
                           const updated = isSelected
                             ? current.filter(id => id !== channel.id)
                             : [...current, channel.id];
                           updatePayload({ publishChannelIds: updated });
                         }}
+                        disabled={!canSelect}
                         className={`w-full text-left p-3 rounded-lg flex items-center gap-3 ${
-                          isSelected ? 'bg-tg-button/10 border border-tg-button' : 'bg-tg-bg'
+                          isSelected ? 'bg-tg-button/10 border border-tg-button' : !canSelect ? 'bg-tg-bg opacity-40' : 'bg-tg-bg'
                         }`}
                       >
                         <span className={`w-5 h-5 rounded flex items-center justify-center text-xs ${
@@ -1011,21 +1017,34 @@ export default function GiveawayWizardPage() {
                 {t('resultsStep.description')}
               </p>
               
+              {/* Results channel limit banner */}
+              <div className="mb-4 bg-tg-bg rounded-lg p-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-tg-hint"><AppIcon name="icon-diamond" size={14} /> {t('resultsStep.channelLimit')}:</span>
+                  <span className="font-medium text-tg-button">
+                    {(payload.resultsChannelIds || []).length} / {subscriptionChannelLimit === Infinity ? '∞' : subscriptionChannelLimit}
+                  </span>
+                </div>
+              </div>
+
               <div className="space-y-2 mb-6">
                 {channels.filter(c => c.botIsAdmin).map((channel) => {
                   const isSelected = (payload.resultsChannelIds || []).includes(channel.id);
+                  const canSelect = isSelected || (payload.resultsChannelIds || []).length < subscriptionChannelLimit;
                   return (
                     <button
                       key={channel.id}
                       onClick={() => {
+                        if (!canSelect) return;
                         const current = payload.resultsChannelIds || [];
                         const updated = isSelected
                           ? current.filter(id => id !== channel.id)
                           : [...current, channel.id];
                         updatePayload({ resultsChannelIds: updated });
                       }}
+                      disabled={!canSelect}
                       className={`w-full text-left p-3 rounded-lg flex items-center gap-3 ${
-                        isSelected ? 'bg-tg-button/10 border border-tg-button' : 'bg-tg-bg'
+                        isSelected ? 'bg-tg-button/10 border border-tg-button' : !canSelect ? 'bg-tg-bg opacity-40' : 'bg-tg-bg'
                       }`}
                     >
                       <span className={`w-5 h-5 rounded flex items-center justify-center text-xs ${

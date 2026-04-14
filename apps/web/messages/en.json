@@ -202,6 +202,7 @@
       "limitReached": "Subscription limit reached"
     },
     "resultsStep": {
+      "channelLimit": "Channel limit",
       "description": "Select channels for publishing results:",
       "publishModeLabel": "Results publishing method:",
       "separatePosts": "Separate posts",
