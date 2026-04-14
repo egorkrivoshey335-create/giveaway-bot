@@ -90,7 +90,7 @@ export function createPostsKeyboard(locale: Locale = 'ru'): any {
 
   return inlineKeyboard(
     [btn(createPost, 'create_post', 'posts', 'danger')],
-    [btn(`📋 ${myPostsLabel}`, 'list_posts', undefined, 'primary')],
+    [btn(`📋 ${myPostsLabel}`, 'list_posts', 'my_posts', 'primary')],
     [btn(back, 'back_to_menu', 'back', 'primary'), btn(toMenu, 'go_to_menu', 'home', 'primary')],
   );
 }

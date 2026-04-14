@@ -56,6 +56,7 @@ export const EMOJI_MAP: Record<string, string> = {
   notif_daily:     process.env.EMOJI_NOTIF_DAILY || '',
   notif_off:       process.env.EMOJI_NOTIF_OFF || '',
   refresh:         process.env.EMOJI_REFRESH || '',
+  my_posts:        process.env.EMOJI_MY_POSTS || '',
 };
 
 let _enabled = process.env.CUSTOM_EMOJI_ENABLED !== 'false';
