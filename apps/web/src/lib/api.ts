@@ -58,7 +58,7 @@ interface AuthResponse {
 
 // Данные черновика розыгрыша (используется в wizard)
 export interface GiveawayDraftPayload {
-  type?: 'STANDARD' | 'BOOST_REQUIRED' | 'INVITE_REQUIRED' | 'CUSTOM';
+  type?: 'STANDARD' | 'BOOST_REQUIRED' | 'INVITE_REQUIRED' | 'CUSTOM' | 'MAXIMUM';
   title?: string;
   language?: 'ru' | 'en' | 'kk';
   postTemplateId?: string | null;

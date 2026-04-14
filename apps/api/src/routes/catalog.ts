@@ -107,7 +107,7 @@ export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
     };
 
     // Фильтр по типу розыгрыша
-    if (type && ['STANDARD', 'BOOST_REQUIRED', 'INVITE_REQUIRED', 'CUSTOM'].includes(type)) {
+    if (type && ['STANDARD', 'BOOST_REQUIRED', 'INVITE_REQUIRED', 'CUSTOM', 'MAXIMUM'].includes(type)) {
       whereBase.type = type;
     }
 

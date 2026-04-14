@@ -46,6 +46,7 @@ enum GiveawayType {
   BOOST_REQUIRED
   INVITE_REQUIRED
   CUSTOM
+  MAXIMUM
 }
 
 enum ParticipationStatus {

@@ -14,7 +14,7 @@ const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
 
 // Схема валидации для confirm endpoint
 const confirmDraftPayloadSchema = z.object({
-  type: z.enum(['STANDARD', 'BOOST_REQUIRED', 'INVITE_REQUIRED', 'CUSTOM'], {
+  type: z.enum(['STANDARD', 'BOOST_REQUIRED', 'INVITE_REQUIRED', 'CUSTOM', 'MAXIMUM'], {
     errorMap: () => ({ message: 'Выберите тип розыгрыша' }),
   }),
   title: z.string().min(1, 'Введите название розыгрыша'),
@@ -247,6 +247,7 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
         BOOST_REQUIRED: GiveawayType.BOOST_REQUIRED,
         INVITE_REQUIRED: GiveawayType.INVITE_REQUIRED,
         CUSTOM: GiveawayType.CUSTOM,
+        MAXIMUM: GiveawayType.MAXIMUM,
       };
       const languageMap: Record<string, LanguageCode> = {
         ru: LanguageCode.RU,

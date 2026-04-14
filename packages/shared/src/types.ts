@@ -97,6 +97,8 @@ export enum GiveawayType {
   INVITE_REQUIRED = 'INVITE_REQUIRED',
   /** Custom conditions and tasks */
   CUSTOM = 'CUSTOM',
+  /** All features: boosts + invites + stories + custom tasks */
+  MAXIMUM = 'MAXIMUM',
 }
 
 /**

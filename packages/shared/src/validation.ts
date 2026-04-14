@@ -89,6 +89,7 @@ export const giveawayTypeSchema = z.enum([
   'BOOST_REQUIRED',
   'INVITE_REQUIRED',
   'CUSTOM',
+  'MAXIMUM',
 ]);
 
 /** Статус розыгрыша */

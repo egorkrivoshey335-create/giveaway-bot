@@ -13,7 +13,7 @@ const createDraftBodySchema = z.object({
 // DraftPayload schema with partial fields allowed
 // Language accepts both 'ru' and 'RU' formats, will be normalized on save
 const draftPayloadSchema = z.object({
-  type: z.enum(['STANDARD', 'BOOST_REQUIRED', 'INVITE_REQUIRED', 'CUSTOM']).optional(),
+  type: z.enum(['STANDARD', 'BOOST_REQUIRED', 'INVITE_REQUIRED', 'CUSTOM', 'MAXIMUM']).optional(),
   title: z.string().optional(),
   language: z.string().optional().transform(val => val?.toLowerCase() as 'ru' | 'en' | 'kk' | undefined),
   postTemplateId: z.string().nullable().optional(),

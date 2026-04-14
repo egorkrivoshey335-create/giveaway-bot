@@ -157,7 +157,11 @@
       },
       "CUSTOM": {
         "label": "Custom",
-        "desc": "Flexible conditions and tasks"
+        "desc": "Custom tasks for participants"
+      },
+      "MAXIMUM": {
+        "label": "Maximum",
+        "desc": "All features: boosts, invites, stories, tasks"
       }
     },
     "basics": {
@@ -905,7 +909,7 @@
       "types": {
         "title": "Giveaway Types",
         "items": [
-          { "q": "What are the giveaway types?", "a": "STANDARD — no extra conditions. BOOST_REQUIRED — participant must boost your channel. INVITE_REQUIRED — participant must invite N friends. CUSTOM — custom tasks (subscribe, repost, answer a question)." },
+          { "q": "What are the giveaway types?", "a": "Standard — basic giveaway. With Boosts — participant boosts your channel. With Invites — invites friends. Custom — custom tasks. Maximum — all features combined." },
           { "q": "Which type gives the best reach?", "a": "INVITE_REQUIRED provides viral growth. For a first giveaway we recommend STANDARD — simpler to set up and fewer barriers." }
         ]
       },

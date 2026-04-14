@@ -392,7 +392,10 @@ export default function GiveawayWizardPage() {
 
   const visibleSteps = useMemo(() => {
     return WIZARD_STEPS.filter((step) => {
-      if (step === 'CUSTOM_TASKS' && payload.type !== 'CUSTOM') return false;
+      // CUSTOM_TASKS: only for CUSTOM and MAXIMUM
+      if (step === 'CUSTOM_TASKS' && payload.type !== 'CUSTOM' && payload.type !== 'MAXIMUM') return false;
+      // EXTRAS: hidden for STANDARD and CUSTOM (they don't need bonus tickets)
+      if (step === 'EXTRAS' && (payload.type === 'STANDARD' || payload.type === 'CUSTOM')) return false;
       return true;
     });
   }, [payload.type]);
@@ -585,12 +588,13 @@ export default function GiveawayWizardPage() {
               </div>
 
               <div className="space-y-3">
-              {(['STANDARD', 'BOOST_REQUIRED', 'INVITE_REQUIRED', 'CUSTOM'] as const).map((typeValue) => {
+              {(['STANDARD', 'BOOST_REQUIRED', 'INVITE_REQUIRED', 'CUSTOM', 'MAXIMUM'] as const).map((typeValue) => {
                 const typeMascots: Record<string, string> = {
                   STANDARD: 'wizard-promotion',
                   BOOST_REQUIRED: 'wizard-boost',
                   INVITE_REQUIRED: 'wizard-invite',
                   CUSTOM: 'wizard-stories',
+                  MAXIMUM: 'wizard-maximum',
                 };
                 return (
                   <button
@@ -1557,7 +1561,8 @@ export default function GiveawayWizardPage() {
                 <Mascot type="wizard-invite" size={200} loop={true} autoplay={true} />
               </div>
 
-              {/* Блок: Приглашение друзей */}
+              {/* Блок: Приглашение друзей (INVITE_REQUIRED, MAXIMUM) */}
+              {(payload.type === 'INVITE_REQUIRED' || payload.type === 'MAXIMUM') && (
               <div className="bg-tg-bg rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -1624,8 +1629,10 @@ export default function GiveawayWizardPage() {
                   </div>
                 )}
               </div>
+              )}
 
-              {/* Блок: Бусты каналов */}
+              {/* Блок: Бусты каналов (BOOST_REQUIRED, MAXIMUM) */}
+              {(payload.type === 'BOOST_REQUIRED' || payload.type === 'MAXIMUM') && (
               <div className="bg-tg-bg rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -1720,8 +1727,10 @@ export default function GiveawayWizardPage() {
                   </div>
                 )}
               </div>
+              )}
 
-              {/* Блок: Сторис — только PLUS+ */}
+              {/* Блок: Сторис — только MAXIMUM и PLUS+ */}
+              {payload.type === 'MAXIMUM' && (
               <div className="bg-tg-bg rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -1770,6 +1779,7 @@ export default function GiveawayWizardPage() {
                   </div>
                 )}
               </div>
+              )}
 
               {/* Продвижение в каталоге — включено в PLUS+ */}
               <div className="bg-tg-secondary rounded-xl p-4 relative overflow-hidden">
@@ -1939,8 +1949,8 @@ export default function GiveawayWizardPage() {
             </motion.div>
           )}
 
-          {/* Шаг 11: Свои задания (только для CUSTOM) */}
-          {currentStep === 'CUSTOM_TASKS' && payload.type === 'CUSTOM' && (
+          {/* Шаг 11: Свои задания (CUSTOM и MAXIMUM) */}
+          {currentStep === 'CUSTOM_TASKS' && (payload.type === 'CUSTOM' || payload.type === 'MAXIMUM') && (
             <motion.div
               key="CUSTOM_TASKS"
               initial={{ opacity: 0, x: 20 }}
@@ -2238,8 +2248,8 @@ export default function GiveawayWizardPage() {
                 </div>
               </div>
 
-              {/* Свои задания (только для CUSTOM типа) */}
-              {payload.type === 'CUSTOM' && (payload.customTasks || []).length > 0 && (
+              {/* Свои задания (CUSTOM и MAXIMUM) */}
+              {(payload.type === 'CUSTOM' || payload.type === 'MAXIMUM') && (payload.customTasks || []).length > 0 && (
                 <div className="bg-tg-bg rounded-lg p-3 space-y-2 text-sm">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-tg-hint text-xs font-medium"><AppIcon name="icon-success" size={14} /> {t('review.customTasks')}</span>

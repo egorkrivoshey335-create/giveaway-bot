@@ -12,7 +12,7 @@ export interface MascotProps {
    * **Wizard (15 типов):**
    * - wizard-type, wizard-settings, wizard-channels, wizard-publish, wizard-results
    * - wizard-calendar, wizard-winners, wizard-boost, wizard-invite, wizard-stories
-   * - wizard-protection, wizard-mascot, wizard-promotion, wizard-tasks, wizard-review
+   * - wizard-protection, wizard-mascot, wizard-promotion, wizard-maximum, wizard-tasks, wizard-review
    * 
    * **States (6 типов):**
    * - state-success, state-error, state-empty, state-loading, state-captcha, state-locked
@@ -38,6 +38,7 @@ export interface MascotProps {
     | 'wizard-protection'
     | 'wizard-mascot'
     | 'wizard-promotion'
+    | 'wizard-maximum'
     | 'wizard-tasks'
     | 'wizard-review'
     // State mascots
@@ -108,6 +109,7 @@ const MASCOT_PATHS: Record<string, string> = {
   'wizard-protection': '/mascots/wizard/wizard-protection.json',
   'wizard-mascot': '/mascots/wizard/wizard-mascot.json',
   'wizard-promotion': '/mascots/wizard/wizard-promotion.json',
+  'wizard-maximum': '/mascots/wizard/wizard-maximum.json',
   'wizard-tasks': '/mascots/wizard/wizard-tasks.json',
   'wizard-review': '/mascots/wizard/wizard-review.json',
   
@@ -240,6 +242,7 @@ export function Mascot({
       'wizard-protection': '🛡️',
       'wizard-mascot': '🐾',
       'wizard-promotion': '📣',
+      'wizard-maximum': '🔥',
       'wizard-tasks': '✅',
       'wizard-review': '🔍',
       // States

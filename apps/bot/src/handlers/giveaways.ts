@@ -14,7 +14,8 @@ function getTypeLabel(locale: Locale, type: string): string {
   const key = type === 'STANDARD' ? 'typeStandard' :
               type === 'BOOST_REQUIRED' ? 'typeBoostRequired' :
               type === 'INVITE_REQUIRED' ? 'typeInviteRequired' :
-              type === 'CUSTOM' ? 'typeCustom' : 'typeStandard';
+              type === 'CUSTOM' ? 'typeCustom' :
+              type === 'MAXIMUM' ? 'typeMaximum' : 'typeStandard';
   return t(locale, `giveawayConfirm.${key}`);
 }
 
