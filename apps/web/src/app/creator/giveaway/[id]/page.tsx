@@ -32,6 +32,7 @@ import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
 import { AppIcon } from '@/components/AppIcon';
 import { Mascot } from '@/components/Mascot';
+import { DateTimePicker } from '@/components/DateTimePicker';
 import { AnimatePresence, motion } from 'framer-motion';
 
 // Берём username бота из env
@@ -153,7 +154,7 @@ export default function GiveawayDetailsPage() {
   const [editData, setEditData] = useState<{
     title: string;
     winnersCount: number;
-    endAt: string;
+    endAt: string | null;
     captchaMode: 'OFF' | 'SUSPICIOUS_ONLY' | 'ALL';
     livenessEnabled: boolean;
     inviteEnabled: boolean;
@@ -296,7 +297,7 @@ export default function GiveawayDetailsPage() {
     setEditData({
       title: giveaway.title,
       winnersCount: giveaway.winnersCount,
-      endAt: giveaway.endAt ? new Date(giveaway.endAt).toISOString().slice(0, 16) : '',
+      endAt: giveaway.endAt ? new Date(giveaway.endAt).toISOString() : null,
       captchaMode: (giveaway.condition?.captchaMode as 'OFF' | 'SUSPICIOUS_ONLY' | 'ALL') ?? 'OFF',
       livenessEnabled: giveaway.condition?.livenessEnabled ?? false,
       inviteEnabled: giveaway.condition?.inviteEnabled ?? false,
@@ -319,7 +320,7 @@ export default function GiveawayDetailsPage() {
       const payload: Parameters<typeof updateGiveaway>[1] = {
         captchaMode: editData.captchaMode,
         livenessEnabled: editData.livenessEnabled,
-        endAt: editData.endAt ? new Date(editData.endAt).toISOString() : null,
+        endAt: editData.endAt || null,
       };
       if (!ACTIVE_ONLY_FIELDS) {
         payload.title = editData.title;
@@ -849,12 +850,11 @@ export default function GiveawayDetailsPage() {
                         {/* Дата окончания */}
                         <div>
                           <label className="block text-xs text-tg-hint mb-1.5">{t('info.end')}</label>
-                          <input
-                            type="datetime-local"
+                          <DateTimePicker
                             value={editData.endAt}
-                            onChange={(e) => setEditData({ ...editData, endAt: e.target.value })}
-                            className="w-full bg-tg-bg rounded-xl px-3 py-2.5 text-sm border border-tg-hint/15 focus:border-tg-button outline-none transition-colors appearance-none"
-                            style={{ colorScheme: 'dark' }}
+                            onChange={(iso) => setEditData({ ...editData, endAt: iso })}
+                            min={(() => { const d = new Date(); d.setHours(d.getHours() + 1); return d; })()}
+                            placeholder={t('info.end')}
                           />
                         </div>
 
@@ -864,8 +864,8 @@ export default function GiveawayDetailsPage() {
                           <div className="space-y-2">
                             {([
                               { value: 'OFF' as const, label: t('edit.captchaOff'), icon: 'icon-close' },
-                              { value: 'SUSPICIOUS_ONLY' as const, label: t('edit.captchaSuspicious'), icon: 'icon-warning' },
-                              ...(userTier !== 'FREE' ? [{ value: 'ALL' as const, label: t('edit.captchaAll'), icon: 'icon-active' }] : []),
+                              { value: 'SUSPICIOUS_ONLY' as const, label: t('edit.captchaSuspicious'), icon: 'icon-view' },
+                              ...(userTier !== 'FREE' ? [{ value: 'ALL' as const, label: t('edit.captchaAll'), icon: 'icon-shield' }] : []),
                             ] as const).map((opt) => (
                               <button
                                 key={opt.value}
@@ -900,7 +900,7 @@ export default function GiveawayDetailsPage() {
                                   : 'bg-tg-bg border border-tg-hint/15 hover:border-tg-hint/30'
                               }`}
                             >
-                              <AppIcon name="icon-search" size={16} />
+                              <AppIcon name="icon-camera" size={16} />
                               <span className={editData.livenessEnabled ? 'font-medium' : ''}>{t('conditions.liveness')}</span>
                               {editData.livenessEnabled && (
                                 <span className="ml-auto"><AppIcon name="icon-success" size={16} /></span>
