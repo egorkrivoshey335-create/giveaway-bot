@@ -74,23 +74,186 @@ export async function processGiveawayLifecycle(): Promise<void> {
       console.error('[Scheduler] Ошибка модерации каталога:', err)
     );
 
-    // 2. ACTIVE → FINISHED (когда наступил endAt, не sandbox)
+    // 2a. Auto-extend check: 2 days before endAt, if autoExtendDays > 0 and not enough participants
+    await checkAutoExtend(now).catch(err =>
+      console.error('[Scheduler] Ошибка проверки автопродления:', err)
+    );
+
+    // 2b. ACTIVE → FINISHED or CANCELLED (когда наступил endAt, не sandbox)
     const toFinish = await prisma.giveaway.findMany({
       where: {
         status: GiveawayStatus.ACTIVE,
         endAt: { lte: now },
         isSandbox: false,
       },
-      select: { id: true, title: true },
+      select: {
+        id: true,
+        title: true,
+        minParticipants: true,
+        cancelIfNotEnough: true,
+        totalParticipants: true,
+        ownerUserId: true,
+      },
     });
     
     for (const giveaway of toFinish) {
+      // cancelIfNotEnough: if not enough participants → cancel
+      if (giveaway.cancelIfNotEnough && giveaway.minParticipants > 0 &&
+          giveaway.totalParticipants < giveaway.minParticipants) {
+        console.log(
+          `[Scheduler] Отмена розыгрыша (не набрано минимум): ${giveaway.title} ` +
+          `(${giveaway.totalParticipants}/${giveaway.minParticipants})`
+        );
+        await prisma.giveaway.update({
+          where: { id: giveaway.id },
+          data: { status: GiveawayStatus.CANCELLED },
+        });
+        notifyCancelToAll(giveaway.id, giveaway.title, giveaway.ownerUserId).catch(err =>
+          console.error('[Scheduler] Ошибка уведомления об отмене:', err)
+        );
+        continue;
+      }
+
       console.log(`[Scheduler] Завершение розыгрыша: ${giveaway.title} (${giveaway.id})`);
       await finishGiveaway(giveaway.id);
     }
     
   } catch (error) {
     console.error('[Scheduler] Ошибка обработки жизненного цикла:', error);
+  }
+}
+
+/**
+ * Auto-extend: за 2 дня до окончания проверяем розыгрыши с autoExtendDays > 0.
+ * Если участников меньше minParticipants — продлеваем на autoExtendDays и редактируем пост.
+ * autoExtendDays обнуляется после использования (одноразовое продление).
+ */
+async function checkAutoExtend(now: Date): Promise<void> {
+  const twoDaysFromNow = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+
+  const candidates = await prisma.giveaway.findMany({
+    where: {
+      status: GiveawayStatus.ACTIVE,
+      isSandbox: false,
+      autoExtendDays: { gt: 0 },
+      minParticipants: { gt: 0 },
+      endAt: { lte: twoDaysFromNow, gt: now },
+    },
+    select: {
+      id: true,
+      title: true,
+      language: true,
+      endAt: true,
+      autoExtendDays: true,
+      minParticipants: true,
+      totalParticipants: true,
+      messages: {
+        where: { kind: GiveawayMessageKind.START },
+        select: {
+          id: true,
+          channelId: true,
+          telegramMessageId: true,
+        },
+      },
+    },
+  });
+
+  for (const giveaway of candidates) {
+    if (giveaway.totalParticipants >= giveaway.minParticipants) continue;
+    if (!giveaway.endAt) continue;
+
+    const newEndAt = new Date(giveaway.endAt.getTime() + giveaway.autoExtendDays * 24 * 60 * 60 * 1000);
+
+    console.log(
+      `[AutoExtend] Продление розыгрыша "${giveaway.title}" на ${giveaway.autoExtendDays} дн. ` +
+      `(${giveaway.totalParticipants}/${giveaway.minParticipants} уч.). ` +
+      `Новая дата: ${newEndAt.toISOString()}`
+    );
+
+    await prisma.giveaway.update({
+      where: { id: giveaway.id },
+      data: {
+        endAt: newEndAt,
+        autoExtendDays: 0,
+      },
+    });
+
+    // Edit published posts — append fun extension message
+    const lang = (giveaway.language || 'ru').toLowerCase();
+    const dateStr = newEndAt.toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'kk' ? 'kk-KZ' : 'ru-RU', {
+      day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
+    });
+
+    const extMsg = lang === 'en'
+      ? `\n\n🔥 We're running behind, but we're extending just for you! New end date: ${dateStr}. Invite friends — let's win together! 🚀`
+      : lang === 'kk'
+      ? `\n\n🔥 Үлгере алмай жатырмыз, бірақ сіздер үшін ұзартамыз! Жаңа аяқталу күні: ${dateStr}. Достарыңызды шақырыңыз! 🚀`
+      : `\n\n🔥 Мы не укладываемся, но ради вас продлеваемся! Новая дата окончания: ${dateStr}. Приглашайте друзей — вместе победим! 🚀`;
+
+    for (const msg of giveaway.messages) {
+      const channel = await prisma.channel.findUnique({
+        where: { id: msg.channelId },
+        select: { telegramChatId: true },
+      });
+      if (!channel) continue;
+
+      try {
+        // We append the extension message to the existing post by editing it via internal API.
+        // First, get current message text by reading it from Telegram. Since we don't store text,
+        // we use the postTemplate's original text + goal block as base (already in the post).
+        // For simplicity, we just edit the reply markup to add extension notice as inline text button.
+        // Better approach: use edit-message endpoint to append text.
+        
+        // Get current post template text to reconstruct
+        const gw = await prisma.giveaway.findUnique({
+          where: { id: giveaway.id },
+          select: {
+            postTemplate: { select: { text: true, mediaType: true } },
+          },
+        });
+        if (!gw?.postTemplate) continue;
+
+        const hasMedia = gw.postTemplate.mediaType !== 'NONE';
+        const maxLen = hasMedia ? 1024 : 4096;
+        
+        // Reconstruct the original post text with goal info
+        let originalPostText = gw.postTemplate.text;
+        const goalParts: string[] = [];
+        if (giveaway.minParticipants > 0) {
+          const goalLabel = lang === 'en' ? 'Goal' : lang === 'kk' ? 'Мақсат' : 'Цель';
+          const countStr = giveaway.minParticipants.toLocaleString();
+          const partLabel = lang === 'en' ? 'participants' : lang === 'kk' ? 'қатысушы' : 'участников';
+          goalParts.push(`\n\n🎯 <b>${goalLabel}: ${countStr} ${partLabel}</b>`);
+        }
+        if (goalParts.length > 0) {
+          originalPostText += goalParts.join('\n');
+        }
+
+        const newText = originalPostText + extMsg;
+        const finalText = newText.length > maxLen ? newText.slice(0, maxLen - 3) + '...' : newText;
+
+        const requestBody: Record<string, unknown> = {
+          chatId: channel.telegramChatId.toString(),
+          messageId: msg.telegramMessageId,
+          parseMode: 'HTML',
+        };
+        if (hasMedia) {
+          requestBody.caption = finalText;
+        } else {
+          requestBody.text = finalText;
+        }
+
+        await fetch(`${config.apiUrl}/internal/edit-message`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Internal-Token': config.internalApiToken },
+          body: JSON.stringify(requestBody),
+        });
+
+        console.log(`[AutoExtend] Отредактирован пост в канале для розыгрыша "${giveaway.title}"`);
+      } catch (err) {
+        console.error(`[AutoExtend] Ошибка редактирования поста:`, err);
+      }
+    }
   }
 }
 

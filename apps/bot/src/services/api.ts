@@ -109,6 +109,9 @@ interface GiveawayFullResponse {
     startAt: string | null;
     endAt: string | null;
     publishResultsMode: string;
+    minParticipants: number;
+    cancelIfNotEnough: boolean;
+    autoExtendDays: number;
   };
   postTemplate?: {
     text: string;

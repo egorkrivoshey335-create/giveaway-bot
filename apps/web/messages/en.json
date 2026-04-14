@@ -219,8 +219,10 @@
       "randomHint": "Winners will be selected randomly",
       "maxFree": "Maximum for free account: {max}",
       "minParticipants": "Minimum Participants",
-      "minParticipantsHint": "Giveaway won't finish until minimum number of participants is reached. Leave 0 for no minimum.",
+      "minParticipantsHint": "Minimum number of participants required for the giveaway to proceed. Determined by your subscription.",
       "minParticipantsMax": "Max for your subscription: {max}",
+      "unlimitedParticipants": "No Limit",
+      "unlimitedParticipantsHint": "No minimum number of participants required",
       "cancelIfNotEnough": "Cancel if not enough",
       "cancelIfNotEnoughHint": "Giveaway will be cancelled if minimum participants not reached by end date",
       "autoExtendDays": "Auto-extend for N days",
@@ -973,6 +975,8 @@
     "typeText": "Text",
     "typePhoto": "Photo",
     "typeVideo": "Video",
+    "addPopupDescription": "To create a post, you need to go to the bot. The Mini App will be closed.",
+    "goToBot": "Go to Bot",
     "empty": {
       "title": "No Posts Found",
       "description": "Create your first post template for giveaways"

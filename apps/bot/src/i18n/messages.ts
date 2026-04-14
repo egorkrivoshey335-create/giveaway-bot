@@ -147,6 +147,12 @@ export const messages = {
       captchaSuspicious: 'Для подозрительных',
       captchaAll: 'Для всех',
     },
+    giveawayPost: {
+      goal: 'Цель: {count} участников',
+      cancelWarning: 'Если не наберём — розыгрыш будет отменён. Приглашайте друзей! 🙌',
+      autoExtendInfo: 'Если не успеем — продлимся ещё на {days} дн. 💪',
+      extendedMessage: '🔥 Мы не укладываемся, но ради вас продлеваемся! Новая дата окончания: {date}. Приглашайте друзей — вместе победим! 🚀',
+    },
     wizard: {
       inApp: '📱 В приложении',
       inBotSoon: '🤖 В боте (скоро)',
@@ -389,6 +395,12 @@ export const messages = {
       captchaSuspicious: 'For suspicious',
       captchaAll: 'For all',
     },
+    giveawayPost: {
+      goal: 'Goal: {count} participants',
+      cancelWarning: 'If we don\'t reach the goal — the giveaway will be cancelled. Invite your friends! 🙌',
+      autoExtendInfo: 'If we don\'t make it — we\'ll extend for {days} more days 💪',
+      extendedMessage: '🔥 We\'re running behind, but we\'re extending just for you! New end date: {date}. Invite friends — let\'s win together! 🚀',
+    },
     wizard: {
       inApp: '📱 In App',
       inBotSoon: '🤖 In Bot (soon)',
@@ -630,6 +642,12 @@ export const messages = {
       captchaOff: 'Өшірулі',
       captchaSuspicious: 'Күдікті үшін',
       captchaAll: 'Барлығы үшін',
+    },
+    giveawayPost: {
+      goal: 'Мақсат: {count} қатысушы',
+      cancelWarning: 'Жинай алмасақ — ұтыс ойыны тоқтатылады. Достарыңызды шақырыңыз! 🙌',
+      autoExtendInfo: 'Үлгермесек — тағы {days} күнге ұзартамыз 💪',
+      extendedMessage: '🔥 Үлгере алмай жатырмыз, бірақ сіздер үшін ұзартамыз! Жаңа аяқталу күні: {date}. Достарыңызды шақырыңыз — бірге жеңеміз! 🚀',
     },
     wizard: {
       inApp: '📱 Қолданбада',

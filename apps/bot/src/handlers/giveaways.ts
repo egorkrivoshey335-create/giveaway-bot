@@ -227,6 +227,31 @@ export function registerGiveawayHandlers(bot: Bot): void {
       [urlBtn(buttonText, joinUrl, 'join', 'danger')],
     );
 
+    // Build post text: original template + goal/cancel/extend info
+    let postText = postTemplate.text;
+    const goalParts: string[] = [];
+
+    if (giveaway.minParticipants > 0) {
+      goalParts.push(`\n\n🎯 <b>${t(locale, 'giveawayPost.goal', { count: giveaway.minParticipants.toLocaleString() })}</b>`);
+
+      if (giveaway.cancelIfNotEnough) {
+        goalParts.push(`⚠️ ${t(locale, 'giveawayPost.cancelWarning')}`);
+      }
+
+      if (giveaway.autoExtendDays > 0 && !giveaway.cancelIfNotEnough) {
+        goalParts.push(`🔄 ${t(locale, 'giveawayPost.autoExtendInfo', { days: giveaway.autoExtendDays })}`);
+      }
+    }
+
+    if (goalParts.length > 0) {
+      const goalBlock = goalParts.join('\n');
+      const hasMedia = postTemplate.mediaType !== 'NONE' && postTemplate.telegramFileId;
+      const maxLen = hasMedia ? 1024 : 4096;
+      if ((postText + goalBlock).length <= maxLen) {
+        postText = postText + goalBlock;
+      }
+    }
+
     // Publish to all channels
     const publishedMessages: Array<{ channelId: string; telegramMessageId: number }> = [];
     const errors: string[] = [];
@@ -240,20 +265,20 @@ export function registerGiveawayHandlers(bot: Bot): void {
 
         if (postTemplate.mediaType === 'PHOTO' && postTemplate.telegramFileId) {
           const sent = await ctx.api.sendPhoto(chatId, postTemplate.telegramFileId, {
-            caption: postTemplate.text,
+            caption: postText,
             reply_markup: postKb,
             parse_mode: 'HTML',
           });
           messageId = sent.message_id;
         } else if (postTemplate.mediaType === 'VIDEO' && postTemplate.telegramFileId) {
           const sent = await ctx.api.sendVideo(chatId, postTemplate.telegramFileId, {
-            caption: postTemplate.text,
+            caption: postText,
             reply_markup: postKb,
             parse_mode: 'HTML',
           });
           messageId = sent.message_id;
         } else {
-          const sent = await ctx.api.sendMessage(chatId, postTemplate.text, {
+          const sent = await ctx.api.sendMessage(chatId, postText, {
             reply_markup: postKb,
             parse_mode: 'HTML',
           });

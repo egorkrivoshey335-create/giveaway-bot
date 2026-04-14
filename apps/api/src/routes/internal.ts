@@ -630,6 +630,9 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
           startAt: giveaway.startAt?.toISOString() || null,
           endAt: giveaway.endAt?.toISOString() || null,
           publishResultsMode: giveaway.publishResultsMode,
+          minParticipants: giveaway.minParticipants,
+          cancelIfNotEnough: giveaway.cancelIfNotEnough,
+          autoExtendDays: giveaway.autoExtendDays,
         },
         postTemplate: giveaway.postTemplate ? {
           text: giveaway.postTemplate.text,

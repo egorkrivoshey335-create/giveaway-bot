@@ -159,6 +159,17 @@ export default function GiveawayWizardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inviteLimit]);
 
+  // Set default minParticipants to tier limit when tier loads (if not already set from draft)
+  useEffect(() => {
+    if (payload.minParticipants == null || payload.minParticipants === 0) {
+      const limit = TIER_LIMITS.maxMinParticipants[userTier];
+      if (limit !== Infinity) {
+        updatePayload({ minParticipants: limit });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userTier]);
+
   // Helper: валидация URL
   const isValidURL = (url: string): boolean => {
     if (!url) return true; // empty is valid
@@ -1291,37 +1302,64 @@ export default function GiveawayWizardPage() {
               {/* Минимальное количество участников */}
               <div className="border-t border-tg-bg pt-4 mt-4">
                 <label className="block text-sm text-tg-hint mb-2"><AppIcon name="icon-group" size={14} /> {t('winners.minParticipants')}</label>
+
+                {/* BUSINESS: toggle "Без ограничений" */}
+                {userTier === 'BUSINESS' && (
+                  <button
+                    onClick={() => {
+                      const isUnlimited = payload.minParticipants === 0;
+                      updatePayload({ minParticipants: isUnlimited ? TIER_LIMITS.maxMinParticipants.PRO : 0 });
+                    }}
+                    className={`w-full text-left p-3 rounded-lg flex items-center gap-3 mb-3 ${
+                      payload.minParticipants === 0 ? 'bg-amber-500/10 border border-amber-500' : 'bg-tg-bg'
+                    }`}
+                  >
+                    <span className={`w-5 h-5 rounded flex items-center justify-center text-xs ${
+                      payload.minParticipants === 0 ? 'bg-amber-500 text-white' : 'bg-tg-secondary'
+                    }`}>
+                      {payload.minParticipants === 0 ? <AppIcon name="icon-success" size={14} /> : ''}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm">{t('winners.unlimitedParticipants')}</div>
+                      <div className="text-xs text-tg-hint">{t('winners.unlimitedParticipantsHint')}</div>
+                    </div>
+                  </button>
+                )}
+
                 <input
                   type="number"
-                  min={0}
+                  min={1}
                   max={minParticipantsLimit === Infinity ? 999999 : minParticipantsLimit}
-                  value={payload.minParticipants ?? ''}
+                  value={payload.minParticipants || ''}
+                  disabled={userTier === 'BUSINESS' && payload.minParticipants === 0}
                   onChange={(e) => {
                     const raw = e.target.value;
-                    if (raw === '') {
-                      updatePayload({ minParticipants: undefined as unknown as number });
-                      return;
-                    }
+                    if (raw === '') return;
                     const val = parseInt(raw);
                     if (!isNaN(val)) {
                       const maxVal = minParticipantsLimit === Infinity ? 999999 : minParticipantsLimit;
-                      updatePayload({ minParticipants: Math.min(Math.max(0, val), maxVal) });
+                      updatePayload({ minParticipants: Math.min(Math.max(1, val), maxVal) });
                     }
                   }}
                   onBlur={() => {
-                    if (payload.minParticipants == null) {
-                      updatePayload({ minParticipants: 0 });
+                    if (!payload.minParticipants || payload.minParticipants < 1) {
+                      const limit = minParticipantsLimit === Infinity ? 5000 : minParticipantsLimit;
+                      updatePayload({ minParticipants: limit });
                     }
                   }}
-                  placeholder="0"
-                  className="w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text text-center"
+                  placeholder={String(minParticipantsLimit === Infinity ? 5000 : minParticipantsLimit)}
+                  className={`w-full bg-tg-bg rounded-lg px-4 py-3 text-tg-text text-center ${
+                    userTier === 'BUSINESS' && payload.minParticipants === 0 ? 'opacity-40 cursor-not-allowed' : ''
+                  }`}
                 />
                 <p className="text-xs text-tg-hint mt-2">
                   {t('winners.minParticipantsHint')}
                 </p>
-                <p className="text-xs text-tg-hint mt-1">
-                  <AppIcon name="icon-diamond" size={14} /> {t('winners.minParticipantsMax', { max: minParticipantsLimit === Infinity ? '∞' : minParticipantsLimit.toLocaleString() })}
-                </p>
+                {userTier !== 'BUSINESS' && (
+                  <p className="text-xs text-tg-hint mt-1">
+                    <AppIcon name="icon-diamond" size={14} /> {t('winners.minParticipantsMax', { max: minParticipantsLimit === Infinity ? '∞' : minParticipantsLimit.toLocaleString() })}
+                  </p>
+                )}
                 {userTier === 'FREE' && (
                   <div className="flex flex-wrap gap-1 mt-1">
                     <span className="text-[10px] bg-gray-500/20 text-gray-500 px-1.5 py-0.5 rounded">FREE: 1 000</span>
@@ -1331,7 +1369,7 @@ export default function GiveawayWizardPage() {
                   </div>
                 )}
 
-                {/* Если указан минимум — показать дополнительные настройки */}
+                {/* Cancel / auto-extend settings — always shown since minParticipants is always > 0 */}
                 {(payload.minParticipants || 0) > 0 && (
                   <div className="mt-4 space-y-3">
                     {/* Отменить если не набралось */}

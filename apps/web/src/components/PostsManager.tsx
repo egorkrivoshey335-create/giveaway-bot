@@ -71,6 +71,7 @@ export function PostsManager({
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [deleteQueue, setDeleteQueue] = useState<{ id: string; timeoutId: NodeJS.Timeout } | null>(null);
+  const [showAddConfirm, setShowAddConfirm] = useState(false);
 
   // Загрузка постов
   const loadPosts = useCallback(async () => {
@@ -103,20 +104,16 @@ export function PostsManager({
     };
   }, [deleteQueue]);
 
-  // Создать новый пост → переход в бота
-  const handleCreatePost = () => {
+  const confirmGoToBot = () => {
+    setShowAddConfirm(false);
     const tg = window.Telegram?.WebApp;
-    const link = `https://t.me/${BOT_USERNAME}?start=new_post`;
-    
+    const link = `https://t.me/${BOT_USERNAME}?start=posts`;
     if (tg) {
       tg.openTelegramLink(link);
+      setTimeout(() => tg.close(), 300);
     } else {
       window.open(link, '_blank');
     }
-    
-    // Показать уведомление
-    setMessage(t('createRedirect'));
-    setTimeout(() => setMessage(null), 3000);
   };
 
   // Просмотр поста → переход в бота
@@ -222,7 +219,7 @@ export function PostsManager({
             description={t('empty.description')}
             action={{
               label: t('createNew'),
-              onClick: handleCreatePost
+              onClick: () => setShowAddConfirm(true)
             }}
           />
         ) : (
@@ -348,13 +345,42 @@ export function PostsManager({
 
             {/* Кнопка создать новый */}
             <button
-              onClick={handleCreatePost}
+              onClick={() => setShowAddConfirm(true)}
               className="w-full py-3 border-2 border-dashed border-tg-hint/30 rounded-lg text-tg-hint hover:border-tg-button hover:text-tg-button transition-colors"
             >
               ➕ {t('createNew')}
             </button>
+
           </div>
         )}
+
+        {/* Popup подтверждения перехода к боту (показывается из empty state или кнопки) */}
+        <AnimatePresence>
+          {showAddConfirm && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="bg-tg-bg rounded-xl p-4 mt-3 border border-tg-secondary"
+            >
+              <p className="text-sm text-tg-text mb-3">{t('addPopupDescription')}</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={confirmGoToBot}
+                  className="flex-1 bg-tg-button text-tg-button-text rounded-lg py-2.5 text-sm font-medium"
+                >
+                  {t('goToBot')}
+                </button>
+                <button
+                  onClick={() => setShowAddConfirm(false)}
+                  className="flex-1 bg-tg-secondary text-tg-text rounded-lg py-2.5 text-sm font-medium"
+                >
+                  {tCommon('cancel')}
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </BottomSheet>
 
       {/* Toast уведомления */}
