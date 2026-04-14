@@ -1140,25 +1140,36 @@ export default function GiveawayDetailsPage() {
           >
             {giveaway.winners.length > 0 ? (
               <div className="space-y-2">
-                {giveaway.winners.map((w) => (
-                  <div
-                    key={w.place}
-                    className="flex items-center gap-4 bg-tg-secondary rounded-lg p-4"
-                  >
-                    <div className="text-3xl">
-                      {w.place === 1 ? '🥇' : w.place === 2 ? '🥈' : w.place === 3 ? '🥉' : `#${w.place}`}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium flex items-center gap-1.5">
-                        <AppIcon name="icon-winner" size={16} />
-                        {w.user.firstName || 'User'} {w.user.lastName || ''}
+                {giveaway.winners.map((w) => {
+                  const placeColors = [
+                    'from-yellow-400 to-amber-500 text-white shadow-amber-500/30',
+                    'from-slate-300 to-slate-400 text-white shadow-slate-400/30',
+                    'from-amber-600 to-amber-700 text-white shadow-amber-700/30',
+                  ];
+                  const colorClass = w.place <= 3
+                    ? placeColors[w.place - 1]
+                    : 'from-tg-button/80 to-tg-button text-tg-button-text shadow-tg-button/20';
+
+                  return (
+                    <div
+                      key={w.place}
+                      className="flex items-center gap-3 bg-tg-secondary rounded-xl p-4"
+                    >
+                      <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center font-bold text-lg shadow-lg flex-shrink-0`}>
+                        {w.place}
                       </div>
-                      {w.user.username && (
-                        <div className="text-tg-hint text-sm ml-[22px]">@{w.user.username}</div>
-                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm flex items-center gap-1.5">
+                          <AppIcon name="icon-winner" size={14} />
+                          <span className="truncate">{w.user.firstName || 'User'} {w.user.lastName || ''}</span>
+                        </div>
+                        {w.user.username && (
+                          <div className="text-tg-hint text-xs ml-[20px]">@{w.user.username}</div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-12 bg-tg-secondary rounded-xl">
