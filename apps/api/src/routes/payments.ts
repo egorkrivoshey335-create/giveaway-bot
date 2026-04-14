@@ -91,7 +91,7 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
             productCode: product.code,
           },
           receipt: {
-            customer: { email: 'payments@randombeast.ru' },
+            customer: { email: 'noreply@cosmolex.ru' },
             items: [{
               description: product.title,
               quantity: '1',
