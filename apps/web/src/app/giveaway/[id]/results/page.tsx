@@ -175,8 +175,8 @@ export default function GiveawayResultsPage() {
           {/* Hero Lottie */}
           <div className="flex justify-center mb-2">
             <Mascot 
-              type={isWinner ? 'participant-joined' : (isParticipant ? 'participant-lost' : 'participant-joined')} 
-              size={180} 
+              type={isWinner ? 'participant-joined' : (isParticipant ? 'participant-lost-1' : 'participant-joined')} 
+              size={195} 
               loop 
               autoplay 
             />
@@ -312,21 +312,25 @@ export default function GiveawayResultsPage() {
                   </div>
                 </div>
               ) : (
-                <div className="rounded-2xl p-5 bg-tg-secondary text-center">
-                  <div className="flex justify-center mb-3">
-                    <Mascot type="participant-lost" size={80} loop autoplay className="opacity-80" />
+                <div className="rounded-2xl p-5 bg-gradient-to-br from-slate-500/15 via-blue-500/10 to-indigo-500/15 border border-slate-400/25 relative overflow-hidden">
+                  <div className="text-center relative z-10">
+                    <div className="flex justify-center mb-3">
+                      <Mascot type="participant-lost" size={64} loop autoplay />
+                    </div>
+                    <p className="text-tg-text font-medium">{t('myResult.notWinner')}</p>
+                    <p className="text-sm text-tg-hint mt-1">{t('myResult.goodLuck')} 🍀</p>
+                    
+                    <div className="mt-4">
+                      <button
+                        onClick={() => router.push('/catalog')}
+                        className="w-full relative overflow-hidden bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                      >
+                        <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer-delayed_5s_ease-in-out_2.5s_infinite]" />
+                        <AppIcon name="icon-giveaway" size={16} />
+                        <span>{t('myResult.moreCatalog')}</span>
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-tg-text font-medium">{t('myResult.notWinner')}</p>
-                  <p className="text-sm text-tg-hint mt-1">{t('myResult.goodLuck')} 🍀</p>
-                  
-                  <button
-                    onClick={() => router.push('/catalog')}
-                    className="mt-4 w-full relative overflow-hidden bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
-                  >
-                    <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer-delayed_5s_ease-in-out_2.5s_infinite]" />
-                    <AppIcon name="icon-giveaway" size={16} />
-                    <span>{t('myResult.moreCatalog')}</span>
-                  </button>
                 </div>
               )}
             </motion.div>

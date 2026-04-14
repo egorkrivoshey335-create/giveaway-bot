@@ -52,6 +52,7 @@ export interface MascotProps {
     | 'participant-joined'
     | 'participant-winner'
     | 'participant-lost'
+    | 'participant-lost-1'
     // Character mascots
     | 'mascot-free-default'
     | 'mascot-paid-1'
@@ -125,6 +126,7 @@ const MASCOT_PATHS: Record<string, string> = {
   'participant-joined': '/mascots/participant/participant-joined.json',
   'participant-winner': '/mascots/participant/participant-winner.json',
   'participant-lost': '/mascots/participant/participant-lost.json',
+  'participant-lost-1': '/mascots/participant/participant-lost-1.json',
   
   // Character mascots (6)
   'mascot-free-default': '/mascots/characters/mascot-free-default.json',
@@ -256,6 +258,7 @@ export function Mascot({
       'participant-joined': '🎉',
       'participant-winner': '🏆',
       'participant-lost': '😔',
+      'participant-lost-1': '😢',
       // Characters
       'mascot-free-default': '🐱',
       'mascot-paid-1': '🐶',
