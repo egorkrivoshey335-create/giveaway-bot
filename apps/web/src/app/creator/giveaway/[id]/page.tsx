@@ -792,123 +792,165 @@ export default function GiveawayDetailsPage() {
 
             {/* Редактирование розыгрыша (task 5.3) */}
             {giveaway && EDITABLE_STATUSES.includes(giveaway.status) && (
-              isEditMode && editData ? (
-                /* ── Edit mode: полная форма редактирования ── */
-                <div className="bg-tg-secondary rounded-xl p-4 space-y-4 border-2 border-tg-button/30">
-                  <h3 className="font-medium flex items-center gap-2">
-                    <AppIcon name="icon-settings" variant="brand" size={18} />
-                    {t('edit.title')}
-                    {ACTIVE_ONLY_FIELDS && (
-                      <span className="ml-auto text-xs bg-yellow-500/20 text-yellow-500 px-2 py-0.5 rounded">
-                        {t('edit.activeHint')}
-                      </span>
-                    )}
-                  </h3>
+              <>
+                <AnimatePresence mode="wait">
+                  {isEditMode && editData ? (
+                    <motion.div
+                      key="edit-form"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="bg-tg-secondary rounded-2xl p-4 space-y-4 border border-tg-button/20">
+                        {/* Заголовок */}
+                        <div className="text-center">
+                          <h3 className="font-semibold flex items-center justify-center gap-2">
+                            <AppIcon name="icon-settings" variant="brand" size={18} />
+                            {t('edit.title')}
+                          </h3>
+                          {ACTIVE_ONLY_FIELDS && (
+                            <span className="inline-block mt-2 text-xs bg-yellow-500/15 text-yellow-600 px-3 py-1 rounded-full">
+                              {t('edit.activeHint')}
+                            </span>
+                          )}
+                        </div>
 
-                  {/* Название — только для не-ACTIVE */}
-                  {!ACTIVE_ONLY_FIELDS && (
-                    <div>
-                      <label className="block text-xs text-tg-hint mb-1">{t('info.giveawayTitle')}:</label>
-                      <input
-                        type="text"
-                        value={editData.title}
-                        onChange={(e) => setEditData({ ...editData, title: e.target.value })}
-                        maxLength={255}
-                        className="w-full bg-tg-bg rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-tg-button outline-none"
-                      />
-                    </div>
+                        {/* Название — только для не-ACTIVE */}
+                        {!ACTIVE_ONLY_FIELDS && (
+                          <div>
+                            <label className="block text-xs text-tg-hint mb-1.5">{t('info.giveawayTitle')}</label>
+                            <input
+                              type="text"
+                              value={editData.title}
+                              onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+                              maxLength={255}
+                              className="w-full bg-tg-bg rounded-xl px-3 py-2.5 text-sm border border-tg-hint/15 focus:border-tg-button outline-none transition-colors"
+                            />
+                          </div>
+                        )}
+
+                        {/* Количество победителей — только для не-ACTIVE */}
+                        {!ACTIVE_ONLY_FIELDS && (
+                          <div>
+                            <label className="block text-xs text-tg-hint mb-1.5">{t('info.winnersCount')}</label>
+                            <input
+                              type="number"
+                              min={1}
+                              max={100}
+                              value={editData.winnersCount}
+                              onChange={(e) => setEditData({ ...editData, winnersCount: parseInt(e.target.value) || 1 })}
+                              className="w-full bg-tg-bg rounded-xl px-3 py-2.5 text-sm border border-tg-hint/15 focus:border-tg-button outline-none transition-colors"
+                            />
+                          </div>
+                        )}
+
+                        {/* Дата окончания */}
+                        <div>
+                          <label className="block text-xs text-tg-hint mb-1.5">{t('info.end')}</label>
+                          <input
+                            type="datetime-local"
+                            value={editData.endAt}
+                            onChange={(e) => setEditData({ ...editData, endAt: e.target.value })}
+                            className="w-full bg-tg-bg rounded-xl px-3 py-2.5 text-sm border border-tg-hint/15 focus:border-tg-button outline-none transition-colors appearance-none"
+                            style={{ colorScheme: 'dark' }}
+                          />
+                        </div>
+
+                        {/* Капча — карточки выбора */}
+                        <div>
+                          <label className="block text-xs text-tg-hint mb-1.5">{t('conditions.captcha')}</label>
+                          <div className="space-y-2">
+                            {([
+                              { value: 'OFF' as const, label: t('edit.captchaOff'), icon: 'icon-close' },
+                              { value: 'SUSPICIOUS_ONLY' as const, label: t('edit.captchaSuspicious'), icon: 'icon-warning' },
+                              ...(userTier !== 'FREE' ? [{ value: 'ALL' as const, label: t('edit.captchaAll'), icon: 'icon-active' }] : []),
+                            ] as const).map((opt) => (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => setEditData({ ...editData, captchaMode: opt.value })}
+                                className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm text-left transition-all ${
+                                  editData.captchaMode === opt.value
+                                    ? 'bg-tg-button/10 border border-tg-button/40'
+                                    : 'bg-tg-bg border border-tg-hint/15 hover:border-tg-hint/30'
+                                }`}
+                              >
+                                <AppIcon name={opt.icon} size={16} />
+                                <span className={editData.captchaMode === opt.value ? 'font-medium' : ''}>{opt.label}</span>
+                                {editData.captchaMode === opt.value && (
+                                  <span className="ml-auto"><AppIcon name="icon-success" size={16} /></span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Liveness — карточка выбора (только для BUSINESS) */}
+                        {userTier === 'BUSINESS' && (
+                          <div>
+                            <label className="block text-xs text-tg-hint mb-1.5">{t('conditions.liveness')}</label>
+                            <button
+                              type="button"
+                              onClick={() => setEditData({ ...editData, livenessEnabled: !editData.livenessEnabled })}
+                              className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm text-left transition-all ${
+                                editData.livenessEnabled
+                                  ? 'bg-tg-button/10 border border-tg-button/40'
+                                  : 'bg-tg-bg border border-tg-hint/15 hover:border-tg-hint/30'
+                              }`}
+                            >
+                              <AppIcon name="icon-search" size={16} />
+                              <span className={editData.livenessEnabled ? 'font-medium' : ''}>{t('conditions.liveness')}</span>
+                              {editData.livenessEnabled && (
+                                <span className="ml-auto"><AppIcon name="icon-success" size={16} /></span>
+                              )}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Кнопки Сохранить / Отменить */}
+                        <div className="flex gap-3 pt-1">
+                          <button
+                            onClick={cancelEditMode}
+                            disabled={saving}
+                            className="flex-1 bg-tg-bg text-tg-text rounded-xl py-2.5 text-sm font-medium transition-all active:scale-[0.97] disabled:opacity-50 border border-tg-hint/15"
+                          >
+                            {t('edit.cancel')}
+                          </button>
+                          <button
+                            onClick={handleSaveEdit}
+                            disabled={saving}
+                            className="flex-1 bg-tg-button text-tg-button-text rounded-xl py-2.5 text-sm font-medium transition-all active:scale-[0.97] disabled:opacity-50 flex items-center justify-center gap-2"
+                          >
+                            {saving ? (
+                              <span className="animate-spin"><AppIcon name="icon-refresh" size={16} /></span>
+                            ) : (
+                              <><AppIcon name="icon-save" size={16} /> {t('edit.save')}</>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="edit-button"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <button
+                        onClick={openEditMode}
+                        className="w-full bg-tg-secondary rounded-xl p-3 flex items-center justify-center gap-2 text-sm text-tg-button font-medium transition-all active:scale-95 hover:bg-tg-secondary/80"
+                      >
+                        <AppIcon name="icon-settings" variant="brand" size={16} />
+                        {t('edit.openButton')}
+                      </button>
+                    </motion.div>
                   )}
-
-                  {/* Количество победителей — только для не-ACTIVE */}
-                  {!ACTIVE_ONLY_FIELDS && (
-                    <div>
-                      <label className="block text-xs text-tg-hint mb-1">{t('info.winnersCount')}:</label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={100}
-                        value={editData.winnersCount}
-                        onChange={(e) => setEditData({ ...editData, winnersCount: parseInt(e.target.value) || 1 })}
-                        className="w-full bg-tg-bg rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-tg-button outline-none"
-                      />
-                    </div>
-                  )}
-
-                  {/* Дата окончания */}
-                  <div>
-                    <label className="block text-xs text-tg-hint mb-1">{t('info.end')}:</label>
-                    <input
-                      type="datetime-local"
-                      value={editData.endAt}
-                      onChange={(e) => setEditData({ ...editData, endAt: e.target.value })}
-                      className="w-full bg-tg-bg rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-tg-button outline-none"
-                    />
-                  </div>
-
-                  {/* Капча */}
-                  <div>
-                    <label className="block text-xs text-tg-hint mb-1">{t('conditions.captcha')}:</label>
-                    <select
-                      value={editData.captchaMode}
-                      onChange={(e) => setEditData({ ...editData, captchaMode: e.target.value as typeof editData.captchaMode })}
-                      className="w-full bg-tg-bg rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-tg-button outline-none"
-                    >
-                      <option value="OFF">{t('edit.captchaOff')}</option>
-                      <option value="SUSPICIOUS_ONLY">{t('edit.captchaSuspicious')}</option>
-                      <option value="ALL">{t('edit.captchaAll')}</option>
-                    </select>
-                  </div>
-
-                  {/* Liveness */}
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm">{t('conditions.liveness')}:</label>
-                    <button
-                      type="button"
-                      onClick={() => setEditData({ ...editData, livenessEnabled: !editData.livenessEnabled })}
-                      className={`relative w-12 h-6 rounded-full transition-colors ${
-                        editData.livenessEnabled ? 'bg-tg-button' : 'bg-tg-hint/40'
-                      }`}
-                    >
-                      <span
-                        className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                          editData.livenessEnabled ? 'translate-x-7' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  {/* Кнопки Сохранить / Отменить */}
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      onClick={cancelEditMode}
-                      disabled={saving}
-                      className="flex-1 bg-tg-bg text-tg-text rounded-lg py-2.5 text-sm font-medium transition-all active:scale-95 disabled:opacity-50"
-                    >
-                      {t('edit.cancel')}
-                    </button>
-                    <button
-                      onClick={handleSaveEdit}
-                      disabled={saving}
-                      className="flex-1 bg-tg-button text-tg-button-text rounded-lg py-2.5 text-sm font-medium transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {saving ? (
-                        <span className="animate-spin"><AppIcon name="icon-refresh" size={16} /></span>
-                      ) : (
-                        <><AppIcon name="icon-save" size={16} /> {t('edit.save')}</>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                /* ── View mode: кнопка открытия редактирования ── */
-                <button
-                  onClick={openEditMode}
-                  className="w-full bg-tg-secondary rounded-xl p-3 flex items-center justify-center gap-2 text-sm text-tg-button font-medium transition-all active:scale-95 hover:bg-tg-secondary/80"
-                >
-                  <AppIcon name="icon-settings" variant="brand" size={16} />
-                  {t('edit.openButton')}
-                </button>
-              )
+                </AnimatePresence>
+              </>
             )}
 
             {/* Топ инвайтеров */}
