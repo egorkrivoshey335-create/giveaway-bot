@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { prisma } from '@randombeast/database';
-import { ErrorCode, TIER_LIMITS } from '@randombeast/shared';
+import { ErrorCode, TIER_LIMITS, MASCOT_ACCESS } from '@randombeast/shared';
 import { requireUser } from '../plugins/auth.js';
 import { getUserTier } from '../lib/subscription.js';
 
@@ -112,8 +112,9 @@ export async function initRoutes(server: FastifyInstance) {
       const isPaid = tier !== 'FREE';
       const features = {
         catalogAccess: isPaid,
-        livenessCheck: isPaid,
+        livenessCheck: tier === 'BUSINESS',
         customMascot: isPaid,
+        availableMascots: MASCOT_ACCESS[tier] || MASCOT_ACCESS.FREE,
         exportParticipants: isPaid,
         advancedAnalytics: tier === 'PRO' || tier === 'BUSINESS',
         prioritySupport: tier === 'BUSINESS',

@@ -631,7 +631,7 @@
       "customTasks": { "title": "Custom tasks", "description": "Custom tasks for participants", "plus": "up to 3", "pro": "up to 5", "business": "up to 10" },
       "postCharLimit": { "title": "Post character limit", "description": "Maximum post template text length for giveaways", "plus": "up to 2,048", "pro": "up to 4,096", "business": "up to 4,096" },
       "export": { "title": "CSV export", "description": "Full participant list in CSV", "plus": "✓", "pro": "✓", "business": "✓" },
-      "mascot": { "title": "Mascot selection", "description": "Characters to accompany participants", "plus": "Lucky, Fortune", "pro": "All mascots", "business": "All mascots" },
+      "mascot": { "title": "Mascot selection", "description": "Characters to accompany participants", "plus": "Lucky, Fortune", "pro": "+ Chance", "business": "All mascots" },
       "analytics": { "title": "Advanced analytics", "description": "Traffic, conversion, anti-fraud, invite tree", "plus": "—", "pro": "✓", "business": "✓" },
       "liveness": { "title": "Liveness Check", "description": "Bot protection with camera verification", "plus": "—", "pro": "—", "business": "✓" },
       "theme": { "title": "Custom theme", "description": "Unique giveaway page design", "plus": "—", "pro": "—", "business": "✓" },

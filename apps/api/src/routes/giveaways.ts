@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { prisma, GiveawayStatus, GiveawayType, LanguageCode, PublishResultsMode, CaptchaMode } from '@randombeast/database';
 import type { GiveawayDraftPayload } from '@randombeast/shared';
-import { ErrorCode, generateShortCode, TIER_LIMITS } from '@randombeast/shared';
+import { ErrorCode, generateShortCode, TIER_LIMITS, isMascotAllowed } from '@randombeast/shared';
 import { requireUser, getUser } from '../plugins/auth.js';
 import { createAuditLog, AuditAction, AuditEntityType } from '../lib/audit.js';
 import { getCache, setCache } from '../lib/redis.js';
@@ -41,6 +41,7 @@ const confirmDraftPayloadSchema = z.object({
   boostChannelIds: z.array(z.string().uuid()).optional().default([]),
   storiesEnabled: z.boolean().default(false),
   catalogEnabled: z.boolean().default(false),
+  mascotId: z.string().optional(),
 });
 
 /**
@@ -238,6 +239,12 @@ export const giveawaysRoutes: FastifyPluginAsync = async (fastify) => {
       if (validatedPayload.captchaMode === 'ALL' && !isTierAtLeast(tier, 'PLUS')) {
         return reply.forbidden(
           'Режим капчи «Для всех» доступен с подпиской PLUS и выше.'
+        );
+      }
+
+      if (validatedPayload.mascotId && !isMascotAllowed(tier, validatedPayload.mascotId)) {
+        return reply.forbidden(
+          'Этот маскот недоступен для вашей подписки.'
         );
       }
 

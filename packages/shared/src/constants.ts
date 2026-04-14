@@ -464,3 +464,22 @@ export const TIER_LIMITS = {
     BUSINESS: 10,
   },
 } as const;
+
+/**
+ * Доступные маскоты по тарифным планам.
+ * FREE     — Талисман
+ * PLUS     — Талисман, Везунчик, Фортуна
+ * PRO      — Талисман, Везунчик, Фортуна, Шанс
+ * BUSINESS — все маскоты
+ */
+export const MASCOT_ACCESS: Record<string, string[]> = {
+  FREE: ['mascot-free-default'],
+  PLUS: ['mascot-free-default', 'mascot-paid-1', 'mascot-paid-2'],
+  PRO: ['mascot-free-default', 'mascot-paid-1', 'mascot-paid-2', 'mascot-paid-3'],
+  BUSINESS: ['mascot-free-default', 'mascot-paid-1', 'mascot-paid-2', 'mascot-paid-3', 'mascot-paid-4', 'mascot-paid-5'],
+};
+
+export function isMascotAllowed(tier: string, mascotId: string): boolean {
+  const allowed = MASCOT_ACCESS[tier] || MASCOT_ACCESS.FREE;
+  return allowed.includes(mascotId);
+}

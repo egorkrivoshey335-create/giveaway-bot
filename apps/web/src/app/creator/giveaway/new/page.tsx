@@ -25,7 +25,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ValidationMessage, useURLValidation } from '@/components/ui/ValidationMessage';
 import { AppIcon } from '@/components/AppIcon';
 import { hapticNavigation, hapticSuccess, hapticError, hapticToggle, hapticSelect } from '@/lib/haptic';
-import { TIER_LIMITS } from '@randombeast/shared';
+import { TIER_LIMITS, MASCOT_ACCESS } from '@randombeast/shared';
 import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
 
 const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'BeastRandomBot';
@@ -1867,7 +1867,8 @@ export default function GiveawayWizardPage() {
                 {/* Премиум маскоты */}
                 {[1, 2, 3, 4, 5].map((num) => {
                   const mascotId = `mascot-paid-${num}` as const;
-                  const isLocked = !userHasPremium; // TODO: check user subscription
+                  const allowed = MASCOT_ACCESS[userTier] || MASCOT_ACCESS.FREE;
+                  const isLocked = !allowed.includes(mascotId);
                   
                   return (
                     <button
@@ -1927,7 +1928,7 @@ export default function GiveawayWizardPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] bg-purple-500/20 text-purple-600 px-1.5 py-0.5 rounded shrink-0">PRO</span>
-                  <span className="text-xs text-tg-hint">— {t('mascot.allMascots')}</span>
+                  <span className="text-xs text-tg-hint">— Талисман, Везунчик, Фортуна, Шанс</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded shrink-0">BUSINESS</span>
@@ -1936,7 +1937,7 @@ export default function GiveawayWizardPage() {
               </div>
 
               {/* Upgrade button for mascot */}
-              {!userHasPremium && (
+              {userTier !== 'BUSINESS' && (
                 <button
                   onClick={() => setShowSubscription(true)}
                   className="relative w-full rounded-xl py-3 px-4 font-medium hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white overflow-hidden text-sm"
