@@ -199,13 +199,9 @@ bot.command('start', async (ctx) => {
         pushMenu(ctx.from.id, 'my_posts');
         clearAllUserStates(ctx.from.id);
       }
-      const openApp = t(locale, 'bot.openAppBtn');
       await safeReply(ctx, getPostsMessage(locale), {
         parse_mode: 'HTML',
-        reply_markup: inlineKeyboard(
-          ...createPostsKeyboard(locale).inline_keyboard,
-          [webAppBtn(openApp, config.webappUrl + '/creator/posts', 'app', 'danger')],
-        ),
+        reply_markup: createPostsKeyboard(locale),
       });
       return;
     }
