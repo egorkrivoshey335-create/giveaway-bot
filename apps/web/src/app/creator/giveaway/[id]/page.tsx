@@ -1015,65 +1015,100 @@ export default function GiveawayDetailsPage() {
               </button>
             </div>
 
-            {/* Таблица */}
+            {/* Карточки участников */}
             {participants.length > 0 ? (
-              <div className="bg-tg-secondary rounded-xl overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-tg-bg">
-                      <tr>
-                        <th className="text-left px-4 py-3 font-medium">{t('participantsTab.user')}</th>
-                        <th className="text-center px-4 py-3 font-medium">{t('participantsTab.tickets')}</th>
-                        <th className="text-center px-4 py-3 font-medium">{t('participantsTab.invites')}</th>
-                        <th className="text-right px-4 py-3 font-medium">{t('participantsTab.date')}</th>
-                        <th className="text-right px-4 py-3 font-medium w-10" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {participants.map((p) => (
-                        <tr key={p.id} className="border-t border-tg-bg">
-                          <td className="px-4 py-3">
-                            <div className="font-medium">
-                              {p.user.firstName || 'User'} {p.user.lastName || ''}
-                            </div>
-                            {p.user.username && (
-                              <div className="text-tg-hint text-xs">@{p.user.username}</div>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className="font-medium">{p.ticketsBase + p.ticketsExtra}</span>
-                            {p.ticketsExtra > 0 && (
-                              <span className="text-green-500 text-xs ml-1">(+{p.ticketsExtra})</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-center">{p.invitedCount}</td>
-                          <td className="px-4 py-3 text-right text-tg-hint">
-                            {formatDate(p.joinedAt)}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <button
-                              onClick={async () => {
-                                if (!confirm(`Забанить ${p.user.firstName || 'пользователя'}?`)) return;
-                                const res = await banParticipant(giveawayId, p.user.id);
-                                if (res.ok) {
-                                  setMessage('Пользователь забанен');
-                                  loadParticipants();
-                                } else {
-                                  setMessage(res.error || 'Ошибка');
-                                }
-                                setTimeout(() => setMessage(null), 3000);
-                              }}
-                              title="Забанить"
-                              className="p-1.5 rounded-lg text-red-400 hover:bg-red-50/10 transition-colors"
-                            >
-                              <AppIcon name="icon-ban" size={16} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+              <div className="space-y-3">
+                {participants.map((p, idx) => (
+                  <motion.div
+                    key={p.id}
+                    className="bg-tg-secondary rounded-xl p-4"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: idx * 0.03 }}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-tg-button/20 flex items-center justify-center text-lg font-bold text-tg-button">
+                          {(p.user.firstName || 'U')[0].toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-sm">
+                            {p.user.firstName || 'User'} {p.user.lastName || ''}
+                          </div>
+                          {p.user.username && (
+                            <div className="text-tg-hint text-xs">@{p.user.username}</div>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Забанить ${p.user.firstName || 'пользователя'}?`)) return;
+                          const res = await banParticipant(giveawayId, p.user.id);
+                          if (res.ok) {
+                            setMessage('Пользователь забанен');
+                            loadParticipants();
+                          } else {
+                            setMessage(res.error || 'Ошибка');
+                          }
+                          setTimeout(() => setMessage(null), 3000);
+                        }}
+                        className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
+                        title="Забанить"
+                      >
+                        <AppIcon name="icon-cancel" size={16} />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="bg-tg-bg rounded-lg py-2 px-1">
+                        <div className="flex items-center justify-center gap-1 mb-0.5">
+                          <AppIcon name="icon-ticket" size={14} />
+                          <span className="text-xs text-tg-hint">{t('participantsTab.tickets')}</span>
+                        </div>
+                        <div className="font-bold text-sm">
+                          {p.ticketsBase + p.ticketsExtra}
+                          {p.ticketsExtra > 0 && (
+                            <span className="text-green-500 text-[10px] ml-0.5">+{p.ticketsExtra}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="bg-tg-bg rounded-lg py-2 px-1">
+                        <div className="flex items-center justify-center gap-1 mb-0.5">
+                          <AppIcon name="icon-invite" size={14} />
+                          <span className="text-xs text-tg-hint">{t('participantsTab.invites')}</span>
+                        </div>
+                        <div className="font-bold text-sm">{p.invitedCount}</div>
+                      </div>
+                      <div className="bg-tg-bg rounded-lg py-2 px-1">
+                        <div className="flex items-center justify-center gap-1 mb-0.5">
+                          <AppIcon name="icon-calendar" size={14} />
+                          <span className="text-xs text-tg-hint">{t('participantsTab.date')}</span>
+                        </div>
+                        <div className="font-bold text-[11px]">
+                          {new Date(p.joinedAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })}
+                        </div>
+                      </div>
+                    </div>
+
+                    {(p.boostedChannelIds.length > 0 || p.storiesShared) && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {p.boostedChannelIds.length > 0 && (
+                          <span className="text-[10px] bg-blue-500/15 text-blue-400 rounded-full px-2 py-0.5 flex items-center gap-1">
+                            <AppIcon name="icon-boost" size={10} />
+                            {p.boostedChannelIds.length} буст
+                          </span>
+                        )}
+                        {p.storiesShared && (
+                          <span className="text-[10px] bg-purple-500/15 text-purple-400 rounded-full px-2 py-0.5 flex items-center gap-1">
+                            <AppIcon name="icon-story" size={10} />
+                            Сторис
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+
                 {participantsTotal > participants.length && (
                   <div className="text-center py-3 text-tg-hint text-sm">
                     {t('participantsTab.showing', { shown: participants.length, total: participantsTotal })}
