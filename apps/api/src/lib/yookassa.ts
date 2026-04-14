@@ -15,6 +15,8 @@ export interface ReceiptItem {
   quantity: string;
   amount: { value: string; currency: string };
   vat_code: number;
+  payment_subject?: string;
+  payment_mode?: string;
 }
 
 export interface CreatePaymentParams {

@@ -97,6 +97,8 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
               quantity: '1',
               amount: { value: amountRub.toFixed(2), currency: product.currency },
               vat_code: 1,
+              payment_subject: 'service',
+              payment_mode: 'full_payment',
             }],
           },
         });
