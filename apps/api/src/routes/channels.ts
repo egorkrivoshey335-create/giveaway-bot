@@ -226,7 +226,7 @@ export const channelsRoutes: FastifyPluginAsync = async (fastify) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    return reply.success(channels.map(serializeChannel));
+    return reply.success({ channels: channels.map(serializeChannel) });
   });
 
   /**

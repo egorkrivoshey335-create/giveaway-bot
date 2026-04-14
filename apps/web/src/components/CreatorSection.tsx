@@ -274,6 +274,13 @@ export function CreatorSection() {
                             <AppIcon name="icon-group" size={16} />
                           )}
                           <span className="font-medium truncate">{channel.title}</span>
+                          <span className={`flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                            channel.type === 'CHANNEL'
+                              ? 'bg-blue-500/10 text-blue-500'
+                              : 'bg-violet-500/10 text-violet-500'
+                          }`}>
+                            {channel.type === 'CHANNEL' ? tChannels('channel') : tChannels('group')}
+                          </span>
                         </div>
                         {channel.username && <p className="text-sm text-tg-hint mt-0.5">@{channel.username}</p>}
                         <div className="flex flex-wrap gap-2 mt-2">
@@ -357,25 +364,30 @@ export function CreatorSection() {
                       {/* Превью медиа */}
                       <div className="w-12 h-12 rounded-lg overflow-hidden bg-tg-secondary flex-shrink-0 flex items-center justify-center">
                         {post.hasMedia && post.telegramFileId ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={getPostTemplateMediaUrl(post.id)}
-                            alt=""
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              const target = e.currentTarget;
-                              target.style.display = 'none';
-                              const parent = target.parentElement;
-                              if (parent) {
-                                const fallback = document.createElement('div');
-                                fallback.className = 'w-full h-full flex items-center justify-center';
-                                fallback.innerHTML = `<img src="/icons/brand/icon-camera.webp" width="24" height="24" alt="" />`;
-                                parent.appendChild(fallback);
-                              }
-                            }}
-                          />
+                          post.mediaType === 'VIDEO' ? (
+                            <video
+                              src={`${getPostTemplateMediaUrl(post.id)}#t=0.1`}
+                              preload="metadata"
+                              muted
+                              playsInline
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={getPostTemplateMediaUrl(post.id)}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          )
                         ) : (
-                          <AppIcon name="icon-cancel" size={24} />
+                          <AppIcon name="icon-edit" size={24} />
                         )}
                       </div>
 
