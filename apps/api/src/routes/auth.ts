@@ -102,7 +102,6 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
           firstName: telegramUser.firstName || null,
           lastName: telegramUser.lastName || null,
           isPremium: telegramUser.isPremium || false,
-          language: mapLanguageCode(telegramUser.languageCode),
         },
         create: {
           telegramUserId: BigInt(telegramUser.id),

@@ -152,17 +152,20 @@ export const giveawayReminderCheckWorker = new Worker(
       }
 
       const data = await res.json() as {
+        ok: boolean;
         data: {
-          id: string;
-          giveawayId: string;
-          giveawayTitle: string;
-          giveawayStartAt: string | null;
-          giveawayStatus: string;
-          telegramUserId: string;
-        }[];
+          reminders: {
+            id: string;
+            giveawayId: string;
+            giveawayTitle: string;
+            giveawayStartAt: string | null;
+            giveawayStatus: string;
+            telegramUserId: string;
+          }[];
+        };
       };
 
-      const reminders = data.data || [];
+      const reminders = data.data?.reminders || [];
       log.info({ count: reminders.length }, 'Found pending reminders');
 
       let enqueued = 0;
