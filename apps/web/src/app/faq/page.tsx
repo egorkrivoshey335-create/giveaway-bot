@@ -88,7 +88,7 @@ export default function FaqPage() {
     <main className="min-h-screen bg-tg-bg pb-safe">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-tg-bg/95 backdrop-blur border-b border-tg-secondary">
-        <div className="max-w-2xl mx-auto px-4 pt-4 pb-3">
+        <div className="max-w-xl mx-auto px-4 pt-4 pb-3">
           <div className="flex items-center gap-3 mb-3">
             <button
               onClick={() => router.back()}
@@ -128,7 +128,7 @@ export default function FaqPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
+      <div className="max-w-xl mx-auto px-4 py-4 space-y-4">
         {!hasResults ? (
           <div className="text-center py-16">
             <span className="block mb-3"><AppIcon name="icon-search" size={48} /></span>

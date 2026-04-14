@@ -99,14 +99,13 @@ export default function CreatorProfilePage() {
             layout
             transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
           >
-            <div className="bg-tg-secondary border-b border-tg-secondary p-4">
-              <div className="max-w-2xl mx-auto flex items-center justify-between">
-                <div className="w-10 h-10 bg-tg-bg rounded-full animate-pulse" />
-                <div className="w-32 h-6 bg-tg-bg rounded animate-pulse" />
-                <div className="w-10" />
+            <div className="sticky top-0 z-10 bg-tg-bg border-b border-tg-secondary">
+              <div className="max-w-xl mx-auto px-4 py-3 flex items-center gap-3">
+                <div className="w-10 h-10 bg-tg-secondary rounded-lg animate-pulse" />
+                <div className="w-32 h-6 bg-tg-secondary rounded animate-pulse" />
               </div>
             </div>
-            <div className="max-w-2xl mx-auto p-4 space-y-4">
+            <div className="max-w-xl mx-auto p-4 space-y-4">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="bg-tg-secondary rounded-xl p-4">
                   <div className="h-5 bg-tg-bg rounded w-1/3 mb-4 animate-pulse" />
@@ -129,7 +128,7 @@ export default function CreatorProfilePage() {
             layout
             transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
           >
-            <div className="max-w-2xl mx-auto py-12 text-center">
+            <div className="max-w-xl mx-auto py-12 text-center">
               <span className="text-6xl mb-4 block">😔</span>
               <h2 className="text-xl font-semibold mb-2">{t('error.title')}</h2>
               <p className="text-tg-hint mb-6">{error ?? t('error.description')}</p>
@@ -179,20 +178,19 @@ export default function CreatorProfilePage() {
                     </div>
                   )}
 
-                  <div className="bg-tg-secondary border-b border-tg-bg p-4">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
+                  <div className="sticky top-0 z-10 bg-tg-bg border-b border-tg-secondary">
+        <div className="max-w-xl mx-auto px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="p-2 -ml-2 rounded-full hover:bg-tg-bg transition-colors"
+            className="p-2 rounded-lg hover:bg-tg-secondary transition-colors"
           >
             <AppIcon name="icon-back" size={20} />
           </button>
-          <h1 className="text-xl font-semibold">{t('title')}</h1>
-          <div className="w-10" />
+          <h1 className="text-lg font-bold text-tg-text">{t('title')}</h1>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto p-4 space-y-4">
+      <div className="max-w-xl mx-auto p-4 space-y-4">
         {/* Профиль */}
         <div className="bg-tg-secondary rounded-xl p-4">
           <div className="flex items-start gap-4">

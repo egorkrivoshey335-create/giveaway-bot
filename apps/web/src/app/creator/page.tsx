@@ -467,7 +467,7 @@ export default function CreatorDashboardPage() {
   if (initialLoading) {
     return (
       <main className="min-h-screen p-4">
-        <div className="max-w-4xl mx-auto flex flex-col items-center text-center py-12">
+        <div className="max-w-xl mx-auto flex flex-col items-center text-center py-12">
           <Mascot type="state-loading" size={100} loop autoplay />
           <p className="text-tg-hint mt-2">{tCommon('loading')}</p>
         </div>
@@ -478,7 +478,7 @@ export default function CreatorDashboardPage() {
   if (error) {
     return (
       <main className="min-h-screen p-4">
-        <div className="max-w-4xl mx-auto flex flex-col items-center text-center py-12">
+        <div className="max-w-xl mx-auto flex flex-col items-center text-center py-12">
           <Mascot type="state-error" size={100} loop={false} autoplay />
           <p className="text-tg-hint mb-4 mt-2">{error}</p>
           <button
@@ -494,7 +494,7 @@ export default function CreatorDashboardPage() {
 
   return (
     <main className="min-h-screen p-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-xl mx-auto">
         <Stagger>
           <StaggerItem>
             <motion.button

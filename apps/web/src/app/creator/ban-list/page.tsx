@@ -53,7 +53,7 @@ export default function BanListPage() {
     <main className="min-h-screen bg-tg-bg pb-safe">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-tg-bg/95 backdrop-blur border-b border-tg-secondary">
-        <div className="max-w-2xl mx-auto px-4 pt-4 pb-3">
+        <div className="max-w-xl mx-auto px-4 pt-4 pb-3">
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.back()}
@@ -76,7 +76,7 @@ export default function BanListPage() {
         </div>
       )}
 
-      <div className="max-w-2xl mx-auto px-4 py-4">
+      <div className="max-w-xl mx-auto px-4 py-4">
         <AnimatePresence mode="wait">
           {loading ? (
             <motion.div

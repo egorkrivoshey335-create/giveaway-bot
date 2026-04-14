@@ -213,17 +213,19 @@ export default function CreatorSubscriptionPage() {
             transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], layout: { duration: 0.35 } }}
           >
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-tg-bg border-b border-tg-secondary px-4 py-3 flex items-center gap-3">
-        <button
-          onClick={() => router.back()}
-          className="p-2 rounded-lg hover:bg-tg-secondary transition-colors"
-        >
-          <AppIcon name="icon-back" size={20} />
-        </button>
-        <h1 className="text-lg font-bold text-tg-text">{t('title')}</h1>
+      <div className="sticky top-0 z-10 bg-tg-bg border-b border-tg-secondary">
+        <div className="max-w-xl mx-auto px-4 py-3 flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="p-2 rounded-lg hover:bg-tg-secondary transition-colors"
+          >
+            <AppIcon name="icon-back" size={20} />
+          </button>
+          <h1 className="text-lg font-bold text-tg-text">{t('title')}</h1>
+        </div>
       </div>
 
-      <div className="px-4 space-y-4 mt-4">
+      <div className="max-w-xl mx-auto px-4 space-y-4 mt-4">
         {/* Current plan card */}
         <div className={`rounded-2xl p-5 border ${TIER_BG[currentTier]}`}>
           <div className="flex items-center justify-between mb-3">

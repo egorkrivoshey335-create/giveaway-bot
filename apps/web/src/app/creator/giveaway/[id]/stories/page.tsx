@@ -158,7 +158,7 @@ export default function StoryRequestsPage() {
   if (loading) {
     return (
       <main className="min-h-screen p-4">
-        <div className="max-w-2xl mx-auto text-center">
+        <div className="max-w-xl mx-auto text-center">
           <div className="text-4xl mb-4">⏳</div>
           <p className="text-tg-hint">{tCommon('loading')}</p>
         </div>
@@ -169,7 +169,7 @@ export default function StoryRequestsPage() {
   if (error) {
     return (
       <main className="min-h-screen p-4">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-xl mx-auto">
           <div className="text-center">
             <div className="text-4xl mb-4"><AppIcon name="icon-error" size={14} /></div>
             <h1 className="text-xl font-bold mb-2">{tCommon('error')}</h1>
@@ -191,7 +191,7 @@ export default function StoryRequestsPage() {
 
   return (
     <main className="min-h-screen p-4">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-xl mx-auto">
         {/* Заголовок */}
         <div className="mb-6">
           <button

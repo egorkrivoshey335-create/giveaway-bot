@@ -422,7 +422,7 @@ export default function GiveawayDetailsPage() {
   if (loading) {
     return (
       <main className="min-h-screen p-4">
-        <div className="max-w-4xl mx-auto text-center py-12">
+        <div className="max-w-xl mx-auto text-center py-12">
           <div className="flex justify-center mb-4"><AppIcon name="icon-pending" size={40} /></div>
           <p className="text-tg-hint">{tCommon('loading')}</p>
         </div>
@@ -433,7 +433,7 @@ export default function GiveawayDetailsPage() {
   if (error || !giveaway) {
     return (
       <main className="min-h-screen p-4">
-        <div className="max-w-4xl mx-auto text-center py-12">
+        <div className="max-w-xl mx-auto text-center py-12">
           <div className="flex justify-center mb-4">
             <AppIcon name="icon-error" variant="brand" size={56} />
           </div>
@@ -460,7 +460,7 @@ export default function GiveawayDetailsPage() {
 
   return (
     <main className="min-h-screen p-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-xl mx-auto">
         {/* Header */}
         <div className="mb-6">
           <button
