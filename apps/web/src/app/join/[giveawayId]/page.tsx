@@ -694,7 +694,7 @@ export default function JoinGiveawayPage() {
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
           <div className="flex justify-center mb-2">
-            <Mascot type="state-error" size={120} loop autoplay />
+            <Mascot type="state-error" size={160} loop autoplay />
           </div>
           <h1 className="text-xl font-bold mb-2">{t('error.title')}</h1>
           <p className="text-tg-hint mb-6">{error}</p>
@@ -715,7 +715,7 @@ export default function JoinGiveawayPage() {
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
           <div className="flex justify-center mb-2">
-            <Mascot type="state-success" size={120} loop autoplay />
+            <Mascot type="state-success" size={160} loop autoplay />
           </div>
           <h1 className="text-xl font-bold mb-2">{t('finished.title')}</h1>
           <p className="text-tg-hint mb-4">
@@ -747,18 +747,9 @@ export default function JoinGiveawayPage() {
     return (
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
-          {/* Маскот ожидания */}
-          {giveaway.mascotType && (
-            <div className="mb-4 flex justify-center">
-              <Mascot 
-                type={giveaway.mascotType as any} 
-                size={120}
-                className="mx-auto"
-              />
-            </div>
-          )}
-          
-          <div className="text-6xl mb-4">⏳</div>
+          <div className="flex justify-center mb-2">
+            <Mascot type="state-loading" size={160} loop autoplay />
+          </div>
           <h1 className="text-xl font-bold mb-2">{t('scheduled.title')}</h1>
           <p className="text-tg-hint mb-4">
             {giveaway.title}
@@ -811,18 +802,9 @@ export default function JoinGiveawayPage() {
     return (
       <main className="min-h-screen p-4 flex items-center justify-center">
         <div className="max-w-md w-full text-center">
-          {/* Грустный маскот */}
-          {giveaway.mascotType && (
-            <div className="mb-4 flex justify-center">
-              <Mascot 
-                type={giveaway.mascotType as any} 
-                size={120}
-                className="mx-auto"
-              />
-            </div>
-          )}
-          
-          <div className="text-6xl mb-4"><AppIcon name="icon-error" size={14} /></div>
+          <div className="flex justify-center mb-2">
+            <Mascot type="state-error" size={160} loop autoplay />
+          </div>
           <h1 className="text-xl font-bold mb-2">{t('cancelled.title')}</h1>
           <p className="text-tg-hint mb-6">
             {giveaway.title}
@@ -855,7 +837,7 @@ export default function JoinGiveawayPage() {
           {/* Заголовок */}
           <div className="text-center mb-6">
             <div className="flex justify-center mb-2">
-              <Mascot type="state-loading" size={150} loop autoplay />
+              <Mascot type="state-loading" size={160} loop autoplay />
             </div>
             <h1 className="text-xl font-bold">{giveaway.title}</h1>
           </div>
@@ -935,7 +917,7 @@ export default function JoinGiveawayPage() {
         <div className="max-w-md mx-auto">
           <div className="text-center mb-6">
             <div className="flex justify-center mb-2">
-              <Mascot type="state-locked" size={120} loop autoplay />
+              <Mascot type="state-locked" size={160} loop autoplay />
             </div>
             <h1 className="text-xl font-bold">{t('checkSubscription.title')}</h1>
             <p className="text-tg-hint mt-2">{t('checkSubscription.description')}</p>
@@ -1000,7 +982,7 @@ export default function JoinGiveawayPage() {
         <div className="max-w-md mx-auto">
           <div className="text-center mb-6">
             <div className="flex justify-center mb-2">
-              <Mascot type="state-captcha" size={120} loop autoplay />
+              <Mascot type="state-captcha" size={160} loop autoplay />
             </div>
             <h1 className="text-xl font-bold">{t('captcha.title')}</h1>
             <p className="text-tg-hint mt-2">
@@ -1046,53 +1028,77 @@ export default function JoinGiveawayPage() {
   // Успех
   if (screen === 'success' && participation) {
     return (
-      <main className="min-h-screen p-4">
-        {/* Конфетти при успешном участии */}
+      <main className="min-h-screen p-4 pb-8">
         <ConfettiOverlay trigger={showConfetti} />
         
         <div className="max-w-md mx-auto">
-          {/* Заголовок с маскотом и таймером */}
-          <div className="text-center mb-6">
-            {/* Маскот розыгрыша */}
-            {giveaway?.mascotType && (
-              <div className="mb-4 flex justify-center">
-                <Mascot 
-                  type={giveaway.mascotType as any} 
-                  size={120}
-                  className="mx-auto"
-                />
+          {/* Маскот */}
+          <div className="flex justify-center mb-2">
+            <Mascot 
+              type={(giveaway?.mascotType as any) || 'participant-joined'} 
+              size={180}
+              loop
+              autoplay
+            />
+          </div>
+          
+          {/* Стилизованный заголовок */}
+          <div className="text-center mb-5">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
+              {t('success.title')}
+            </h1>
+            <p className="text-tg-hint mt-1">{t('success.subtitle')}</p>
+          </div>
+
+          {/* Таймер */}
+          {giveaway && giveaway.endAt && (
+            <div className="border-2 border-dashed border-tg-hint/30 rounded-2xl p-4 mb-5 text-center relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-tg-bg px-3">
+                <span className="text-xs font-medium text-tg-hint uppercase tracking-wider">{t('success.endsIn')}</span>
+              </div>
+              <CountdownTimer 
+                endDate={giveaway.endAt} 
+                className="text-2xl font-bold"
+              />
+            </div>
+          )}
+
+          {/* Сообщение о приглашении */}
+          {referrerUserId && (
+            <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 mb-4 text-center">
+              <span className="text-green-600 text-sm">👋 {t('info.invitedByFriend')}</span>
+            </div>
+          )}
+
+          {/* Билеты — в стилизованном блоке */}
+          <div className="border-2 border-dashed border-purple-500/30 rounded-2xl p-5 mb-5 text-center relative bg-gradient-to-br from-purple-500/5 to-pink-500/5">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-tg-bg px-3">
+              <span className="text-xs font-medium text-purple-400 uppercase tracking-wider">{t('success.yourTickets')}</span>
+            </div>
+            <div className="text-5xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent mt-1">
+              {participation.ticketsBase + participation.ticketsExtra}
+            </div>
+            {participation.ticketsExtra > 0 && (
+              <div className="text-sm text-tg-hint mt-2">
+                {t('success.bonusChance', { percent: participation.ticketsExtra * 100 })}
               </div>
             )}
-            
-            <h1 className="text-2xl font-bold mb-2">{t('success.title')}</h1>
-            <p className="text-tg-hint mb-4">{t('success.subtitle')}</p>
-            
-            {/* Таймер до окончания розыгрыша */}
-            {giveaway && giveaway.endAt && (
-              <div className="bg-tg-secondary-bg rounded-xl p-4 mb-4">
-                <div className="text-sm text-tg-hint mb-2">{t('success.endsIn')}</div>
-                <CountdownTimer 
-                  endDate={giveaway.endAt} 
-                  className="text-lg font-semibold"
-                />
+            {invitedCount > 0 && (
+              <div className="text-xs text-tg-hint mt-1">
+                {t('success.ticketsFromInvites', { count: invitedCount })}
               </div>
             )}
           </div>
 
-          {/* Сообщение о приглашении */}
-          {referrerUserId && (
-            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 mb-4 text-center">
-              <span className="text-green-600">👋 {t('info.invitedByFriend')}</span>
-            </div>
-          )}
-
-          {/* ID розыгрыша и кнопка шаринга */}
+          {/* ID розыгрыша + кнопка поделиться */}
           {giveaway && (
-            <div className="bg-tg-secondary rounded-xl p-4 mb-4">
+            <div className="bg-tg-secondary rounded-2xl p-4 mb-5">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex-1">
                   <div className="text-xs text-tg-hint mb-1">{t('success.giveawayId')}</div>
-                  <div className="text-sm font-mono truncate">#{giveawayId.slice(0, 8)}</div>
+                  <div className="border border-dashed border-tg-hint/30 rounded-lg px-3 py-1.5 inline-block">
+                    <span className="text-sm font-mono text-tg-text">#{giveawayId.slice(0, 8)}</span>
+                  </div>
                 </div>
                 <button
                   onClick={() => {
@@ -1105,39 +1111,21 @@ export default function JoinGiveawayPage() {
                       window.open(shareUrl, '_blank');
                     }
                   }}
-                  className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2 hover:opacity-90"
+                  className="relative overflow-hidden bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl px-4 py-2.5 text-sm font-medium flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
                 >
-                  <span>📤</span>
-                  <span>{t('success.shareGiveaway')}</span>
+                  <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer-delayed_5s_ease-in-out_2.5s_infinite]" />
+                  <AppIcon name="icon-share" size={16} />
+                  <span className="relative z-10">{t('success.shareGiveaway')}</span>
                 </button>
               </div>
             </div>
           )}
-
-          {/* Билеты */}
-          <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl p-6 mb-6 text-white text-center">
-            <div className="text-sm opacity-80 mb-1">{t('success.yourTickets')}</div>
-            <div className="text-5xl font-bold">
-              {participation.ticketsBase + participation.ticketsExtra}
-            </div>
-            {participation.ticketsExtra > 0 && (
-              <div className="text-sm opacity-80 mt-2">
-                {t('success.bonusChance', { percent: participation.ticketsExtra * 100 })}
-              </div>
-            )}
-            {invitedCount > 0 && (
-              <div className="text-xs opacity-70 mt-1">
-                {t('success.ticketsFromInvites', { count: invitedCount })}
-              </div>
-            )}
-          </div>
 
           {/* Кнопка "Увеличить шансы" */}
           {giveaway && (giveaway.conditions.inviteEnabled || giveaway.conditions.boostEnabled || giveaway.conditions.storiesEnabled || customTasks.length > 0) && (
             <button
               onClick={() => {
                 setShowExtrasSheet(true);
-                // Определяем, какую вкладку открыть первой
                 if (giveaway.conditions.inviteEnabled) {
                   setActiveExtrasTab('invites');
                 } else if (giveaway.conditions.boostEnabled) {
@@ -1148,10 +1136,11 @@ export default function JoinGiveawayPage() {
                   setActiveExtrasTab('tasks');
                 }
               }}
-              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl p-4 mb-6 flex items-center justify-between hover:opacity-90 transition-opacity"
+              className="w-full relative overflow-hidden bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl p-4 mb-5 flex items-center justify-between hover:scale-[1.01] active:scale-[0.99] transition-all duration-300"
             >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">⚡️</span>
+              <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer-delayed_5s_ease-in-out_1s_infinite]" />
+              <div className="flex items-center gap-3 relative z-10">
+                <AppIcon name="icon-boost" size={24} />
                 <div className="text-left">
                   <div className="font-semibold">{t('success.increaseChances')}</div>
                   <div className="text-xs opacity-80">
@@ -1160,7 +1149,7 @@ export default function JoinGiveawayPage() {
                 </div>
               </div>
               {participation.ticketsExtra > 0 && (
-                <span className="bg-white/20 px-3 py-1.5 rounded-lg font-bold">
+                <span className="bg-white/20 px-3 py-1.5 rounded-lg font-bold relative z-10">
                   +{participation.ticketsExtra * 100}%
                 </span>
               )}
@@ -1172,10 +1161,9 @@ export default function JoinGiveawayPage() {
             <BottomSheet
               isOpen={showExtrasSheet}
               onClose={() => setShowExtrasSheet(false)}
-              title={`⚡️ ${t('success.increaseChances')}`}
+              title={t('success.increaseChances')}
             >
               <div className="px-4 py-3">
-                {/* Табы */}
                 <Tabs
                   variant="pills"
                   activeTab={activeExtrasTab}
@@ -1184,13 +1172,13 @@ export default function JoinGiveawayPage() {
                     ...(giveaway.conditions.inviteEnabled ? [{ 
                       id: 'invites', 
                       label: t('extras.inviteFriends'), 
-                      icon: '👥',
+                      icon: <AppIcon name="icon-group" size={16} />,
                       content: null 
                     }] : []),
                     ...(giveaway.conditions.boostEnabled ? [{ 
                       id: 'boosts', 
                       label: t('extras.boostChannels'), 
-                      icon: '⚡️',
+                      icon: <AppIcon name="icon-boost" size={16} />,
                       content: null 
                     }] : []),
                     ...(giveaway.conditions.storiesEnabled ? [{ 
@@ -1243,26 +1231,30 @@ export default function JoinGiveawayPage() {
                             />
                             <button
                               onClick={handleCopyLink}
-                              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
                                 linkCopied 
                                   ? 'bg-green-500 text-white' 
                                   : 'bg-tg-button text-tg-button-text'
                               }`}
                             >
-                              {linkCopied ? '✓' : '📋'}
+                              <AppIcon name={linkCopied ? 'icon-success' : 'icon-copy'} size={16} />
                             </button>
                           </div>
                         )}
                         {linkCopied && (
-                          <p className="text-xs text-green-500 text-center">{t('extras.linkCopied')}</p>
+                          <div className="bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-2 text-center">
+                            <span className="text-xs text-green-500 font-medium flex items-center justify-center gap-1.5">
+                              <AppIcon name="icon-success" size={14} />
+                              {t('extras.linkCopied')}
+                            </span>
+                          </div>
                         )}
                         
-                        {/* Кнопка "Поделиться в Telegram" */}
                         <button
                           onClick={handleShareToTelegram}
-                          className="w-full bg-[#0088cc] text-white text-sm rounded-lg py-2.5 font-medium flex items-center justify-center gap-2"
+                          className="w-full bg-[#0088cc] text-white text-sm rounded-xl py-2.5 font-medium flex items-center justify-center gap-2"
                         >
-                          <span>📤</span>
+                          <AppIcon name="icon-share" size={16} />
                           <span>{t('extras.shareInTelegram')}</span>
                         </button>
                       </>
@@ -1306,14 +1298,16 @@ export default function JoinGiveawayPage() {
                 {/* Вкладка: Бусты */}
                 {activeExtrasTab === 'boosts' && giveaway.conditions.boostEnabled && (
                   <div className="space-y-3">
-                    <p className="text-sm text-tg-hint mb-3">
-                      {t('extras.boostDescription')}
-                    </p>
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 text-center">
+                      <span className="text-xs font-medium text-amber-600">
+                        <AppIcon name="icon-boost" size={14} /> {t('extras.boostDescription')}
+                      </span>
+                    </div>
                     
                     {boostChannels.map((channel) => (
                       <div
                         key={channel.id}
-                        className="p-3 bg-tg-secondary rounded-lg flex items-center gap-3"
+                        className="p-3 bg-tg-secondary rounded-xl flex items-center gap-3"
                       >
                         <div className="flex-1">
                           <div className="font-medium text-sm">{channel.title}</div>
@@ -1325,16 +1319,18 @@ export default function JoinGiveawayPage() {
                           <div className="flex gap-2">
                             <button
                               onClick={() => openBoostLink(channel)}
-                              className="bg-tg-button text-tg-button-text text-xs rounded-lg px-3 py-1.5"
+                              className="bg-tg-button text-tg-button-text text-xs rounded-xl px-3 py-1.5 flex items-center gap-1"
                             >
-                              ⚡️ {t('extras.boostButton')}
+                              <AppIcon name="icon-boost" size={14} />
+                              <span>{t('extras.boostButton')}</span>
                             </button>
                             <button
                               onClick={() => handleVerifyBoost(channel.id)}
                               disabled={verifyingBoost === channel.id}
-                              className="bg-green-500 text-white text-xs rounded-lg px-3 py-1.5 disabled:opacity-50"
+                              className="bg-green-500 text-white text-xs rounded-xl px-3 py-1.5 disabled:opacity-50 flex items-center gap-1"
                             >
-                              {verifyingBoost === channel.id ? '⏳' : <AppIcon name="icon-search" size={14} />} {t('extras.verifyButton')}
+                              {verifyingBoost === channel.id ? '⏳' : <AppIcon name="icon-active" size={14} />}
+                              <span>{t('extras.verifyButton')}</span>
                             </button>
                           </div>
                         )}
@@ -1520,15 +1516,16 @@ export default function JoinGiveawayPage() {
           {/* Кнопка "Больше розыгрышей" */}
           <button
             onClick={() => router.push('/catalog')}
-            className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg py-3.5 font-medium mb-3 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+            className="w-full relative overflow-hidden bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl py-3.5 font-medium mb-3 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
           >
-            <span><AppIcon name="icon-giveaway" size={16} /></span>
-            <span>{t('success.moreCatalog')}</span>
+            <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer-delayed_5s_ease-in-out_4s_infinite]" />
+            <AppIcon name="icon-giveaway" size={16} />
+            <span className="relative z-10">{t('success.moreCatalog')}</span>
           </button>
 
           <button
             onClick={() => router.push('/')}
-            className="w-full bg-tg-secondary text-tg-text rounded-lg py-3"
+            className="w-full bg-tg-secondary text-tg-text rounded-xl py-3"
           >
             {t('success.goHome')}
           </button>
@@ -1543,19 +1540,19 @@ export default function JoinGiveawayPage() {
       <main className="min-h-screen p-4">
         <div className="max-w-md mx-auto">
           <div className="text-center mb-6">
-            {/* Маскот розыгрыша */}
-            {giveaway?.mascotType && (
-              <div className="mb-4 flex justify-center">
-                <Mascot 
-                  type={giveaway.mascotType as any} 
-                  size={120}
-                  className="mx-auto"
-                />
-              </div>
-            )}
+            <div className="flex justify-center mb-2">
+              <Mascot 
+                type={(giveaway?.mascotType as any) || 'participant-joined'} 
+                size={180}
+                loop
+                autoplay
+              />
+            </div>
             
-            <h1 className="text-2xl font-bold mb-2">{t('alreadyJoined.title')}</h1>
-            <p className="text-tg-hint mb-4">{giveaway?.title}</p>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
+              {t('alreadyJoined.title')}
+            </h1>
+            <p className="text-tg-hint mt-1 mb-4">{giveaway?.title}</p>
             
             {/* Таймер до окончания розыгрыша */}
             {giveaway && giveaway.endAt && (
