@@ -1531,9 +1531,11 @@ export default function GiveawayWizardPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{t('protection.livenessTitle')}</span>
-                        <span className="text-xs bg-amber-500/20 text-amber-600 px-2 py-0.5 rounded">
-                          BUSINESS
-                        </span>
+                        {userTier !== 'BUSINESS' && (
+                          <span className="text-xs bg-amber-500/20 text-amber-600 px-2 py-0.5 rounded">
+                            BUSINESS
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-tg-hint mt-0.5">
                         {t('protection.livenessHint')}
@@ -1541,10 +1543,22 @@ export default function GiveawayWizardPage() {
                     </div>
                   </div>
                   <button
-                    onClick={() => setShowSubscription(true)}
-                    className="w-12 h-6 rounded-full bg-tg-secondary opacity-50 cursor-not-allowed relative"
+                    onClick={() => {
+                      if (userTier !== 'BUSINESS') {
+                        setShowSubscription(true);
+                        return;
+                      }
+                      updatePayload({ livenessEnabled: !payload.livenessEnabled });
+                    }}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${
+                      userTier !== 'BUSINESS'
+                        ? 'bg-tg-secondary opacity-50 cursor-not-allowed'
+                        : payload.livenessEnabled ? 'bg-tg-button' : 'bg-tg-secondary'
+                    }`}
                   >
-                    <span className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full" />
+                    <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                      payload.livenessEnabled && userTier === 'BUSINESS' ? 'left-7' : 'left-1'
+                    }`} />
                   </button>
                 </div>
               </div>
@@ -1799,7 +1813,7 @@ export default function GiveawayWizardPage() {
               )}
 
               {/* Продвижение в каталоге — включено в PLUS+ */}
-              <div className="bg-tg-secondary rounded-xl p-4 relative overflow-hidden">
+              <div className="bg-tg-bg rounded-xl p-4 relative overflow-hidden border-2 border-dashed border-tg-hint/30">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <AppIcon name="icon-channel" size={14} />

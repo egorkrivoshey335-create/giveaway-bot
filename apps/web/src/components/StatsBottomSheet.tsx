@@ -118,9 +118,9 @@ export function StatsBottomSheet({
           </div>
 
           {/* График роста */}
-          {stats.participantsGrowth.length > 0 && (
+          {stats.participantsGrowth?.length > 0 && (
             <div className="bg-tg-secondary rounded-lg p-4">
-              <h3 className="font-medium mb-3">📈 {t('growth.title')}</h3>
+              <h3 className="font-medium mb-3 flex items-center gap-2"><AppIcon name="icon-analytics" variant="brand" size={18} /> {t('growth.title')}</h3>
               <div className="flex items-end gap-1 h-24">
                 {stats.participantsGrowth.map((day, i) => {
                   const maxCount = Math.max(...stats.participantsGrowth.map(d => d.count), 1);

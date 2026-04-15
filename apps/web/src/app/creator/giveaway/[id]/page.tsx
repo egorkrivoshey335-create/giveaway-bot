@@ -645,7 +645,7 @@ export default function GiveawayDetailsPage() {
                   subValue={stats.participantsToday > 0 ? `+${stats.participantsToday} ${t('stats.today')}` : undefined}
                 />
                 <StatCard icon="icon-ticket" label={t('stats.tickets')} value={stats.ticketsTotal} />
-                <StatCard icon="icon-referral" label={t('stats.invites')} value={stats.invitesCount} />
+                <StatCard icon="icon-invite" label={t('stats.invites')} value={stats.invitesCount} />
                 <StatCard icon="icon-boost" label={t('stats.boosts')} value={stats.boostsCount} />
               </div>
             )}
@@ -754,9 +754,9 @@ export default function GiveawayDetailsPage() {
             )}
 
             {/* Рост участников — PLUS+ только */}
-            {stats && stats.participantsGrowth.length > 0 && (
+            {stats && stats.participantsGrowth?.length > 0 && (
               <div className="bg-tg-secondary rounded-xl p-4 relative">
-                <h3 className="font-medium mb-3 flex items-center gap-2"><AppIcon name="icon-analytics" size={18} /> {t('growth.title')}</h3>
+                <h3 className="font-medium mb-3 flex items-center gap-2"><AppIcon name="icon-analytics" variant="brand" size={18} /> {t('growth.title')}</h3>
                 <div className={`flex items-end gap-1 h-24 ${userTier === 'FREE' ? 'blur-sm select-none' : ''}`}>
                   {stats.participantsGrowth.map((day, i) => {
                     const maxCount = Math.max(...stats.participantsGrowth.map(d => d.count), 1);
