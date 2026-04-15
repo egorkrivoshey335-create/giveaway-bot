@@ -17,6 +17,7 @@ import {
   PostTemplate,
   GiveawayDraftPayload,
   getChannelAvatarUrl,
+  getInitData,
 } from '@/lib/api';
 import { DateTimePicker } from '@/components/DateTimePicker';
 import { PostsManager } from '@/components/PostsManager';
@@ -129,15 +130,12 @@ export default function GiveawayWizardPage() {
   const [userTier, setUserTier] = useState<'FREE' | 'PLUS' | 'PRO' | 'BUSINESS'>('FREE');
 
   useEffect(() => {
-    fetch('/api/users/me/entitlements', { credentials: 'include' })
-      .then(r => r.json())
-      .then((d: { data?: { tier?: string } }) => {
-        const tier = d?.data?.tier as string;
-        if (tier && ['PLUS', 'PRO', 'BUSINESS'].includes(tier)) {
-          setUserTier(tier as 'PLUS' | 'PRO' | 'BUSINESS');
-        }
-      })
-      .catch(() => {});
+    getInitData().then((data) => {
+      const tier = data?.config?.subscriptionTier as string;
+      if (tier && ['FREE', 'PLUS', 'PRO', 'BUSINESS'].includes(tier)) {
+        setUserTier(tier as 'FREE' | 'PLUS' | 'PRO' | 'BUSINESS');
+      }
+    }).catch(() => {});
   }, []);
 
   const userHasPremium = userTier !== 'FREE';

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { getCatalog, CatalogGiveaway } from '@/lib/api';
+import { getCatalog, getInitData, CatalogGiveaway } from '@/lib/api';
 import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
 import { AppIcon } from '@/components/AppIcon';
 import { Mascot } from '@/components/Mascot';
@@ -280,13 +280,10 @@ export default function CatalogPage() {
   }, [loadCatalog]);
 
   useEffect(() => {
-    fetch('/api/users/me/entitlements', { credentials: 'include' })
-      .then(r => r.json())
-      .then((data: { ok?: boolean; data?: { tier?: string } }) => {
-        const tier = data?.data?.tier as typeof userTier;
-        if (tier) setUserTier(tier);
-      })
-      .catch(() => {});
+    getInitData().then((data) => {
+      const tier = data?.config?.subscriptionTier as typeof userTier;
+      if (tier) setUserTier(tier);
+    }).catch(() => {});
   }, []);
 
   const handleLoadMore = () => {

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ThemeCustomizer, ThemeSettings } from '@/components/ThemeCustomizer';
-import { getGiveawayTheme, saveGiveawayTheme, deleteGiveawayTheme, GiveawayThemeSettings } from '@/lib/api';
+import { getGiveawayTheme, saveGiveawayTheme, deleteGiveawayTheme, getInitData, GiveawayThemeSettings } from '@/lib/api';
 import { AppIcon } from '@/components/AppIcon';
 import { Mascot } from '@/components/Mascot';
 import { SubscriptionBottomSheet } from '@/components/SubscriptionBottomSheet';
@@ -36,13 +36,10 @@ export default function GiveawayThemePage() {
     try {
       let hasBusiness = false;
       try {
-        const tierRes = await fetch('/api/users/me/entitlements', { credentials: 'include' });
-        if (tierRes.ok) {
-          const tierData = await tierRes.json() as { data?: { tier?: string } };
-          const tier = (tierData?.data?.tier || 'FREE') as typeof userTier;
-          setUserTier(tier);
-          hasBusiness = tier === 'BUSINESS';
-        }
+        const initData = await getInitData();
+        const tier = (initData?.config?.subscriptionTier || 'FREE') as typeof userTier;
+        setUserTier(tier);
+        hasBusiness = tier === 'BUSINESS';
       } catch {
         // Entitlements check failed — default to FREE
       }

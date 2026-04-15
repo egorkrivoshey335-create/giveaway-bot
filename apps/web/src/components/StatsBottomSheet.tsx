@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { BottomSheet } from './ui/BottomSheet';
-import { getGiveawayStats, type GiveawayStats } from '@/lib/api';
+import { getGiveawayStats, getInitData, type GiveawayStats } from '@/lib/api';
 import { SubscriptionBottomSheet } from './SubscriptionBottomSheet';
 import { Mascot } from './Mascot';
 import { AppIcon } from './AppIcon';
@@ -29,13 +29,10 @@ export function StatsBottomSheet({
 
   useEffect(() => {
     if (!isOpen) return;
-    fetch('/api/users/me/entitlements', { credentials: 'include' })
-      .then(r => r.json())
-      .then((data: { ok?: boolean; data?: { tier?: string } }) => {
-        const tier = data?.data?.tier || 'FREE';
-        setHasAccess(tier === 'PRO' || tier === 'BUSINESS');
-      })
-      .catch(() => setHasAccess(false));
+    getInitData().then((data) => {
+      const tier = data?.config?.subscriptionTier || 'FREE';
+      setHasAccess(tier === 'PRO' || tier === 'BUSINESS');
+    }).catch(() => setHasAccess(false));
   }, [isOpen]);
 
   const loadStats = useCallback(async () => {

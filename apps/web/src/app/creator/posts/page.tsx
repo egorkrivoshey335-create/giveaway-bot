@@ -9,6 +9,7 @@ import {
   deletePostTemplate,
   undoDeletePostTemplate,
   PostTemplate,
+  getInitData,
 } from '@/lib/api';
 import { InlineToast } from '@/components/Toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -160,13 +161,10 @@ export default function PostsPage() {
 
   useEffect(() => {
     loadPosts();
-    fetch('/api/users/me/entitlements', { credentials: 'include' })
-      .then(r => r.json())
-      .then((data: { ok?: boolean; data?: { tier?: string } }) => {
-        const tier = data?.data?.tier as typeof userTier;
-        if (tier) setUserTier(tier);
-      })
-      .catch(() => {});
+    getInitData().then((data) => {
+      const tier = data?.config?.subscriptionTier as typeof userTier;
+      if (tier) setUserTier(tier);
+    }).catch(() => {});
   }, [loadPosts]);
 
   const handleDelete = async (id: string) => {

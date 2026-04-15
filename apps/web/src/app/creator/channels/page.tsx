@@ -9,6 +9,7 @@ import {
   deleteChannel,
   recheckChannel,
   Channel,
+  getInitData,
 } from '@/lib/api';
 import { InlineToast } from '@/components/Toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -227,13 +228,10 @@ export default function ChannelsPage() {
   const [showAddConfirm, setShowAddConfirm] = useState(false);
 
   useEffect(() => {
-    fetch('/api/users/me/entitlements', { credentials: 'include' })
-      .then(r => r.json())
-      .then((data: { ok?: boolean; data?: { tier?: string } }) => {
-        const tier = data?.data?.tier as typeof userTier;
-        if (tier) setUserTier(tier);
-      })
-      .catch(() => {});
+    getInitData().then((data) => {
+      const tier = data?.config?.subscriptionTier as typeof userTier;
+      if (tier) setUserTier(tier);
+    }).catch(() => {});
   }, []);
 
   // Загрузка каналов

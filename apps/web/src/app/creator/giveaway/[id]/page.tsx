@@ -24,6 +24,7 @@ import {
   GiveawayParticipant,
   TopInviter,
   LivenessCheck,
+  getInitData,
 } from '@/lib/api';
 import { TIER_LIMITS } from '@randombeast/shared';
 import { InlineToast } from '@/components/Toast';
@@ -241,16 +242,12 @@ export default function GiveawayDetailsPage() {
 
   useEffect(() => {
     loadGiveaway();
-    // Fetch user tier for statistics gating
-    fetch('/api/users/me/entitlements', { credentials: 'include' })
-      .then(r => r.json())
-      .then((d: { data?: { tier?: string } }) => {
-        const tier = d?.data?.tier as string;
-        if (tier && ['PLUS', 'PRO', 'BUSINESS'].includes(tier)) {
-          setUserTier(tier as 'PLUS' | 'PRO' | 'BUSINESS');
-        }
-      })
-      .catch(() => {});
+    getInitData().then((data) => {
+      const tier = data?.config?.subscriptionTier as string;
+      if (tier && ['FREE', 'PLUS', 'PRO', 'BUSINESS'].includes(tier)) {
+        setUserTier(tier as 'FREE' | 'PLUS' | 'PRO' | 'BUSINESS');
+      }
+    }).catch(() => {});
   }, [loadGiveaway]);
 
   useEffect(() => {

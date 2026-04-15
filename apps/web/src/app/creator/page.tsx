@@ -8,6 +8,7 @@ import {
   getGiveawaysList,
   duplicateGiveaway,
   deleteGiveaway,
+  getInitData,
   GiveawaySummary,
 } from '@/lib/api';
 import { InlineToast } from '@/components/Toast';
@@ -336,13 +337,10 @@ export default function CreatorDashboardPage() {
   const [showSubscription, setShowSubscription] = useState(false);
 
   useEffect(() => {
-    fetch('/api/users/me/entitlements', { credentials: 'include' })
-      .then(r => r.json())
-      .then((data: { ok?: boolean; data?: { tier?: string } }) => {
-        const tier = data?.data?.tier as typeof userTier;
-        if (tier) setUserTier(tier);
-      })
-      .catch(() => {});
+    getInitData().then((data) => {
+      const tier = data?.config?.subscriptionTier as typeof userTier;
+      if (tier) setUserTier(tier);
+    }).catch(() => {});
   }, []);
 
   // Загрузка розыгрышей
