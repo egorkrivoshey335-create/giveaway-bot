@@ -1637,6 +1637,9 @@ interface EntitlementItem {
 
 interface EntitlementsResponse {
   ok: boolean;
+  tier?: string;
+  entitlements?: EntitlementItem[];
+  activeTier?: { id: string; code: string; expiresAt: string | null; autoRenew: boolean } | null;
   items?: EntitlementItem[];
   error?: string;
 }

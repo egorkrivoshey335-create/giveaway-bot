@@ -223,11 +223,13 @@ export function ParticipantSection() {
 
   useEffect(() => {
     getMyEntitlements().then(res => {
-      if (res.ok && res.items) {
-        const tier = getTierFromEntitlements(res.items);
-        setUserTier(tier);
-        const tierItem = res.items.find(i => i.code.startsWith('tier.'));
-        if (tierItem?.expiresAt) setTierExpiry(tierItem.expiresAt);
+      if (res.ok) {
+        if (res.tier) {
+          setUserTier(res.tier as TierKey);
+        } else if (res.entitlements) {
+          setUserTier(getTierFromEntitlements(res.entitlements));
+        }
+        if (res.activeTier?.expiresAt) setTierExpiry(res.activeTier.expiresAt);
       }
     }).catch(() => {});
   }, []);
