@@ -194,12 +194,13 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       const body = internalChannelUpsertSchema.parse(request.body);
       const user = await findOrCreateUser(body.telegramUserId);
 
-      // Check tier limit only for new channels (not updates)
+      // Check tier limit: skip only if channel already belongs to this user
       const existing = await prisma.channel.findUnique({
         where: { telegramChatId: body.telegramChatId },
-        select: { id: true },
+        select: { id: true, addedByUserId: true },
       });
-      if (!existing) {
+      const isOwnChannel = existing?.addedByUserId === user.id;
+      if (!isOwnChannel) {
         const tier = await getUserTier(user.id);
         const maxChannels = TIER_LIMITS.maxChannels[tier];
         const currentCount = await prisma.channel.count({ where: { addedByUserId: user.id } });
@@ -216,6 +217,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       const channel = await prisma.channel.upsert({
         where: { telegramChatId: body.telegramChatId },
         update: {
+          addedByUserId: user.id,
           username: body.username || null,
           title: body.title,
           type: body.type === 'CHANNEL' ? ChannelType.CHANNEL : ChannelType.GROUP,
@@ -224,7 +226,6 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
           permissionsSnapshot: body.permissionsSnapshot as Prisma.InputJsonValue || undefined,
           memberCount: body.memberCount,
           lastCheckedAt: new Date(),
-          // Note: addedByUserId is not updated on upsert - keeps original adder
         },
         create: {
           telegramChatId: body.telegramChatId,
