@@ -412,7 +412,8 @@
       "invalidNumber": "Введите число",
       "checkButton": "Проверить",
       "wrong": "Неверный ответ, попробуйте ещё",
-      "turnstileRequired": "Пройдите проверку Cloudflare"
+      "turnstileRequired": "Пройдите проверку Cloudflare",
+      "loadError": "Не удалось загрузить проверку. Попробуйте ещё раз."
     },
     "success": {
       "title": "Вы участвуете!",

@@ -203,6 +203,7 @@ export default function JoinGiveawayPage() {
   const [captchaAnswer, setCaptchaAnswer] = useState('');
   const [captchaError, setCaptchaError] = useState<string | null>(null);
   const [captchaPassed, setCaptchaPassed] = useState(false);
+  const [captchaLoading, setCaptchaLoading] = useState(false);
 
   // Turnstile
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -557,12 +558,11 @@ export default function JoinGiveawayPage() {
       setSubscriptionStatus(res.channels || []);
 
       if (res.subscribed) {
-        // Все подписки выполнены - переходим к капче или участию
-        if (giveaway.conditions.captchaMode !== 'OFF') {
+        if (giveaway.conditions.captchaMode === 'ALL') {
           await loadCaptcha();
           setScreen('captcha');
         } else {
-          await handleJoin(true);
+          await handleJoin(false);
         }
       }
     } catch (err) {
@@ -576,18 +576,32 @@ export default function JoinGiveawayPage() {
 
   // Загрузка капчи
   const loadCaptcha = useCallback(async () => {
-    try {
-      const res = await generateCaptcha();
-      if (res.ok && res.question && res.token) {
-        setCaptchaQuestion(res.question);
-        setCaptchaToken(res.token);
-        setCaptchaAnswer('');
-        setCaptchaError(null);
+    setCaptchaLoading(true);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await generateCaptcha();
+        if (res.ok && res.question && res.token) {
+          setCaptchaQuestion(res.question);
+          setCaptchaToken(res.token);
+          setCaptchaAnswer('');
+          setCaptchaError(null);
+          setCaptchaLoading(false);
+          return;
+        }
+        if (attempt === 0) {
+          await new Promise(r => setTimeout(r, 500));
+          continue;
+        }
+        setCaptchaError(res.error || t('captcha.loadError'));
+      } catch (err) {
+        console.error('Load captcha error:', err);
+        if (attempt === 1) {
+          setCaptchaError(tErrors('error'));
+        }
       }
-    } catch (err) {
-      console.error('Load captcha error:', err);
     }
-  }, []);
+    setCaptchaLoading(false);
+  }, [t, tErrors]);
 
   // Render Turnstile widget when captcha screen is shown and captchaMode is ALL
   const renderTurnstile = useCallback(() => {
@@ -703,20 +717,19 @@ export default function JoinGiveawayPage() {
   }, [giveawayId, captchaPassed, turnstileToken, referrerUserId, loadCaptcha, loadReferralData, loadBoostData, loadStoryRequestStatus, loadCustomTasks, t, tErrors]);
 
   // Начать участие (кнопка)
-  const handleStartParticipation = useCallback(() => {
+  const handleStartParticipation = useCallback(async () => {
     if (!giveaway) return;
 
-    // Если есть обязательные подписки - проверяем
     if (giveaway.conditions.requiredSubscriptions.length > 0) {
       setScreen('check_subscription');
       handleCheckSubscription();
-    } else if (giveaway.conditions.captchaMode !== 'OFF') {
-      // Если есть капча - показываем
-      loadCaptcha();
+    } else if (giveaway.conditions.captchaMode === 'ALL') {
+      await loadCaptcha();
       setScreen('captcha');
     } else {
-      // Иначе сразу участвуем
-      handleJoin(false);
+      // OFF or SUSPICIOUS_ONLY: try joining directly.
+      // Backend will return CAPTCHA_REQUIRED if the user is suspicious.
+      await handleJoin(false);
     }
   }, [giveaway, handleCheckSubscription, loadCaptcha, handleJoin]);
 
@@ -943,6 +956,10 @@ export default function JoinGiveawayPage() {
             </div>
           )}
 
+          {error && (
+            <p className="text-red-500 text-sm text-center mb-4">{error}</p>
+          )}
+
           {/* Кнопка участия */}
           <button
             onClick={handleStartParticipation}
@@ -1036,36 +1053,66 @@ export default function JoinGiveawayPage() {
             </p>
           </div>
 
-          <div className="bg-tg-secondary rounded-lg p-6 mb-4 text-center">
-            <div className="text-3xl font-mono mb-4">{captchaQuestion}</div>
-            <input
-              type="number"
-              inputMode="numeric"
-              value={captchaAnswer}
-              onChange={(e) => setCaptchaAnswer(e.target.value)}
-              placeholder={t('captcha.placeholder')}
-              className="w-full bg-tg-bg rounded-lg px-4 py-3 text-center text-2xl"
-              autoFocus
-            />
-          </div>
+          {captchaQuestion ? (
+            <>
+              <div className="bg-tg-secondary rounded-lg p-6 mb-4 text-center">
+                {captchaLoading ? (
+                  <div className="py-4">
+                    <div className="animate-spin w-8 h-8 border-3 border-tg-button border-t-transparent rounded-full mx-auto" />
+                  </div>
+                ) : (
+                  <div className="text-3xl font-mono mb-4">{captchaQuestion}</div>
+                )}
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={captchaAnswer}
+                  onChange={(e) => setCaptchaAnswer(e.target.value)}
+                  placeholder={t('captcha.placeholder')}
+                  className="w-full bg-tg-bg rounded-lg px-4 py-3 text-center text-2xl"
+                  autoFocus
+                />
+              </div>
 
-          {showTurnstile && (
-            <div className="flex justify-center mb-4">
-              <div ref={turnstileContainerRef} />
-            </div>
+              {showTurnstile && (
+                <div className="flex justify-center mb-4">
+                  <div ref={turnstileContainerRef} />
+                </div>
+              )}
+
+              {captchaError && (
+                <p className="text-red-500 text-sm text-center mb-4">{captchaError}</p>
+              )}
+
+              <button
+                onClick={handleVerifyCaptcha}
+                disabled={!canSubmit || joining || captchaLoading}
+                className="w-full bg-tg-button text-tg-button-text rounded-lg py-4 font-medium disabled:opacity-50"
+              >
+                {joining ? <>⏳ {tCommon('loading')}</> : <><AppIcon name="icon-success" size={14} /> {t('captcha.checkButton')}</>}
+              </button>
+            </>
+          ) : (
+            <>
+              {captchaLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin w-10 h-10 border-3 border-tg-button border-t-transparent rounded-full" />
+                </div>
+              ) : (
+                <>
+                  {captchaError && (
+                    <p className="text-red-500 text-sm text-center mb-4">{captchaError}</p>
+                  )}
+                  <button
+                    onClick={loadCaptcha}
+                    className="w-full bg-tg-button text-tg-button-text rounded-lg py-4 font-medium"
+                  >
+                    <AppIcon name="icon-refresh" size={14} /> {t('captcha.checkButton')}
+                  </button>
+                </>
+              )}
+            </>
           )}
-
-          {captchaError && (
-            <p className="text-red-500 text-sm text-center mb-4">{captchaError}</p>
-          )}
-
-          <button
-            onClick={handleVerifyCaptcha}
-            disabled={!canSubmit || joining}
-            className="w-full bg-tg-button text-tg-button-text rounded-lg py-4 font-medium disabled:opacity-50"
-          >
-            {joining ? <>⏳ {tCommon('loading')}</> : <><AppIcon name="icon-success" size={14} /> {t('captcha.checkButton')}</>}
-          </button>
         </div>
       </main>
     );

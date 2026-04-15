@@ -406,7 +406,8 @@
       "invalidNumber": "Enter a number",
       "checkButton": "Verify",
       "wrong": "Wrong answer, try again",
-      "turnstileRequired": "Please complete the Cloudflare check"
+      "turnstileRequired": "Please complete the Cloudflare check",
+      "loadError": "Failed to load verification. Please try again."
     },
     "success": {
       "title": "You're in!",

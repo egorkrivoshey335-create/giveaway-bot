@@ -406,7 +406,8 @@
       "invalidNumber": "Сан енгізіңіз",
       "checkButton": "Тексеру",
       "wrong": "Қате жауап, қайта көріңіз",
-      "turnstileRequired": "Cloudflare тексеруден өтіңіз"
+      "turnstileRequired": "Cloudflare тексеруден өтіңіз",
+      "loadError": "Тексеруді жүктеу мүмкін болмады. Қайта көріңіз."
     },
     "success": {
       "title": "Сіз қатысып жатырсыз!",
