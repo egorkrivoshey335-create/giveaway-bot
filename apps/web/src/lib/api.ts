@@ -2331,3 +2331,28 @@ export async function rejectLiveness(
 export function getLivenessPhotoUrl(giveawayId: string, userId: string): string {
   return `${API_URL}/giveaways/${giveawayId}/liveness/${userId}/photo`;
 }
+
+// =============================================================================
+// Giveaway Reminders
+// =============================================================================
+
+export async function setGiveawayReminder(giveawayId: string): Promise<{ ok: boolean; remindAt?: string; error?: string }> {
+  return apiFetch(`${API_URL}/giveaways/${giveawayId}/remind-me`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+}
+
+export async function removeGiveawayReminder(giveawayId: string): Promise<{ ok: boolean; error?: string }> {
+  return apiFetch(`${API_URL}/giveaways/${giveawayId}/remind-me`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+}
+
+export async function getGiveawayReminder(giveawayId: string): Promise<{ ok: boolean; hasReminder?: boolean; remindAt?: string; error?: string }> {
+  return apiFetch(`${API_URL}/giveaways/${giveawayId}/remind-me`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+}

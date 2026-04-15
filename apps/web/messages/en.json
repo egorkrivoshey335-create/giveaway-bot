@@ -373,6 +373,14 @@
       "viewResults": "View results",
       "goHome": "Go home"
     },
+    "scheduled": {
+      "title": "Giveaway hasn't started yet",
+      "startsAt": "Starts at",
+      "description": "The giveaway will start at the specified time. Come back later to participate!",
+      "remindMe": "Remind me when it starts",
+      "reminderSet": "Reminder set ✓",
+      "goHome": "Go home"
+    },
     "info": {
       "invitedByFriend": "You were invited by a friend! Participate and get a bonus ticket.",
       "participants": "participants",

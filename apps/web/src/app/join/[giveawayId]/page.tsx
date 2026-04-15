@@ -28,6 +28,9 @@ import {
   completeCustomTask,
   getMyCustomTaskCompletions,
   uploadLivenessPhoto,
+  setGiveawayReminder,
+  removeGiveawayReminder,
+  getGiveawayReminder,
   PublicGiveaway,
   Participation,
   InvitedFriend,
@@ -75,6 +78,100 @@ function formatTimeRemaining(endAt: string | null): string {
   if (days > 0) return `${days}д ${hours}ч`;
   if (hours > 0) return `${hours}ч ${minutes}м`;
   return `${minutes}м`;
+}
+
+function ScheduledScreen({
+  giveaway,
+  t,
+  router,
+}: {
+  giveaway: PublicGiveaway;
+  t: ReturnType<typeof useTranslations>;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const [hasReminder, setHasReminder] = useState(false);
+  const [reminderLoading, setReminderLoading] = useState(false);
+  const [checked, setChecked] = useState(false);
+
+  const startDate = giveaway.startAt ? new Date(giveaway.startAt) : null;
+
+  useEffect(() => {
+    getGiveawayReminder(giveaway.id).then(res => {
+      if (res.ok) setHasReminder(!!res.hasReminder);
+      setChecked(true);
+    }).catch(() => setChecked(true));
+  }, [giveaway.id]);
+
+  const toggleReminder = async () => {
+    setReminderLoading(true);
+    try {
+      if (hasReminder) {
+        const res = await removeGiveawayReminder(giveaway.id);
+        if (res.ok) setHasReminder(false);
+      } else {
+        const res = await setGiveawayReminder(giveaway.id);
+        if (res.ok) setHasReminder(true);
+      }
+    } catch { /* ignore */ }
+    setReminderLoading(false);
+  };
+
+  const dateFormatted = startDate
+    ? startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
+  const timeFormatted = startDate
+    ? startDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+    : null;
+
+  return (
+    <main className="min-h-screen p-4 flex items-center justify-center">
+      <div className="max-w-md w-full text-center">
+        <div className="flex justify-center mb-2">
+          <Mascot type="state-loading" size={160} loop autoplay />
+        </div>
+        <h1 className="text-xl font-bold mb-2">{t('scheduled.title')}</h1>
+        <p className="text-tg-hint mb-4">{giveaway.title}</p>
+
+        <p className="text-sm text-tg-hint mb-4">{t('scheduled.description')}</p>
+
+        {startDate && (
+          <div className="border-2 border-dashed border-tg-button/40 rounded-2xl p-5 mb-6 bg-tg-button/5">
+            <div className="text-xs text-tg-hint uppercase tracking-wider mb-2 font-medium">
+              {t('scheduled.startsAt')}
+            </div>
+            <div className="text-2xl font-bold text-tg-text mb-1">
+              {timeFormatted}
+            </div>
+            <div className="text-sm text-tg-hint">
+              {dateFormatted}
+            </div>
+          </div>
+        )}
+
+        {checked && (
+          <button
+            onClick={toggleReminder}
+            disabled={reminderLoading}
+            className={`w-full rounded-xl py-3.5 mb-3 font-medium flex items-center justify-center gap-2.5 transition-all active:scale-[0.97] ${
+              hasReminder
+                ? 'bg-green-500/10 border border-green-500/30 text-green-600'
+                : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+            } ${reminderLoading ? 'opacity-60' : ''}`}
+          >
+            <AppIcon name="icon-notification" size={18} />
+            {hasReminder ? t('scheduled.reminderSet') : t('scheduled.remindMe')}
+          </button>
+        )}
+
+        <button
+          onClick={() => router.push('/')}
+          className="w-full bg-tg-secondary text-tg-text rounded-lg py-3"
+        >
+          {t('scheduled.goHome')}
+        </button>
+      </div>
+    </main>
+  );
 }
 
 export default function JoinGiveawayPage() {
@@ -743,59 +840,7 @@ export default function JoinGiveawayPage() {
 
   // Розыгрыш ещё не начался (SCHEDULED)
   if (screen === 'scheduled' && giveaway) {
-    const startDate = giveaway.startAt ? new Date(giveaway.startAt) : null;
-    
-    return (
-      <main className="min-h-screen p-4 flex items-center justify-center">
-        <div className="max-w-md w-full text-center">
-          <div className="flex justify-center mb-2">
-            <Mascot type="state-loading" size={160} loop autoplay />
-          </div>
-          <h1 className="text-xl font-bold mb-2">{t('scheduled.title')}</h1>
-          <p className="text-tg-hint mb-4">
-            {giveaway.title}
-          </p>
-          
-          {/* Дата начала */}
-          {startDate && (
-            <div className="bg-tg-secondary rounded-xl p-4 mb-6">
-              <div className="text-sm text-tg-hint mb-2">{t('scheduled.startsAt')}</div>
-              <div className="text-lg font-semibold">
-                {startDate.toLocaleDateString('ru-RU', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </div>
-            </div>
-          )}
-          
-          <p className="text-sm text-tg-hint mb-6">
-            {t('scheduled.description')}
-          </p>
-          
-          {/* TODO: Кнопка "Напомнить" требует Block 14 (Reminders) */}
-          <button
-            onClick={() => {
-              // TODO: Интеграция с Block 14 для уведомлений
-              alert('Напоминание о начале розыгрыша будет реализовано в Block 14');
-            }}
-            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg py-3 mb-3 font-medium"
-          >
-            🔔 {t('scheduled.remindMe')}
-          </button>
-          
-          <button
-            onClick={() => router.push('/')}
-            className="w-full bg-tg-secondary text-tg-text rounded-lg py-3"
-          >
-            {t('scheduled.goHome')}
-          </button>
-        </div>
-      </main>
-    );
+    return <ScheduledScreen giveaway={giveaway} t={t} router={router} />;
   }
 
   // Розыгрыш отменён (CANCELLED)

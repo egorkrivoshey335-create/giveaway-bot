@@ -17,12 +17,12 @@ export const remindersRoutes: FastifyPluginAsync = async (fastify) => {
 
       const { id: giveawayId } = request.params;
 
-      // Проверяем розыгрыш
       const giveaway = await prisma.giveaway.findUnique({
         where: { id: giveawayId },
         select: {
           id: true,
           status: true,
+          startAt: true,
           endAt: true,
           title: true,
         },
@@ -32,18 +32,20 @@ export const remindersRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.notFound('Розыгрыш не найден');
       }
 
-      // Можно подписаться только на активные/запланированные
       if (giveaway.status !== GiveawayStatus.ACTIVE && giveaway.status !== GiveawayStatus.SCHEDULED) {
         return reply.badRequest('Можно подписаться только на активные или запланированные розыгрыши');
       }
 
-      // Вычисляем время напоминания (за 1 час до окончания или сейчас + 1 день если нет endAt)
+      // For SCHEDULED giveaways: remind 1h before startAt
+      // For ACTIVE giveaways: remind 1h before endAt
       let remindAt: Date;
-      if (giveaway.endAt) {
+      if (giveaway.status === GiveawayStatus.SCHEDULED && giveaway.startAt) {
+        const oneHourBefore = new Date(giveaway.startAt.getTime() - 60 * 60 * 1000);
+        remindAt = oneHourBefore > new Date() ? oneHourBefore : new Date(Date.now() + 60 * 1000);
+      } else if (giveaway.endAt) {
         const oneHourBefore = new Date(giveaway.endAt.getTime() - 60 * 60 * 1000);
         remindAt = oneHourBefore > new Date() ? oneHourBefore : new Date(Date.now() + 60 * 1000);
       } else {
-        // Если нет даты окончания — напоминание через 24 часа
         remindAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
       }
 
