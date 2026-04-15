@@ -194,13 +194,21 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       const body = internalChannelUpsertSchema.parse(request.body);
       const user = await findOrCreateUser(body.telegramUserId);
 
-      // Check tier limit: skip only if channel already belongs to this user
+      // Check if channel already exists and belongs to another user
       const existing = await prisma.channel.findUnique({
         where: { telegramChatId: body.telegramChatId },
         select: { id: true, addedByUserId: true },
       });
-      const isOwnChannel = existing?.addedByUserId === user.id;
-      if (!isOwnChannel) {
+      if (existing && existing.addedByUserId !== user.id) {
+        return reply.status(409).send({
+          ok: false,
+          error: 'Этот канал/группа уже добавлен(а) другим пользователем.',
+          code: 'CHANNEL_OWNED_BY_OTHER',
+        });
+      }
+
+      // Check tier limit for new channels only
+      if (!existing) {
         const tier = await getUserTier(user.id);
         const maxChannels = TIER_LIMITS.maxChannels[tier];
         const currentCount = await prisma.channel.count({ where: { addedByUserId: user.id } });
@@ -217,7 +225,6 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       const channel = await prisma.channel.upsert({
         where: { telegramChatId: body.telegramChatId },
         update: {
-          addedByUserId: user.id,
           username: body.username || null,
           title: body.title,
           type: body.type === 'CHANNEL' ? ChannelType.CHANNEL : ChannelType.GROUP,

@@ -306,6 +306,18 @@ export async function handleChannelAddition(ctx: Context, targetType: 'CHANNEL' 
     });
 
     if (!result.ok) {
+      if (result.error?.includes('другим пользователем') || result.error?.includes('CHANNEL_OWNED_BY_OTHER')) {
+        const ownedMsg = locale === 'en'
+          ? '⚠️ This channel/group is already added by another user. Each channel can only be managed by one account.'
+          : locale === 'kk'
+          ? '⚠️ Бұл арна/топ басқа пайдаланушы қосқан. Әр арна тек бір аккаунтпен басқарылады.'
+          : '⚠️ Этот канал/группа уже добавлен(а) другим пользователем. Каждый канал может управляться только одним аккаунтом.';
+        await ctx.reply(ownedMsg, {
+          parse_mode: 'HTML',
+          reply_markup: createChannelManagementKeyboard(locale),
+        });
+        return;
+      }
       const errorPrefix = t(locale, 'channels.saveError');
       await ctx.reply(`${errorPrefix} ${result.error}`, { parse_mode: 'HTML' });
       return;
