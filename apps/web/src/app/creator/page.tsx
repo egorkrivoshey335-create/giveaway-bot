@@ -159,7 +159,14 @@ function GiveawayCard({
             {giveaway.isSandbox && (
               <span className="text-xs bg-orange-500/15 text-orange-400 px-2 py-0.5 rounded-full font-medium flex-shrink-0 flex items-center gap-1"><AppIcon name="icon-sandbox" size={12} /> Тест</span>
             )}
-            <h3 className="font-semibold text-lg line-clamp-2">{giveaway.title || tCard('noTitle')}</h3>
+            <div className="relative group min-w-0">
+              <h3 className="font-semibold text-lg truncate">{giveaway.title || tCard('noTitle')}</h3>
+              {giveaway.title && giveaway.title.length > 20 && (
+                <div className="absolute left-0 bottom-full mb-2 px-3 py-2 bg-tg-bg text-tg-text text-sm rounded-xl shadow-lg border border-tg-secondary opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out translate-y-1 group-hover:translate-y-0 pointer-events-none z-50 max-w-[280px] whitespace-normal">
+                  {giveaway.title}
+                </div>
+              )}
+            </div>
           </div>
           <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap flex items-center gap-1 ${getStatusBadgeClass(giveaway.status)}`}>
             <StatusIcon status={giveaway.status} />

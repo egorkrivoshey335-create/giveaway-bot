@@ -757,17 +757,17 @@ export default function GiveawayDetailsPage() {
             {stats && stats.participantsGrowth?.length > 0 && (
               <div className="bg-tg-secondary rounded-xl p-4 relative">
                 <h3 className="font-medium mb-3 flex items-center gap-2"><AppIcon name="icon-analytics" variant="brand" size={18} /> {t('growth.title')}</h3>
-                <div className={`flex items-end gap-1 h-24 ${userTier === 'FREE' ? 'blur-sm select-none' : ''}`}>
+                <div className={`flex items-end gap-1 ${userTier === 'FREE' ? 'blur-sm select-none' : ''}`} style={{ height: '96px' }}>
                   {stats.participantsGrowth.map((day, i) => {
                     const maxCount = Math.max(...stats.participantsGrowth.map(d => d.count), 1);
-                    const height = (day.count / maxCount) * 100;
+                    const barPx = Math.max(Math.round((day.count / maxCount) * 76), 3);
                     return (
-                      <div key={i} className="flex-1 flex flex-col items-center">
+                      <div key={i} className="flex-1 flex flex-col items-center justify-end">
                         <div
-                          className="w-full bg-tg-button rounded-t"
-                          style={{ height: `${Math.max(height, 4)}%` }}
+                          className="w-full bg-tg-button rounded-t transition-all duration-300"
+                          style={{ height: `${barPx}px` }}
                         />
-                        <div className="text-[10px] text-tg-hint mt-1">
+                        <div className="text-[10px] text-tg-hint mt-1 flex-shrink-0">
                           {new Date(day.date).getDate()}
                         </div>
                       </div>
