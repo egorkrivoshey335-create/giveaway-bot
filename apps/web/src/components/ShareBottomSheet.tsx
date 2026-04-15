@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
+import { motion, AnimatePresence } from 'framer-motion';
 import { BottomSheet } from './ui/BottomSheet';
 import { Tabs } from './ui/Tabs';
 import { getTrackingLinks, createTrackingLink, type TrackingLink } from '@/lib/api';
@@ -106,9 +107,17 @@ export function ShareBottomSheet({
           </div>
         )}
 
-        {/* Таб: Команды */}
+        {/* Таб: Контент */}
+        <AnimatePresence mode="wait">
         {activeTab === 'commands' && (
-          <div className="space-y-4">
+          <motion.div
+            key="commands"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="space-y-4"
+          >
             {/* Инлайн команда */}
             <div>
               <div className="text-sm text-tg-hint mb-2">
@@ -155,12 +164,18 @@ export function ShareBottomSheet({
             <div className="bg-tg-secondary rounded-lg p-3 text-sm text-tg-hint">
               ✨ {t('share.commandHint')}
             </div>
-          </div>
+          </motion.div>
         )}
 
-        {/* Таб: Ссылки */}
         {activeTab === 'links' && (
-          <div className="space-y-4">
+          <motion.div
+            key="links"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="space-y-4"
+          >
             {/* Лимит ссылок */}
             {maxLinks !== Infinity && (
               <div className="text-xs text-tg-hint text-center">
@@ -244,8 +259,9 @@ export function ShareBottomSheet({
                 {t('share.noLinks')}
               </div>
             )}
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </div>
     </BottomSheet>
   );

@@ -237,7 +237,7 @@ export default function GiveawayViewPage() {
   if (error || !giveaway) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-tg-bg p-4">
-        <div className="text-center max-w-sm">
+        <div className="text-center max-w-sm animate-slideIn">
           <div className="text-6xl mb-4">😕</div>
           <h1 className="text-xl font-bold mb-2">{tCommon('error')}</h1>
           <p className="text-tg-hint mb-6">{error}</p>
@@ -285,7 +285,7 @@ export default function GiveawayViewPage() {
         </span>
       </div>
 
-      <div className="px-4 pt-5 space-y-4 max-w-lg mx-auto">
+      <div className="px-4 pt-5 space-y-4 max-w-lg mx-auto animate-slideIn">
         {/* Основная карточка */}
         <div className="bg-tg-secondary/10 rounded-2xl p-5 space-y-3">
           <h2 className="text-xl font-bold">{giveaway.title}</h2>

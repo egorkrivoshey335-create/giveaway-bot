@@ -125,7 +125,7 @@ function ScheduledScreen({
 
   return (
     <main className="min-h-screen p-4 flex items-center justify-center">
-      <div className="max-w-md w-full text-center">
+      <div className="max-w-md w-full text-center animate-slideIn">
         <div className="flex justify-center mb-2">
           <Mascot type="state-loading" size={160} loop autoplay />
         </div>
@@ -782,7 +782,7 @@ export default function JoinGiveawayPage() {
   if (screen === 'auth_required') {
     return (
       <main className="min-h-screen p-4 flex items-center justify-center">
-        <div className="max-w-md w-full text-center">
+        <div className="max-w-md w-full text-center animate-slideIn">
           <div className="text-6xl mb-4"><AppIcon name="icon-lock" size={14} /></div>
           <h1 className="text-xl font-bold mb-2">{t('auth.title')}</h1>
           <p className="text-tg-hint mb-6">
@@ -803,7 +803,7 @@ export default function JoinGiveawayPage() {
   if (screen === 'error') {
     return (
       <main className="min-h-screen p-4 flex items-center justify-center">
-        <div className="max-w-md w-full text-center">
+        <div className="max-w-md w-full text-center animate-slideIn">
           <div className="flex justify-center mb-2">
             <Mascot type="state-error" size={160} loop autoplay />
           </div>
@@ -824,7 +824,7 @@ export default function JoinGiveawayPage() {
   if (screen === 'finished') {
     return (
       <main className="min-h-screen p-4 flex items-center justify-center">
-        <div className="max-w-md w-full text-center">
+        <div className="max-w-md w-full text-center animate-slideIn">
           <div className="flex justify-center mb-2">
             <Mascot type="state-success" size={160} loop autoplay />
           </div>
@@ -860,7 +860,7 @@ export default function JoinGiveawayPage() {
   if (screen === 'cancelled' && giveaway) {
     return (
       <main className="min-h-screen p-4 flex items-center justify-center">
-        <div className="max-w-md w-full text-center">
+        <div className="max-w-md w-full text-center animate-slideIn">
           <div className="flex justify-center mb-2">
             <Mascot type="state-error" size={160} loop autoplay />
           </div>
@@ -892,7 +892,7 @@ export default function JoinGiveawayPage() {
   if (screen === 'info' && giveaway) {
     return (
       <main className="min-h-screen p-4">
-        <div className="max-w-md mx-auto">
+        <div className="max-w-md mx-auto animate-slideIn">
           {/* Заголовок */}
           <div className="text-center mb-6">
             <div className="flex justify-center mb-2">
@@ -977,7 +977,7 @@ export default function JoinGiveawayPage() {
   if (screen === 'check_subscription' && giveaway) {
     return (
       <main className="min-h-screen p-4">
-        <div className="max-w-md mx-auto">
+        <div className="max-w-md mx-auto animate-slideIn">
           <div className="text-center mb-6">
             <div className="flex justify-center mb-2">
               <Mascot type="state-locked" size={160} loop autoplay />
@@ -1042,7 +1042,7 @@ export default function JoinGiveawayPage() {
             onReady={() => setTurnstileReady(true)}
           />
         )}
-        <div className="max-w-md mx-auto">
+        <div className="max-w-md mx-auto animate-slideIn">
           <div className="text-center mb-6">
             <div className="flex justify-center mb-2">
               <Mascot type="state-captcha" size={160} loop autoplay />
@@ -1124,7 +1124,7 @@ export default function JoinGiveawayPage() {
       <main className="min-h-screen p-4 pb-8">
         <ConfettiOverlay trigger={showConfetti} />
         
-        <div className="max-w-md mx-auto">
+        <div className="max-w-md mx-auto animate-slideIn">
           {/* Маскот */}
           <div className="flex justify-center mb-2">
             <Mascot 
@@ -1652,7 +1652,7 @@ export default function JoinGiveawayPage() {
   if (screen === 'already_joined' && participation) {
     return (
       <main className="min-h-screen p-4 pb-8">
-        <div className="max-w-md mx-auto">
+        <div className="max-w-md mx-auto animate-slideIn">
           {/* Маскот */}
           <div className="flex justify-center mb-2">
             <Mascot 
@@ -1808,7 +1808,7 @@ export default function JoinGiveawayPage() {
 
     return (
       <main className="min-h-screen p-4 bg-tg-bg">
-        <div className="max-w-md mx-auto">
+        <div className="max-w-md mx-auto animate-slideIn">
           <div className="text-center mb-8">
             <div className="text-5xl mb-4"><AppIcon name="icon-search" size={14} /></div>
             <h1 className="text-2xl font-bold mb-2">Проверка живости</h1>

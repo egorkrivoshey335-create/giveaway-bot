@@ -433,7 +433,7 @@ export default function GiveawayDetailsPage() {
     <div className="min-h-screen bg-tg-bg">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-tg-bg border-b border-tg-secondary">
-        <div className="max-w-xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-xl mx-auto px-4 py-3 flex items-center gap-2">
           <button
             onClick={() => router.push('/creator')}
             className="flex items-center gap-1 text-tg-link text-sm hover:opacity-70"
