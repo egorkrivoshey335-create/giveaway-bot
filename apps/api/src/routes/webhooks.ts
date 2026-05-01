@@ -348,6 +348,28 @@ export const webhooksRoutes: FastifyPluginAsync = async (fastify) => {
     // Cardlink ждёт код 200 (ретраит при любом другом)
     return reply.status(200).send('OK');
   });
+
+  /**
+   * POST /webhooks/cardlink/refund
+   * Заглушка для Refund postback от Cardlink.
+   * Пока что просто логируем и возвращаем 200, чтобы Cardlink не ретраил.
+   * TODO: реализовать обработку возврата (обновить purchase.status = REFUNDED, отозвать entitlement).
+   */
+  fastify.post('/cardlink/refund', async (request, reply) => {
+    fastify.log.warn({ body: request.body }, 'Cardlink refund webhook received (handler not implemented)');
+    return reply.status(200).send('OK');
+  });
+
+  /**
+   * POST /webhooks/cardlink/chargeback
+   * Заглушка для Chargeback postback от Cardlink.
+   * Пока что просто логируем и возвращаем 200, чтобы Cardlink не ретраил.
+   * TODO: реализовать обработку чарджбэка (бан пользователя? уведомление админу?).
+   */
+  fastify.post('/cardlink/chargeback', async (request, reply) => {
+    fastify.log.warn({ body: request.body }, 'Cardlink chargeback webhook received (handler not implemented)');
+    return reply.status(200).send('OK');
+  });
 };
 
 // ============================================================================

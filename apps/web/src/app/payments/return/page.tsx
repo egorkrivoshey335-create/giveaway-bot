@@ -74,7 +74,9 @@ function PaymentReturnContent() {
         {/* Загрузка */}
         {status === 'loading' && (
           <div className="text-center">
-            <div className="animate-spin w-12 h-12 border-4 border-tg-button border-t-transparent rounded-full mx-auto mb-4" />
+            <div className="flex justify-center mb-4">
+              <Mascot type="state-empty" size={180} loop autoplay />
+            </div>
             <h2 className="text-xl font-semibold mb-2">{t('processing')}</h2>
             <p className="text-tg-hint">{t('processingHint')}</p>
           </div>
@@ -111,7 +113,9 @@ function PaymentReturnContent() {
         {/* Ожидание */}
         {status === 'pending' && (
           <div className="text-center">
-            <div className="animate-spin w-12 h-12 border-4 border-yellow-500 border-t-transparent rounded-full mx-auto mb-4" />
+            <div className="flex justify-center mb-4">
+              <Mascot type="state-empty" size={180} loop autoplay />
+            </div>
             <h2 className="text-xl font-semibold mb-2">{t('pending')}</h2>
             <p className="text-tg-hint mb-2">
               {t('pendingHint')}
@@ -152,8 +156,12 @@ function PaymentReturnContent() {
 export default function PaymentReturnPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-tg-bg flex items-center justify-center">
-        <div className="animate-spin w-12 h-12 border-4 border-tg-button border-t-transparent rounded-full" />
+      <div className="min-h-screen bg-tg-bg flex items-center justify-center p-4">
+        <div className="max-w-sm w-full text-center">
+          <div className="flex justify-center mb-4">
+            <Mascot type="state-empty" size={180} loop autoplay />
+          </div>
+        </div>
       </div>
     }>
       <PaymentReturnContent />
