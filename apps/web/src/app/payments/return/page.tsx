@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { checkPaymentStatus } from '@/lib/api';
-import { AppIcon } from '@/components/AppIcon';
 import { Mascot } from '@/components/Mascot';
 
 type PaymentStatus = 'loading' | 'success' | 'pending' | 'error';
@@ -74,9 +73,7 @@ function PaymentReturnContent() {
         {/* Загрузка */}
         {status === 'loading' && (
           <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <Mascot type="state-empty" size={180} loop autoplay />
-            </div>
+            <div className="animate-spin w-12 h-12 border-4 border-tg-button border-t-transparent rounded-full mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">{t('processing')}</h2>
             <p className="text-tg-hint">{t('processingHint')}</p>
           </div>
@@ -113,9 +110,7 @@ function PaymentReturnContent() {
         {/* Ожидание */}
         {status === 'pending' && (
           <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <Mascot type="state-empty" size={180} loop autoplay />
-            </div>
+            <div className="animate-spin w-12 h-12 border-4 border-yellow-500 border-t-transparent rounded-full mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">{t('pending')}</h2>
             <p className="text-tg-hint mb-2">
               {t('pendingHint')}
@@ -129,7 +124,9 @@ function PaymentReturnContent() {
         {/* Ошибка */}
         {status === 'error' && (
           <div className="text-center bg-tg-secondary rounded-2xl p-6">
-            <div className="text-6xl mb-4"><AppIcon name="icon-error" size={14} /></div>
+            <div className="flex justify-center mb-4">
+              <Mascot type="state-error" size={180} loop autoplay />
+            </div>
             <h2 className="text-xl font-bold mb-2">{t('error')}</h2>
             <p className="text-tg-hint mb-6">
               {t('errorHint')}
@@ -156,12 +153,8 @@ function PaymentReturnContent() {
 export default function PaymentReturnPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-tg-bg flex items-center justify-center p-4">
-        <div className="max-w-sm w-full text-center">
-          <div className="flex justify-center mb-4">
-            <Mascot type="state-empty" size={180} loop autoplay />
-          </div>
-        </div>
+      <div className="min-h-screen bg-tg-bg flex items-center justify-center">
+        <div className="animate-spin w-12 h-12 border-4 border-tg-button border-t-transparent rounded-full" />
       </div>
     }>
       <PaymentReturnContent />
