@@ -1,133 +1,26 @@
 /**
  * RandomBeast — Webhooks Routes
  *
- * Единая точка обработки webhook'ов (YooKassa, Telegram Bot).
- * YooKassa webhook: IP whitelist + HMAC-SHA256 подпись + обработка платежей.
+ * Единая точка обработки webhook'ов:
+ *   - Telegram Bot updates
+ *   - Cardlink payment postback (заменил ЮKassa)
+ *
+ * Cardlink postback приходит в формате `application/x-www-form-urlencoded`,
+ * подпись = strtoupper(md5(OutSum + ":" + InvId + ":" + apiToken))
  *
  * @packageDocumentation
  */
 
-import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
+import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { prisma, PurchaseStatus } from '@randombeast/database';
-import { ErrorCode } from '@randombeast/shared';
 import { config } from '../config.js';
-import crypto from 'crypto';
+import {
+  verifyCardlinkSignature,
+  type CardlinkPaymentPostback,
+} from '../lib/cardlink.js';
 import { awardPatronBadge } from '../lib/badges.js';
 import { notifyNewPurchase } from '../lib/admin-notify.js';
-
-// ============================================================================
-// IP Whitelist ЮKassa
-// https://yookassa.ru/developers/using-api/webhooks#ip
-// ============================================================================
-
-/** Список IP-диапазонов ЮKassa в CIDR нотации */
-const YOOKASSA_IP_RANGES = [
-  { base: [185, 71, 76, 0], prefix: 27 },  // 185.71.76.0/27
-  { base: [185, 71, 77, 0], prefix: 27 },  // 185.71.77.0/27
-  { base: [77, 75, 153, 0], prefix: 25 },  // 77.75.153.0/25
-  // IPv6 диапазоны ЮKassa (для полноты)
-];
-
-/** Проверить, входит ли IP в CIDR диапазон */
-function ipInCIDR(ip: string, base: number[], prefix: number): boolean {
-  const parts = ip.split('.').map(Number);
-  if (parts.length !== 4 || parts.some(p => isNaN(p) || p < 0 || p > 255)) {
-    return false;
-  }
-
-  const ipInt = (parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3];
-  const baseInt = (base[0] << 24) | (base[1] << 16) | (base[2] << 8) | base[3];
-  const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
-
-  return (ipInt & mask) === (baseInt & mask);
-}
-
-/** Проверить IP клиента на принадлежность ЮKassa */
-function isYooKassaIP(ip: string): boolean {
-  // В dev режиме разрешаем localhost
-  if (config.isDev && (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1')) {
-    return true;
-  }
-
-  // Убираем IPv6 prefix
-  const cleanIp = ip.replace(/^::ffff:/, '');
-
-  return YOOKASSA_IP_RANGES.some(range => ipInCIDR(cleanIp, range.base, range.prefix));
-}
-
-/** Получить реальный IP клиента (с учётом Nginx proxy) */
-function getClientIP(request: FastifyRequest): string {
-  const forwarded = request.headers['x-forwarded-for'];
-  if (forwarded) {
-    const firstIP = (Array.isArray(forwarded) ? forwarded[0] : forwarded)
-      .split(',')[0]
-      .trim();
-    return firstIP;
-  }
-  return request.ip;
-}
-
-// ============================================================================
-// YooKassa signature verification
-// ============================================================================
-
-/**
- * Проверка HMAC-SHA256 подписи от ЮKassa
- * @see https://yookassa.ru/developers/using-api/webhooks#notification-auth
- */
-function verifyYooKassaSignature(rawBody: string, signature: string, secret: string): boolean {
-  try {
-    const expectedSignature = crypto
-      .createHmac('sha256', secret)
-      .update(rawBody)
-      .digest('hex');
-
-    // timing-safe comparison для защиты от timing attacks
-    if (expectedSignature.length !== signature.length) return false;
-
-    return crypto.timingSafeEqual(
-      Buffer.from(signature, 'hex'),
-      Buffer.from(expectedSignature, 'hex')
-    );
-  } catch {
-    return false;
-  }
-}
-
-// ============================================================================
-// YooKassa payload types
-// ============================================================================
-
-interface YooKassaPaymentObject {
-  id: string;
-  status: 'pending' | 'waiting_for_capture' | 'succeeded' | 'canceled';
-  amount: { value: string; currency: string };
-  metadata?: Record<string, string>;
-  payment_method?: { type: string; saved?: boolean };
-  refundable?: boolean;
-  captured_at?: string;
-  description?: string;
-}
-
-interface YooKassaRefundObject {
-  id: string;
-  payment_id: string;
-  status: string;
-  amount: { value: string; currency: string };
-}
-
-type YooKassaWebhookEvent =
-  | 'payment.succeeded'
-  | 'payment.canceled'
-  | 'payment.waiting_for_capture'
-  | 'refund.succeeded';
-
-interface YooKassaWebhookPayload {
-  type: 'notification';
-  event: YooKassaWebhookEvent;
-  object: YooKassaPaymentObject | YooKassaRefundObject;
-}
 
 // ============================================================================
 // Payment processing logic
@@ -139,7 +32,7 @@ interface YooKassaWebhookPayload {
  */
 async function processSuccessfulPayment(
   purchaseId: string,
-  yookassaPaymentId: string,
+  externalPaymentId: string,
   log: { info: (obj: object, msg: string) => void; warn: (obj: object, msg: string) => void; error: (obj: object, msg: string) => void }
 ): Promise<{ alreadyProcessed: boolean; userId?: string; entitlementCode?: string }> {
   const purchase = await prisma.purchase.findUnique({
@@ -148,7 +41,7 @@ async function processSuccessfulPayment(
   });
 
   if (!purchase) {
-    log.warn({ purchaseId, yookassaPaymentId }, 'Purchase not found for webhook');
+    log.warn({ purchaseId, externalPaymentId }, 'Purchase not found for webhook');
     return { alreadyProcessed: false };
   }
 
@@ -170,7 +63,7 @@ async function processSuccessfulPayment(
       data: {
         status: PurchaseStatus.COMPLETED,
         paidAt: new Date(),
-        externalId: yookassaPaymentId, // Фиксируем ID платежа ЮKassa
+        externalId: externalPaymentId, // Cardlink TrsId / bill_id
       },
     });
 
@@ -229,10 +122,10 @@ async function processSuccessfulPayment(
     'Payment processed, entitlement created'
   );
 
-  // 14.5 Бейджи: начисляем бейдж 'patron' при первой оплате (fire-and-forget)
+  // Бейджи: начисляем 'patron' при первой оплате (fire-and-forget)
   awardPatronBadge(purchase.userId).catch(() => {});
 
-  // 17.2 Системные уведомления: уведомляем админа о покупке (fire-and-forget)
+  // Системные уведомления админу (fire-and-forget)
   notifyNewPurchase({
     username: purchase.user.username,
     productTitle: purchase.product.title,
@@ -248,7 +141,7 @@ async function processSuccessfulPayment(
 }
 
 /**
- * Обработка отменённого платежа
+ * Обработка отменённого/проваленного платежа
  */
 async function processFailedPayment(
   purchaseId: string,
@@ -262,48 +155,11 @@ async function processFailedPayment(
   }
 
   await prisma.purchase.update({
-    where: { id: purchaseId },
+    where: { id: purchase.id },
     data: { status: PurchaseStatus.FAILED },
   });
 
   log.info({ purchaseId }, 'Payment marked as FAILED');
-}
-
-/**
- * Обработка возврата — отзываем Entitlement
- */
-async function processRefund(
-  yookassaPaymentId: string,
-  log: { info: (obj: object, msg: string) => void; warn: (obj: object, msg: string) => void }
-): Promise<void> {
-  const purchase = await prisma.purchase.findFirst({
-    where: { externalId: yookassaPaymentId, status: PurchaseStatus.COMPLETED },
-    include: { product: true },
-  });
-
-  if (!purchase) {
-    log.warn({ yookassaPaymentId }, 'Cannot refund: completed purchase not found');
-    return;
-  }
-
-  await prisma.$transaction(async (tx) => {
-    await tx.purchase.update({
-      where: { id: purchase.id },
-      data: { status: PurchaseStatus.REFUNDED },
-    });
-
-    await tx.entitlement.updateMany({
-      where: {
-        userId: purchase.userId,
-        code: purchase.product.entitlementCode,
-        sourceId: purchase.id,
-        revokedAt: null,
-      },
-      data: { revokedAt: new Date() },
-    });
-  });
-
-  log.info({ purchaseId: purchase.id, yookassaPaymentId }, 'Refund processed, entitlement revoked');
 }
 
 /**
@@ -383,12 +239,32 @@ const telegramUpdateSchema = z.object({
 // ============================================================================
 
 export const webhooksRoutes: FastifyPluginAsync = async (fastify) => {
+  // ── Парсер для application/x-www-form-urlencoded ──────────────────────────
+  // Cardlink postback приходит именно в этом формате.
+  // Регистрируем тип-парсер только в области этого плагина.
+  fastify.addContentTypeParser(
+    'application/x-www-form-urlencoded',
+    { parseAs: 'string' },
+    (_req, body, done) => {
+      try {
+        const params = new URLSearchParams(body as string);
+        const obj: Record<string, string> = {};
+        for (const [k, v] of params.entries()) {
+          obj[k] = v;
+        }
+        done(null, obj);
+      } catch (err) {
+        done(err as Error, undefined);
+      }
+    }
+  );
+
   /**
    * POST /webhooks/telegram/:botToken
    * Webhook endpoint для Telegram Bot updates.
    */
   fastify.post<{ Params: { botToken: string } }>(
-    '/webhooks/telegram/:botToken',
+    '/telegram/:botToken',
     async (request, reply) => {
       const { botToken } = request.params;
 
@@ -404,105 +280,77 @@ export const webhooksRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   /**
-   * POST /webhooks/yookassa
-   * 🔒 Защищённый webhook от ЮKassa.
+   * POST /webhooks/cardlink
+   * 🔒 Защищённый webhook от Cardlink (Result URL).
    *
    * Порядок проверок:
-   * 1. IP whitelist (185.71.76.0/27, 185.71.77.0/27, 77.75.153.0/25)
-   * 2. HMAC-SHA256 подпись (X-YooKassa-Signature заголовок)
-   * 3. Обработка события (payment.succeeded / payment.canceled / refund.succeeded)
-   * 4. Всегда 200 OK — чтобы ЮKassa не ретраила
+   * 1. MD5 подпись: strtoupper(md5(OutSum + ":" + InvId + ":" + apiToken))
+   * 2. Обработка события (Status: SUCCESS / FAIL / UNDERPAID / OVERPAID)
+   * 3. Всегда 200 OK — чтобы Cardlink не ретраил
+   *
+   * Формат тела: application/x-www-form-urlencoded
+   * Поля: InvId, OutSum, Commission, TrsId, Status, CurrencyIn, custom, SignatureValue, ...
    */
-  fastify.post('/webhooks/yookassa', async (request, reply) => {
+  fastify.post('/cardlink', async (request, reply) => {
     const log = fastify.log;
 
-    // ── 1. IP Whitelist ──────────────────────────────────────────────────────
-    const clientIP = getClientIP(request);
+    const payload = request.body as Partial<CardlinkPaymentPostback>;
 
-    if (!isYooKassaIP(clientIP)) {
-      log.warn({ clientIP }, 'YooKassa webhook: IP not in whitelist');
-      // Возвращаем 200 чтобы не раскрывать информацию о блокировке
-      return reply.success({ ok: true });
+    if (!payload || typeof payload !== 'object') {
+      log.warn({}, 'Cardlink webhook: empty/invalid body');
+      return reply.status(200).send('OK'); // Cardlink ждёт 200
     }
 
-    // ── 2. Signature verification ────────────────────────────────────────────
-    const webhookSecret = config.yookassa?.webhookSecret;
+    const { InvId, OutSum, Status, TrsId, SignatureValue } = payload;
 
-    if (webhookSecret) {
-      const signature = request.headers['x-yookassa-signature'] as string | undefined;
-
-      if (!signature) {
-        log.warn({ clientIP }, 'YooKassa webhook: missing signature header');
-        return reply.success({ ok: true }); // 200 чтобы не ретраила
-      }
-
-      const rawBody = JSON.stringify(request.body);
-      const isValid = verifyYooKassaSignature(rawBody, signature, webhookSecret);
-
-      if (!isValid) {
-        log.warn({ clientIP, signature: signature.slice(0, 16) + '...' }, 'YooKassa webhook: invalid signature');
-        return reply.success({ ok: true }); // 200 чтобы не ретраила
-      }
-    } else {
-      log.warn('YOOKASSA_WEBHOOK_SECRET not set — signature verification skipped (NOT safe for production)');
+    if (!InvId || !OutSum || !Status || !SignatureValue) {
+      log.warn({ payload }, 'Cardlink webhook: missing required fields');
+      return reply.status(200).send('OK');
     }
 
-    // ── 3. Parse payload ─────────────────────────────────────────────────────
-    const payload = request.body as YooKassaWebhookPayload;
-    const { event, object: paymentObj } = payload;
+    // ── 1. Проверка подписи ─────────────────────────────────────────────────
+    const isValid = verifyCardlinkSignature(OutSum, InvId, SignatureValue);
 
-    log.info({ event, objectId: paymentObj?.id }, 'YooKassa webhook received');
+    if (!isValid) {
+      log.warn(
+        { InvId, signaturePreview: SignatureValue.slice(0, 8) + '...' },
+        'Cardlink webhook: invalid signature'
+      );
+      // 200 чтобы не палить факт блокировки
+      return reply.status(200).send('OK');
+    }
 
+    log.info({ InvId, Status, TrsId, OutSum }, 'Cardlink webhook received');
+
+    // ── 2. Обработка статусов ────────────────────────────────────────────────
     try {
-      // ── 4. Handle events ─────────────────────────────────────────────────
-      if (event === 'payment.succeeded') {
-        const payment = paymentObj as YooKassaPaymentObject;
-        const purchaseId = payment.metadata?.purchaseId;
+      if (Status === 'SUCCESS' || Status === 'OVERPAID') {
+        // OVERPAID — клиент заплатил больше, считаем как успех
+        const result = await processSuccessfulPayment(InvId, TrsId || '', log);
 
-        if (!purchaseId) {
-          log.warn({ paymentId: payment.id }, 'payment.succeeded: no purchaseId in metadata');
-          return reply.success({ ok: true });
-        }
-
-        const result = await processSuccessfulPayment(purchaseId, payment.id, log);
-
-        // Уведомляем пользователя в боте (если не дубликат)
         if (!result.alreadyProcessed && result.userId && result.entitlementCode) {
           await notifyUserAfterPayment(result.userId, result.entitlementCode, log);
         }
-
-      } else if (event === 'payment.canceled') {
-        const payment = paymentObj as YooKassaPaymentObject;
-        const purchaseId = payment.metadata?.purchaseId;
-
-        if (purchaseId) {
-          await processFailedPayment(purchaseId, log);
-        } else {
-          log.warn({ paymentId: payment.id }, 'payment.canceled: no purchaseId in metadata');
-        }
-
-      } else if (event === 'refund.succeeded') {
-        const refund = paymentObj as YooKassaRefundObject;
-        await processRefund(refund.payment_id, log);
-
-      } else if (event === 'payment.waiting_for_capture') {
-        // Платёж ожидает подтверждения (для двухэтапных платежей) — пока не используем
-        log.info({ objectId: paymentObj?.id }, 'payment.waiting_for_capture: ignored (auto-capture enabled)');
-
+      } else if (Status === 'FAIL') {
+        await processFailedPayment(InvId, log);
+      } else if (Status === 'UNDERPAID') {
+        // Клиент заплатил меньше — это не успех, но и не fail.
+        // Покупка остаётся PENDING, дальше уже руками разбирать.
+        log.warn({ InvId, OutSum }, 'Cardlink webhook: UNDERPAID (manual review needed)');
       } else {
-        log.info({ event }, 'YooKassa webhook: unknown event, ignoring');
+        log.info({ Status, InvId }, 'Cardlink webhook: unknown status, ignoring');
       }
     } catch (error) {
-      // Логируем ошибку, но возвращаем 200 чтобы ЮKassa не ретраила бесконечно
-      log.error({ error, event }, 'YooKassa webhook processing error');
+      // Логируем ошибку, но возвращаем 200 чтобы Cardlink не ретраил бесконечно
+      log.error({ error, InvId, Status }, 'Cardlink webhook processing error');
     }
 
-    // Всегда 200 OK
-    return reply.success({ ok: true });
+    // Cardlink ждёт код 200 (ретраит при любом другом)
+    return reply.status(200).send('OK');
   });
 };
 
 // ============================================================================
-// Экспорт утилит для тестирования
+// Экспорт утилит для тестирования и polling fallback
 // ============================================================================
-export { processSuccessfulPayment, processFailedPayment, processRefund, isYooKassaIP };
+export { processSuccessfulPayment, processFailedPayment };

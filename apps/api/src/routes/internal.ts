@@ -1794,7 +1794,9 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
 
   /**
    * POST /internal/subscriptions/:userId/auto-renew
-   * Placeholder for auto-renewal via YooKassa
+   * Placeholder for auto-renewal via Cardlink.
+   * Note: Cardlink не поддерживает рекуррентные списания напрямую — для авто-продления
+   * нужна повторная оплата пользователем по новой платёжной ссылке.
    * Body: { entitlementId, productId, amount, currency }
    */
   fastify.post(
@@ -1810,11 +1812,10 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
 
       fastify.log.info({ userId, ...body }, 'Auto-renew requested (not yet implemented)');
 
-      // Placeholder: real implementation would create a YooKassa payment
       return reply.success({
         ok: false,
         error: 'auto_renew_not_configured',
-        message: 'Auto-renewal via YooKassa is not yet configured',
+        message: 'Auto-renewal via Cardlink is not yet configured',
       });
     }
   );

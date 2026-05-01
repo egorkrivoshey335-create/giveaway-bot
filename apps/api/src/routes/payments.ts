@@ -3,18 +3,19 @@ import { z } from 'zod';
 import { prisma, PurchaseStatus } from '@randombeast/database';
 import { requireUser, getUser } from '../plugins/auth.js';
 import { config } from '../config.js';
-import { createPayment, getPayment, isYooKassaConfigured } from '../lib/yookassa.js';
+import { createBill, getBillStatus, isCardlinkConfigured } from '../lib/cardlink.js';
 import { processSuccessfulPayment } from './webhooks.js';
 
 /**
  * Routes для платежей (создание, проверка статуса, список продуктов)
- * Webhook обработка перенесена в webhooks.ts (с IP whitelist + подписью)
+ * Платёжный провайдер: Cardlink (https://cardlink.link/).
+ * Webhook обработка — в webhooks.ts (HMAC-MD5 подпись от Cardlink).
  */
 export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * POST /payments/create
-   * Создать платёж для покупки продукта через ЮKassa.
-   * Возвращает confirmation_url для редиректа пользователя на страницу оплаты.
+   * Создать платёж для покупки продукта через Cardlink.
+   * Возвращает paymentUrl для редиректа пользователя на платёжную страницу.
    */
   fastify.post<{ Body: { productCode: string } }>(
     '/payments/create',
@@ -22,7 +23,7 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
       const user = await requireUser(request, reply);
       if (!user) return;
 
-      if (!isYooKassaConfigured()) {
+      if (!isCardlinkConfigured()) {
         return reply.status(503).send({
           ok: false,
           error: 'Платёжная система временно недоступна',
@@ -33,7 +34,6 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
         productCode: z.string().min(1),
       }).parse(request.body);
 
-      // Находим продукт
       const product = await prisma.product.findFirst({
         where: { code: body.productCode, isActive: true },
       });
@@ -42,7 +42,6 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(404).send({ ok: false, error: 'Продукт не найден' });
       }
 
-      // Проверяем нет ли уже активного доступа этого типа
       const existingEntitlement = await prisma.entitlement.findFirst({
         where: {
           userId: user.id,
@@ -64,7 +63,6 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
 
-      // Создаём запись о покупке (PENDING)
       const purchase = await prisma.purchase.create({
         data: {
           userId: user.id,
@@ -75,52 +73,40 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
         },
       });
 
-      // Формируем return URL с purchaseId для polling
-      const returnUrl = `${config.yookassa.returnUrl}?purchaseId=${purchase.id}`;
+      // Cardlink делает POST-редирект на success/fail URL.
+      // На этой странице фронт делает polling /payments/status/:purchaseId.
+      const returnUrl = `${config.cardlink.returnUrl}?purchaseId=${purchase.id}`;
 
       try {
         const amountRub = product.price / 100;
-        const payment = await createPayment({
+        const bill = await createBill({
           amount: amountRub,
-          currency: product.currency,
+          currency: product.currency as 'RUB' | 'USD' | 'EUR',
           description: product.title,
+          orderId: purchase.id,
+          custom: user.id, // userId на всякий случай в custom
+          successUrl: returnUrl,
+          failUrl: returnUrl,
           returnUrl,
-          metadata: {
-            purchaseId: purchase.id,
-            userId: user.id,
-            productCode: product.code,
-          },
-          receipt: {
-            customer: { email: 'noreply@cosmolex.ru' },
-            items: [{
-              description: product.title,
-              quantity: '1',
-              amount: { value: amountRub.toFixed(2), currency: product.currency },
-              vat_code: 1,
-              payment_subject: 'service',
-              payment_mode: 'full_payment',
-              measure: 'piece',
-            }],
-          },
+          name: product.title,
         });
 
-        // Сохраняем ID платежа ЮKassa для дальнейшего polling
         await prisma.purchase.update({
           where: { id: purchase.id },
-          data: { externalId: payment.id },
+          data: { externalId: bill.bill_id },
         });
 
         fastify.log.info(
-          { userId: user.id, purchaseId: purchase.id, paymentId: payment.id, productCode: product.code },
-          'Payment created'
+          { userId: user.id, purchaseId: purchase.id, billId: bill.bill_id, productCode: product.code },
+          'Cardlink bill created'
         );
 
         return reply.success({
-          paymentUrl: payment.confirmation?.confirmation_url,
+          paymentUrl: bill.link_page_url,
           purchaseId: purchase.id,
         });
       } catch (error) {
-        fastify.log.error({ error, purchaseId: purchase.id }, 'Failed to create payment');
+        fastify.log.error({ error, purchaseId: purchase.id }, 'Failed to create Cardlink bill');
 
         await prisma.purchase.update({
           where: { id: purchase.id },
@@ -134,8 +120,8 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
 
   /**
    * GET /payments/status/:purchaseId
-   * Проверить статус покупки (для polling после возврата с ЮKassa).
-   * Если PENDING и есть externalId — запрашивает статус у ЮKassa.
+   * Проверить статус покупки (для polling после возврата с платёжной страницы).
+   * Если PENDING и есть externalId — запрашивает статус у Cardlink (fallback).
    */
   fastify.get<{ Params: { purchaseId: string } }>(
     '/payments/status/:purchaseId',
@@ -155,15 +141,15 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(404).send({ ok: false, error: 'Покупка не найдена' });
       }
 
-      // Если PENDING — проверяем в ЮKassa напрямую (polling fallback)
+      // Если PENDING — спрашиваем Cardlink напрямую
       if (purchase.status === PurchaseStatus.PENDING && purchase.externalId) {
         try {
-          const payment = await getPayment(purchase.externalId);
+          const bill = await getBillStatus(purchase.externalId);
 
-          if (payment.status === 'succeeded') {
+          if (bill.status === 'SUCCESS') {
             await processSuccessfulPayment(purchaseId, purchase.externalId, fastify.log);
             return reply.success({ status: 'COMPLETED', productTitle: purchase.product.title });
-          } else if (payment.status === 'canceled') {
+          } else if (bill.status === 'FAIL') {
             await prisma.purchase.update({
               where: { id: purchase.id },
               data: { status: PurchaseStatus.FAILED },
@@ -171,7 +157,7 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
             return reply.success({ status: 'FAILED', productTitle: purchase.product.title });
           }
         } catch (error) {
-          fastify.log.error({ error, purchaseId }, 'Failed to check payment status from YooKassa');
+          fastify.log.error({ error, purchaseId }, 'Failed to check Cardlink bill status');
         }
       }
 

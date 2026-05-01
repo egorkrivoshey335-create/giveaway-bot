@@ -24,11 +24,10 @@ const envSchema = z.object({
   COOKIE_DOMAIN: z.string().optional(),
   INTERNAL_API_TOKEN: z.string().optional(),
   API_URL: z.string().optional(),
-  // YooKassa
-  YOOKASSA_SHOP_ID: z.string().optional(),
-  YOOKASSA_SECRET_KEY: z.string().optional(),
-  YOOKASSA_WEBHOOK_SECRET: z.string().optional(),
-  YOOKASSA_RETURN_URL: z.string().optional(),
+  // Cardlink (платёжный сервис, заменил ЮKassa)
+  CARDLINK_API_TOKEN: z.string().optional(),
+  CARDLINK_SHOP_ID: z.string().optional(),
+  CARDLINK_RETURN_URL: z.string().optional(),
   WEBAPP_URL: z.string().optional(),
   SITE_URL: z.string().optional(),
   ADMIN_CHAT_ID: z.string().optional(), // Telegram chat/channel ID for admin notifications
@@ -91,13 +90,13 @@ export const config = {
   // API URL для внутренних вызовов
   apiUrl: env.API_URL || 'http://localhost:4000',
   
-  // YooKassa
-  yookassa: {
-    shopId: env.YOOKASSA_SHOP_ID,
-    secretKey: env.YOOKASSA_SECRET_KEY,
-    // Отдельный секрет для верификации подписи webhook (настраивается в ЮKassa dashboard)
-    webhookSecret: env.YOOKASSA_WEBHOOK_SECRET,
-    returnUrl: env.YOOKASSA_RETURN_URL || (env.WEBAPP_URL ? env.WEBAPP_URL + '/payments/return' : 'http://localhost:3000/payments/return'),
+  // Cardlink (платёжный сервис)
+  // Подпись postback вычисляется: strtoupper(md5(OutSum + ":" + InvId + ":" + apiToken))
+  // т.е. apiToken = и токен авторизации, и секрет для подписи (отдельного secret'а нет).
+  cardlink: {
+    apiToken: env.CARDLINK_API_TOKEN,
+    shopId: env.CARDLINK_SHOP_ID,
+    returnUrl: env.CARDLINK_RETURN_URL || (env.WEBAPP_URL ? env.WEBAPP_URL + '/payments/return' : 'http://localhost:3000/payments/return'),
   },
   
   // Web App URL

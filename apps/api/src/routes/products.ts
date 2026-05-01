@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { prisma, PurchaseStatus } from '@randombeast/database';
 import { requireUser } from '../plugins/auth.js';
-import { createPayment, isYooKassaConfigured } from '../lib/yookassa.js';
+import { createBill, isCardlinkConfigured } from '../lib/cardlink.js';
 import { config } from '../config.js';
 
 /**
@@ -185,7 +185,7 @@ export const productsRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ ok: false, error: 'newProductCode required' });
       }
 
-      if (!isYooKassaConfigured()) {
+      if (!isCardlinkConfigured()) {
         return reply.status(503).send({ ok: false, error: 'Платёжная система временно недоступна' });
       }
 
@@ -239,28 +239,28 @@ export const productsRoutes: FastifyPluginAsync = async (fastify) => {
         },
       });
 
-      const returnUrl = `${config.yookassa.returnUrl}?purchaseId=${purchase.id}`;
+      const returnUrl = `${config.cardlink.returnUrl}?purchaseId=${purchase.id}`;
 
       try {
-        const payment = await createPayment({
+        const bill = await createBill({
           amount: newProduct.price / 100,
-          currency: newProduct.currency,
+          currency: newProduct.currency as 'RUB' | 'USD' | 'EUR',
           description: `${newTierPriority > currentTierPriority ? 'Апгрейд' : 'Смена плана'}: ${newProduct.title}`,
+          orderId: purchase.id,
+          custom: user.id,
+          successUrl: returnUrl,
+          failUrl: returnUrl,
           returnUrl,
-          metadata: {
-            purchaseId: purchase.id,
-            userId: user.id,
-            productCode: newProduct.code,
-          },
+          name: newProduct.title,
         });
 
         await prisma.purchase.update({
           where: { id: purchase.id },
-          data: { externalId: payment.id },
+          data: { externalId: bill.bill_id },
         });
 
         return reply.success({
-          paymentUrl: payment.confirmation?.confirmation_url,
+          paymentUrl: bill.link_page_url,
           purchaseId: purchase.id,
           action: newTierPriority > currentTierPriority ? 'upgrade' : 'downgrade',
         });
