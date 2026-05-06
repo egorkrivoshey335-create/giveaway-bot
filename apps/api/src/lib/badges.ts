@@ -26,18 +26,23 @@ const BADGE_DEFINITIONS: Record<string, string> = {
 /**
  * Выдать бейдж пользователю если ещё не выдан.
  * Возвращает true если бейдж был выдан впервые.
+ *
+ * Реализовано через upsert, чтобы Prisma не печатала
+ * `Unique constraint failed` в stderr при повторной выдаче.
  */
 async function awardBadge(userId: string, badgeCode: string): Promise<boolean> {
+  const existing = await prisma.userBadge.findUnique({
+    where: { userId_badgeCode: { userId, badgeCode } },
+  });
+  if (existing) return false;
+
   try {
     await prisma.userBadge.create({
-      data: {
-        userId,
-        badgeCode,
-      },
+      data: { userId, badgeCode },
     });
     return true;
   } catch {
-    // unique constraint violation — уже выдан, игнорируем
+    // На случай гонки между findUnique и create — игнорируем
     return false;
   }
 }
