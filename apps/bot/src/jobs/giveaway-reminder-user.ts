@@ -97,9 +97,22 @@ export const giveawayReminderUserWorker = new Worker<GiveawayReminderUserData>(
       log.info({ reminderId, telegramUserId }, 'User reminder sent successfully');
       return { success: true };
     } catch (error: any) {
-      if (error.error_code === 403) {
-        log.warn({ telegramUserId }, 'User blocked bot, skipping reminder');
-        // Still mark as sent so we don't retry
+      // Безнадёжные ошибки Telegram — юзеру невозможно доставить сообщение.
+      // Помечаем как отправленное, чтобы воркер не пытался ретраить бесконечно.
+      //   403 — bot was blocked / user is deactivated
+      //   400 — chat not found (юзер не нажал /start у бота)
+      //   400 — user is deactivated / USER_DEACTIVATED
+      const errorCode = error?.error_code as number | undefined;
+      const description = String(error?.description || error?.message || '');
+      const isUnrecoverable =
+        errorCode === 403 ||
+        (errorCode === 400 && /chat not found|user is deactivated|user_deactivated|bot can'?t initiate conversation/i.test(description));
+
+      if (isUnrecoverable) {
+        log.warn(
+          { telegramUserId, errorCode, description },
+          'Unrecoverable Telegram error — marking reminder as sent without retry'
+        );
         await fetch(
           `${config.internalApiUrl}/internal/giveaway-reminders/${reminderId}/mark-sent`,
           {
@@ -107,8 +120,9 @@ export const giveawayReminderUserWorker = new Worker<GiveawayReminderUserData>(
             headers: { 'X-Internal-Token': config.internalApiToken },
           }
         ).catch(() => {});
-        return { success: true, skipped: 'user_blocked' };
+        return { success: true, skipped: `tg_${errorCode}` };
       }
+
       log.error({ error, reminderId }, 'Failed to send user reminder');
       throw error;
     }
