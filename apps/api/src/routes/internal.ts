@@ -2045,16 +2045,21 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
 
   /**
    * POST /internal/giveaway-reminders/:id/mark-sent
-   * Marks a reminder as sent
+   * Marks a reminder as sent (idempotent — safe to call multiple times,
+   * does not throw if reminder was already deleted/marked).
    */
   fastify.post('/giveaway-reminders/:id/mark-sent', async (request, reply) => {
     const { id } = request.params as { id: string };
 
-    await prisma.giveawayReminder.update({
-      where: { id },
-      data: { sentAt: new Date() },
-    });
-
-    return reply.success({ ok: true });
+    try {
+      await prisma.giveawayReminder.updateMany({
+        where: { id, sentAt: null },
+        data: { sentAt: new Date() },
+      });
+      return reply.success({ ok: true });
+    } catch (err) {
+      request.log.error({ err, reminderId: id }, 'Failed to mark reminder as sent');
+      return reply.status(500).send({ ok: false, error: 'mark_sent_failed' });
+    }
   });
 };

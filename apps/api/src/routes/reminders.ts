@@ -49,13 +49,16 @@ export const remindersRoutes: FastifyPluginAsync = async (fastify) => {
         remindAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
       }
 
-      // Upsert — обновляем если уже есть напоминание
+      // Upsert — если запись уже есть, НЕ сбрасываем sentAt в null:
+      // это создавало риск повторной отправки уже доставленного напоминания.
+      // Если юзер хочет «переподписаться» — он должен сначала отписаться (DELETE),
+      // что мы и делаем в UI через toggle.
       try {
         const reminder = await prisma.giveawayReminder.upsert({
           where: {
             giveawayId_userId: { giveawayId, userId: user.id },
           },
-          update: { remindAt, sentAt: null },
+          update: { remindAt },
           create: {
             giveawayId,
             userId: user.id,

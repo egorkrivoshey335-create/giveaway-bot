@@ -50,8 +50,49 @@ export const giveawayReminderUserWorker = new Worker<GiveawayReminderUserData>(
 
     log.info({ reminderId, giveawayId, telegramUserId }, 'Sending user giveaway reminder');
 
+    const markReminderSent = async (reason: string) => {
+      try {
+        const res = await fetch(
+          `${config.internalApiUrl}/internal/giveaway-reminders/${reminderId}/mark-sent`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Internal-Token': config.internalApiToken,
+            },
+          }
+        );
+        if (!res.ok) {
+          const body = await res.text().catch(() => '');
+          log.error(
+            { reminderId, status: res.status, body, reason },
+            'mark-sent returned non-2xx — reminder will be re-picked on next tick (bug)'
+          );
+        } else {
+          log.info({ reminderId, reason }, 'Reminder marked as sent');
+        }
+      } catch (err) {
+        log.error({ err, reminderId, reason }, 'Failed to call mark-sent endpoint (network error)');
+      }
+    };
+
     try {
       const startDate = giveawayStartAt ? new Date(giveawayStartAt) : null;
+      const minutesSinceStart = startDate
+        ? Math.round((Date.now() - startDate.getTime()) / (1000 * 60))
+        : null;
+
+      // Если розыгрыш стартовал более 30 минут назад — поздно напоминать, просто закрываем.
+      // Это защита от ситуаций, когда воркер по какой-то причине отстал от расписания.
+      if (minutesSinceStart !== null && minutesSinceStart > 30) {
+        log.info(
+          { reminderId, telegramUserId, minutesSinceStart },
+          'Giveaway already started long ago — skipping reminder, marking as sent'
+        );
+        await markReminderSent('too_late');
+        return { success: true, skipped: 'too_late' };
+      }
+
       const minutesLeft = startDate
         ? Math.round((startDate.getTime() - Date.now()) / (1000 * 60))
         : null;
@@ -80,19 +121,9 @@ export const giveawayReminderUserWorker = new Worker<GiveawayReminderUserData>(
         ),
       });
 
-      // Mark reminder as sent in the API
-      await fetch(
-        `${config.internalApiUrl}/internal/giveaway-reminders/${reminderId}/mark-sent`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Internal-Token': config.internalApiToken,
-          },
-        }
-      ).catch((err) =>
-        log.warn({ err, reminderId }, 'Failed to mark reminder as sent — will not retry notification')
-      );
+      // КРИТИЧНО: помечаем как отправленное СРАЗУ после успешной отправки в Telegram.
+      // Если этот шаг провалится — на следующем тике (15 мин) пользователю придёт дубликат.
+      await markReminderSent('sent');
 
       log.info({ reminderId, telegramUserId }, 'User reminder sent successfully');
       return { success: true };
@@ -113,13 +144,7 @@ export const giveawayReminderUserWorker = new Worker<GiveawayReminderUserData>(
           { telegramUserId, errorCode, description },
           'Unrecoverable Telegram error — marking reminder as sent without retry'
         );
-        await fetch(
-          `${config.internalApiUrl}/internal/giveaway-reminders/${reminderId}/mark-sent`,
-          {
-            method: 'POST',
-            headers: { 'X-Internal-Token': config.internalApiToken },
-          }
-        ).catch(() => {});
+        await markReminderSent(`tg_${errorCode}`);
         return { success: true, skipped: `tg_${errorCode}` };
       }
 
