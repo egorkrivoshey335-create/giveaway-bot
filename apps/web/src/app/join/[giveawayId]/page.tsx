@@ -605,25 +605,48 @@ export default function JoinGiveawayPage() {
 
   // Render Turnstile widget when captcha screen is shown and captchaMode is ALL
   const renderTurnstile = useCallback(() => {
-    if (!turnstileSiteKey || !turnstileContainerRef.current || turnstileWidgetId.current) return;
     const w = window as any;
+    // eslint-disable-next-line no-console
+    console.log('[Turnstile DEBUG] renderTurnstile called', {
+      hasSiteKey: !!turnstileSiteKey,
+      siteKeyLen: turnstileSiteKey.length,
+      hasContainer: !!turnstileContainerRef.current,
+      alreadyRendered: !!turnstileWidgetId.current,
+      hasTurnstileGlobal: !!w.turnstile,
+    });
+    setCaptchaError(`DBG: key=${turnstileSiteKey.slice(0, 8)}… container=${!!turnstileContainerRef.current} global=${!!w.turnstile} ready=${turnstileReady}`);
+
+    if (!turnstileSiteKey || !turnstileContainerRef.current || turnstileWidgetId.current) return;
     if (!w.turnstile) return;
 
-    turnstileWidgetId.current = w.turnstile.render(turnstileContainerRef.current, {
-      sitekey: turnstileSiteKey,
-      theme: 'light',
-      callback: (token: string) => {
-        setTurnstileToken(token);
-      },
-      'expired-callback': () => {
-        setTurnstileToken(null);
-      },
-      'error-callback': () => {
-        setTurnstileToken(null);
-        turnstileWidgetId.current = null;
-      },
-    });
-  }, [turnstileSiteKey]);
+    try {
+      turnstileWidgetId.current = w.turnstile.render(turnstileContainerRef.current, {
+        sitekey: turnstileSiteKey,
+        theme: 'light',
+        callback: (token: string) => {
+          setTurnstileToken(token);
+          setCaptchaError('DBG: токен получен ✅');
+        },
+        'expired-callback': () => {
+          setTurnstileToken(null);
+          setCaptchaError('DBG: токен истёк');
+        },
+        'error-callback': (errorCode: unknown) => {
+          // eslint-disable-next-line no-console
+          console.error('[Turnstile DEBUG] error-callback', errorCode);
+          setTurnstileToken(null);
+          turnstileWidgetId.current = null;
+          setCaptchaError(`DBG: Cloudflare error = ${JSON.stringify(errorCode)}`);
+        },
+      });
+      // eslint-disable-next-line no-console
+      console.log('[Turnstile DEBUG] render() returned id:', turnstileWidgetId.current);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[Turnstile DEBUG] render() threw:', err);
+      setCaptchaError(`DBG: render threw: ${String(err)}`);
+    }
+  }, [turnstileSiteKey, turnstileReady]);
 
   useEffect(() => {
     if (screen === 'captcha' && giveaway?.conditions.captchaMode === 'ALL' && turnstileSiteKey && turnstileReady) {
@@ -1033,13 +1056,33 @@ export default function JoinGiveawayPage() {
   if (screen === 'captcha') {
     const showTurnstile = giveaway?.conditions.captchaMode === 'ALL' && !!turnstileSiteKey;
     const canSubmit = !!captchaAnswer && (!showTurnstile || !!turnstileToken);
+    const w = typeof window !== 'undefined' ? (window as any) : {};
 
     return (
       <main className="min-h-screen p-4">
+        {/* TEMP DEBUG OVERLAY — удалить после диагностики */}
+        <div className="fixed top-0 left-0 right-0 z-50 bg-black/90 text-white text-[10px] p-2 font-mono leading-tight">
+          captchaMode={String(giveaway?.conditions.captchaMode)} | siteKey={turnstileSiteKey ? `${turnstileSiteKey.slice(0,10)}…(${turnstileSiteKey.length})` : 'EMPTY'} | showTurnstile={String(showTurnstile)} | ready={String(turnstileReady)} | hasGlobal={String(!!w.turnstile)} | widgetId={String(turnstileWidgetId.current)} | token={turnstileToken ? `${turnstileToken.slice(0,12)}…` : 'null'}
+        </div>
         {showTurnstile && (
           <Script
             src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
-            onReady={() => setTurnstileReady(true)}
+            strategy="afterInteractive"
+            onLoad={() => {
+              // eslint-disable-next-line no-console
+              console.log('[Turnstile DEBUG] Script onLoad');
+              setTurnstileReady(true);
+            }}
+            onReady={() => {
+              // eslint-disable-next-line no-console
+              console.log('[Turnstile DEBUG] Script onReady');
+              setTurnstileReady(true);
+            }}
+            onError={(e) => {
+              // eslint-disable-next-line no-console
+              console.error('[Turnstile DEBUG] Script onError', e);
+              setCaptchaError(`DBG: Script load error: ${String(e)}`);
+            }}
           />
         )}
         <div className="max-w-md mx-auto animate-slideIn">
